@@ -1048,7 +1048,7 @@ function pageBeranda(){
             const dt = fmtDateID(k.tanggal);
             return `<div class="activity-item">
               <div class="activity-date"><div class="d">${dt.d}</div><div class="m">${dt.m}</div></div>
-              <div class="activity-body"><h4>${k.judul}</h4><p>${k.desc}</p></div>
+              <div class="activity-body"><h4>${k.judul}</h4><p>${k.deskripsi||k.desc||""}</p></div>
             </div>`;
           }).join("")}
           <button class="btn btn-blue btn-sm" style="margin-top:12px" onclick="nav('kegiatan')">Lihat semua kegiatan →</button>
@@ -1658,7 +1658,7 @@ async function submitPinjaman(e){
 async function submitKegiatan(e){
   e.preventDefault();
   const f = e.target;
-  const data = { tanggal:f.tanggal.value, judul:f.judul.value, desc:f.desc.value,
+  const data = { tanggal:f.tanggal.value, judul:f.judul.value, deskripsi:f.desc.value,
     foto1: kegiatanFotos[0]||null, foto2: kegiatanFotos[1]||null, foto3: kegiatanFotos[2]||null };
   if (editKegiatanId){
     if (IS_LIVE && sb){
@@ -2256,7 +2256,7 @@ function renderDaftarKegiatan(){
   const rows = kegiatanRows().filter(k=>k.id);
   if (!rows.length) return '<p style="color:var(--muted);font-size:13px">Belum ada kegiatan yang bisa diedit/dihapus. Kegiatan bawaan tidak dapat diubah.</p>';
   return '<div class="table-wrap"><table style="font-size:12px"><thead><tr><th>Tgl</th><th>Judul</th><th>Deskripsi</th><th></th></tr></thead><tbody>'+
-    rows.map(k=>'<tr><td>'+fmtTgl(k.tanggal)+'</td><td>'+(k.judul||'')+'</td><td style="max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(k.desc||'').slice(0,80)+'</td><td><button class="btn btn-primary btn-sm" onclick="editKegiatan('+k.id+')">✏ Edit</button> <button class="btn btn-del btn-sm" title="Hapus" onclick="deleteKegiatan('+k.id+')">🗑</button></td></tr>').join('')+
+    rows.map(k=>'<tr><td>'+fmtTgl(k.tanggal)+'</td><td>'+(k.judul||'')+'</td><td style="max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(k.deskripsi||k.desc||'').slice(0,80)+'</td><td><button class="btn btn-primary btn-sm" onclick="editKegiatan('+k.id+')">✏ Edit</button> <button class="btn btn-del btn-sm" title="Hapus" onclick="deleteKegiatan('+k.id+')">🗑</button></td></tr>').join('')+
     '</tbody></table></div>';
 }
 function editKegiatan(id){
@@ -2270,7 +2270,7 @@ function editKegiatan(id){
   const tgl = k.tanggal ? String(k.tanggal).slice(0,10) : "";
   setV($("kg_tanggal"), tgl);
   setV($("kg_judul"), k.judul||"");
-  setV($("kg_desc"), k.desc||"");
+  setV($("kg_desc"), k.deskripsi||k.desc||"");
   kegiatanFotos = [k.foto1||null, k.foto2||null, k.foto3||null];
   ["kgFotoImg1","kgFotoImg2","kgFotoImg3"].forEach((idEl,i)=>{ const im=$(idEl); if(im){ if(kegiatanFotos[i]){ im.src=kegiatanFotos[i]; im.style.display="block"; } else { im.style.display="none"; im.src=""; } } });
   const kgSub=$("kgSubmitBtn"); if(kgSub) kgSub.textContent="💾 Simpan Perubahan";
@@ -2321,7 +2321,7 @@ function pageKegiatan(){
             <div class="activity-date"><div class="d">${dt.d}</div><div class="m">${dt.m}</div></div>
             <div class="activity-body">
               <h4>${k.judul}</h4>
-              <p>${k.desc}</p>
+              <p>${k.deskripsi||k.desc||""}</p>
               ${fotos.length?`<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">${fotos.map(f=>`<img src="${f}" style="width:92px;height:92px;border-radius:8px;object-fit:cover;border:1px solid var(--border);cursor:pointer" onclick="openLightbox(this.src)">`).join("")}</div>`:""}
               <p style="font-size:11px;color:var(--muted);margin-top:4px">${dt.full}</p>
               ${k.id && canInput ? `<div style="margin-top:6px"><button class="btn btn-primary btn-sm" onclick="editKegiatan(${k.id})">✏ Edit</button> <button class="btn btn-del btn-sm" onclick="deleteKegiatan(${k.id})">🗑 Hapus</button></div>` : ""}
