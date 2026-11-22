@@ -302,6 +302,9 @@ footer a:hover{color:var(--accent)}
       <div style="margin-top:12px;text-align:center;font-size:13px" id="toggleSignup">
         Belum punya akun? <a href="#" onclick="toggleSignupMode(true);return false" style="font-weight:600">Daftar baru</a>
       </div>
+      <div style="margin-top:8px;text-align:center;font-size:13px" id="lupaPassLink">
+        <a href="#" onclick="lupaPassword();return false" style="font-weight:600">Lupa kata sandi?</a>
+      </div>
       <div id="demoBox" style="margin-top:16px;padding:12px;background:var(--light);border-radius:8px;font-size:12px;color:var(--muted)">
         <strong>Akun Demo (mode offline):</strong><br>
         Anggota: anggota@demo.id · Pengurus: pengurus@demo.id<br>
@@ -344,6 +347,20 @@ footer a:hover{color:var(--accent)}
         <button class="btn btn-success" style="flex:1" onclick="saveUser()">Simpan Perubahan</button>
       </div>
       <p style="font-size:12px;color:var(--muted);margin-top:12px">Peran menentukan menu &amp; hak akses pengguna. Perubahan langsung tersimpan ke tabel <code>profiles</code> Supabase.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Recovery Modal (reset kata sandi dari email) -->
+<div class="modal-overlay" id="recoveryModal">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header"><h3>🔑 Setel Kata Sandi Baru</h3></div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Masukkan kata sandi baru untuk akun Anda.</p>
+      <div class="form-group"><label>Sandi Baru</label><input type="password" id="rcPass1" placeholder="min. 6 karakter"></div>
+      <div class="form-group"><label>Ulangi Sandi</label><input type="password" id="rcPass2" placeholder="ulangi sandi baru"></div>
+      <div id="rcError" style="color:var(--danger);font-size:13px;margin-bottom:8px"></div>
+      <button class="btn btn-primary" style="width:100%" onclick="submitRecovery()">Setel Sandi Baru</button>
     </div>
   </div>
 </div>
@@ -467,6 +484,11 @@ const IS_LIVE = (SUPABASE_URL.startsWith("http") && !SUPABASE_URL.includes("GANT
 let sb = null;
 if (IS_LIVE) {
   sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  sb.auth.onAuthStateChange((event, session) => {
+    if (event === "PASSWORD_RECOVERY" && session){
+      const m = $("recoveryModal"); if (m) m.classList.add("show");
+    }
+  });
 }
 
 /* ============================================================
@@ -736,6 +758,7 @@ function toggleSignupMode(signup){
     ? 'Sudah punya akun? <a href="#" onclick="toggleSignupMode(false);return false" style="font-weight:600">Masuk</a>'
     : 'Belum punya akun? <a href="#" onclick="toggleSignupMode(true);return false" style="font-weight:600">Daftar baru</a>';
   $("demoBox").style.display = isSignup ? "none" : "";
+  const lp = $("lupaPassLink"); if (lp) lp.style.display = isSignup ? "none" : "";
   $("loginError").textContent = "";
   if (!isSignup){ signupFotoData = null; const pv = $("loginFotoPreview"); if (pv){ pv.style.display="none"; pv.src=""; } const fi = $("loginFoto"); if (fi) fi.value=""; }
 }
@@ -814,6 +837,11 @@ async function login(){
       if (error) throw error;
       // fetch profile
       const { data: prof } = await sb.from("profiles").select("*").eq("id", data.user.id).single();
+      if (!prof){
+        await sb.auth.signOut();
+        $("loginError").textContent = "Akun Anda tidak ditemukan dalam sistem (mungkin telah dihapus oleh admin). Hubungi admin.";
+        return;
+      }
       currentUser = profToUser(prof, { id: data.user.id, email });
       postLogin();
     } catch (err) {
@@ -1581,7 +1609,7 @@ function pageAdmin(){
                   <td>${u.anggota_id||'<span style="color:var(--muted)">-</span>'}</td>
                   <td><span class="badge badge-${u.role}">${u.role}</span></td>
                   <td>${stBadge}</td>
-                  <td style="white-space:nowrap">${ap}<button class="btn btn-blue btn-sm" onclick="editUser('${u.id}')">Edit</button></td>
+                  <td style="white-space:nowrap">${ap}<button class="btn btn-blue btn-sm" onclick="editUser('${u.id}')">Edit</button> <button class="btn btn-danger btn-sm" onclick="deleteUser('${u.id}')">Hapus</button></td>
                 </tr>`;
               }).join("") : `<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">Memuat data pengguna dari Supabase…</td></tr>`}
             </tbody>
@@ -1849,6 +1877,75 @@ async function rejectUser(id){
     toast("Pendaftaran ditolak.","info");
     await loadUsers(); renderPage("admin");
   } catch(err){ toast("Gagal tolak: "+(err.message||err),"error"); }
+}
+async function deleteUser(id){
+  if (!currentUser || currentUser.role !== "admin"){ toast("Hanya admin yang dapat menghapus.","error"); return; }
+  if (id === currentUser.id){ toast("Tidak dapat menghapus akun sendiri.","error"); return; }
+  const u = liveUsers.find(x => x.id === id);
+  const nama = u ? (u.nama || u.email) : id;
+  if (!confirm('Hapus anggota sistem "'+nama+'"?\n\nProfil, data keanggotaan koperasi, dan akun login akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.')) return;
+  if (!IS_LIVE || !sb){ toast("Hapus hanya tersedia di mode LIVE.","info"); return; }
+  try {
+    let done = false;
+    try { const { error: re } = await sb.rpc("delete_system_user", { p_uid: id }); if (!re) done = true; }
+    catch(e){}
+    if (!done){
+      if (u && u.anggota_id){ await sb.from("anggota").delete().eq("id", u.anggota_id); }
+      const { error: pe } = await sb.from("profiles").delete().eq("id", id);
+      if (pe) throw pe;
+      toast("Anggota dihapus. (Jalankan migration v6 agar akun login juga terhapus sepenuhnya.)","info");
+    } else {
+      toast("Anggota sistem dihapus sepenuhnya.","success");
+    }
+    await loadUsers(); await loadAnggota(); renderPage("admin");
+  } catch(err){ toast("Gagal hapus: "+(err.message||err),"error"); }
+}
+async function changePassword(){
+  if (!currentUser){ toast("Anda belum login.","error"); return; }
+  const p1 = $("psPass1").value, p2 = $("psPass2").value;
+  if (!p1 || !p2){ toast("Isi kedua kolom sandi.","error"); return; }
+  if (p1.length < 6){ toast("Sandi minimal 6 karakter.","error"); return; }
+  if (p1 !== p2){ toast("Sandi tidak cocok.","error"); return; }
+  if (!IS_LIVE || !sb){ toast("(Demo) Ubah sandi tidak tersedia di mode offline.","info"); return; }
+  try {
+    const { error } = await sb.auth.updateUser({ password: p1 });
+    if (error) throw error;
+    $("psPass1").value=""; $("psPass2").value="";
+    toast("Kata sandi berhasil diubah. Gunakan sandi baru saat login berikutnya.","success");
+  } catch(err){ toast("Gagal ubah sandi: "+(err.message||err),"error"); }
+}
+async function lupaPassword(){
+  let email = ($("loginEmail").value || "").trim().toLowerCase();
+  if (!email){ email = (prompt("Masukkan email akun Anda untuk reset kata sandi:")||"").trim().toLowerCase(); }
+  if (!email) return;
+  if (!IS_LIVE || !sb){ toast("Reset sandi hanya tersedia di mode LIVE (terhubung Supabase).","info"); return; }
+  $("loginError").textContent = "";
+  try {
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.href });
+    if (error) throw error;
+    $("loginError").style.color = "var(--success)";
+    $("loginError").textContent = "Tautan reset kata sandi dikirim ke "+email+". Cek email Anda (termasuk folder spam).";
+    toast("Email reset sandi terkirim.","success");
+  } catch(err){
+    $("loginError").style.color = "var(--danger)";
+    $("loginError").textContent = "Gagal kirim reset: "+(err.message||err);
+  }
+}
+async function submitRecovery(){
+  const p1 = $("rcPass1").value, p2 = $("rcPass2").value;
+  const err = $("rcError"); if (err) err.textContent = "";
+  if (!p1 || !p2){ if (err) err.textContent = "Isi kedua kolom."; return; }
+  if (p1.length < 6){ if (err) err.textContent = "Sandi minimal 6 karakter."; return; }
+  if (p1 !== p2){ if (err) err.textContent = "Sandi tidak cocok."; return; }
+  if (!IS_LIVE || !sb){ if (err) err.textContent = "Mode offline."; return; }
+  try {
+    const { error } = await sb.auth.updateUser({ password: p1 });
+    if (error) throw error;
+    const m = $("recoveryModal"); if (m) m.classList.remove("show");
+    toast("Kata sandi berhasil direset. Silakan masuk dengan sandi baru.","success");
+    await sb.auth.signOut();
+    currentUser = null; updateUserUI(); openLogin();
+  } catch(e){ if (err) err.textContent = "Gagal: "+(e.message||e); }
 }
 
 /* ===== V2: Foto, Load data, Compute laporan, Cetak, CRUD anggota/pengurus, Profil Saya ===== */
@@ -2131,6 +2228,15 @@ function pageProfilSaya(){
             </div>
           </div>
         </div>
+      </div>
+      <div class="card" style="max-width:640px;margin-top:16px">
+        <h3>🔑 Ganti Kata Sandi</h3>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Sandi baru minimal 6 karakter. Berlaku untuk login berikutnya.</p>
+        <div class="form-grid">
+          <div class="form-group"><label>Sandi Baru</label><input type="password" id="psPass1" placeholder="min. 6 karakter"></div>
+          <div class="form-group"><label>Ulangi Sandi Baru</label><input type="password" id="psPass2" placeholder="ulangi sandi"></div>
+        </div>
+        <button class="btn btn-primary" onclick="changePassword()">Ubah Sandi</button>
       </div>
     </div>
   </section>`;
@@ -3026,6 +3132,11 @@ window.addEventListener("DOMContentLoaded", () => {
     sb.auth.getSession().then(async ({ data }) => {
       if (data.session){
         const { data: prof } = await sb.from("profiles").select("*").eq("id", data.session.user.id).single();
+        if (!prof){
+          await sb.auth.signOut();
+          updateUserUI(); openLogin();
+          return;
+        }
         currentUser = profToUser(prof, { id: data.session.user.id, email: data.session.user.email });
         updateUserUI();
         nav("beranda");
