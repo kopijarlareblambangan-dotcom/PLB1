@@ -230,12 +230,12 @@ footer a:hover{color:var(--accent)}
       <a href="#" data-page="visi">Visi &amp; Misi</a>
       <a href="#" data-page="struktur">Pengurus</a>
       <a href="#" data-page="usaha">Usaha</a>
-      <a href="#" data-page="anggota" data-role="anggota,pengurus,pengawas,bendahara,admin">Anggota</a>
-      <a href="#" data-page="profilsaya" data-role="anggota,pengurus,pengawas,bendahara,admin">Profil Saya</a>
-      <a href="#" data-page="laporan" data-role="anggota,pengurus,pengawas,bendahara,admin">Laporan</a>
-      <a href="#" data-page="input" data-role="bendahara,admin">Input Laporan</a>
-      <a href="#" data-page="blanko" data-role="anggota,pengurus,pengawas,bendahara,admin">Blanko Pinjaman</a>
-      <a href="#" data-page="sisaangsuran" data-role="anggota,pengurus,pengawas,bendahara,admin">Sisa Angsuran</a>
+      <a href="#" data-page="anggota" data-role="anggota,pengurus,pengawas,bendahara,sekretaris,admin">Anggota</a>
+      <a href="#" data-page="profilsaya" data-role="anggota,pengurus,pengawas,bendahara,sekretaris,admin">Profil Saya</a>
+      <a href="#" data-page="laporan" data-role="anggota,pengurus,pengawas,bendahara,sekretaris,admin">Laporan</a>
+      <a href="#" data-page="input" data-role="bendahara,sekretaris,admin">Input Laporan</a>
+      <a href="#" data-page="blanko" data-role="anggota,pengurus,pengawas,bendahara,sekretaris,admin">Blanko Pinjaman</a>
+      <a href="#" data-page="sisaangsuran" data-role="anggota,pengurus,pengawas,bendahara,sekretaris,admin">Sisa Angsuran</a>
       <a href="#" data-page="kegiatan">Kegiatan</a>
       <a href="#" data-page="admin" data-role="admin">Admin</a>
     </nav>
@@ -374,6 +374,7 @@ footer a:hover{color:var(--accent)}
           <option value="anggota">Anggota</option>
           <option value="pengawas">Pengawas</option>
           <option value="pengurus">Pengurus</option>
+          <option value="sekretaris">Sekretaris</option>
           <option value="bendahara">Bendahara</option>
           <option value="admin">Admin</option>
         </select>
@@ -713,6 +714,7 @@ const DEMO_USERS = {
   "anggota@demo.id":{password:"koperasi123", role:"anggota", nama:"Anggota Demo", id:"A-006"},
   "pengurus@demo.id":{password:"koperasi123", role:"pengurus", nama:"Satriyo Handoyo", id:"A-002"},
   "pengawas@demo.id":{password:"koperasi123", role:"pengawas", nama:"Abdul Halim", id:"A-004"},
+  "sekretaris@demo.id":{password:"koperasi123", role:"sekretaris", nama:"Satriyo Handoyo", id:"A-002"},
   "bendahara@demo.id":{password:"koperasi123", role:"bendahara", nama:"Heny Amiyati", id:"A-003"},
   "admin@demo.id":{password:"koperasi123", role:"admin", nama:"Administrator", id:"ADM"}
 };
@@ -966,7 +968,7 @@ function updateUserUI(){
   $("btnLogin").classList.toggle("hidden", !!currentUser);
   $("userMenu").classList.toggle("hidden", !currentUser);
   if (currentUser){
-    const roleLabel = {admin:"Admin", bendahara:"Bendahara", pengurus:"Pengurus", pengawas:"Pengawas", anggota:"Anggota"}[currentUser.role];
+    const roleLabel = {admin:"Admin", bendahara:"Bendahara", sekretaris:"Sekretaris", pengurus:"Pengurus", pengawas:"Pengawas", anggota:"Anggota"}[currentUser.role];
     $("userInfo").innerHTML = `👋 ${currentUser.nama} <span class="badge badge-${currentUser.role}">${roleLabel}</span>` + (!IS_LIVE ? '<span class="tag-demo">DEMO</span>' : '');
   }
   // refresh nav visibility
@@ -1436,23 +1438,24 @@ function switchTab(e, id){
 
 /* ---------- Page: Input Laporan (Bendahara/Admin) ---------- */
 function pageInput(){
-  if (!currentUser || !["bendahara","admin"].includes(currentUser.role)){
-    return pageGate("Input Laporan", "Halaman ini khusus untuk Bendahara &amp; Admin.");
+  if (!currentUser || !["bendahara","admin","sekretaris"].includes(currentUser.role)){
+    return pageGate("Input Laporan", "Halaman ini khusus untuk Bendahara, Sekretaris &amp; Admin.");
   }
+  const isSek = currentUser.role === "sekretaris";
   return `
   <section class="page active">
     <div class="container">
       <h2 class="section-title">Input Laporan Keuangan</h2>
-      <p class="section-sub">Formulir input data oleh Bendahara — periode baru, transaksi, &amp; aktivitas</p>
+      <p class="section-sub">${isSek ? "Input kegiatan &amp; pengumuman koperasi oleh Sekretaris." : "Formulir input data oleh Bendahara — periode baru, transaksi, &amp; aktivitas"}</p>
       <div class="tabs">
-        <button class="tab active" onclick="switchTab(event,'in-bb')">Input Buku Besar</button>
+        ${isSek ? `` : `<button class="tab active" onclick="switchTab(event,'in-bb')">Input Buku Besar</button>
         <button class="tab" onclick="switchTab(event,'in-pinjaman')">Input Pinjaman</button>
-        <button class="tab" onclick="switchTab(event,'in-pelunasan')">Pelunasan Angsuran</button>
-        <button class="tab" onclick="switchTab(event,'in-kegiatan')">Input Kegiatan</button>
-        <button class="tab" onclick="switchTab(event,'in-lapkeu')">Lap. Keuangan Tahunan</button>
+        <button class="tab" onclick="switchTab(event,'in-pelunasan')">Pelunasan Angsuran</button>`}
+        <button class="tab ${isSek?`active`:``}" onclick="switchTab(event,'in-kegiatan')">Input Kegiatan</button>
+        ${isSek ? `` : `<button class="tab" onclick="switchTab(event,'in-lapkeu')">Lap. Keuangan Tahunan</button>`}
       </div>
 
-      <div class="tab-panel active" id="in-bb">
+      <div class="tab-panel ${isSek?``:`active`}" id="in-bb">
         <div class="card">
           <h3>Form Input Buku Besar (Standar Nasional)</h3>
           <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Input transaksi <strong>double-entry</strong> sesuai format buku besar koperasi nasional: <code>KU · KB · TGL · NB · URAIAN · KP · SUB · D · K</code>. Data tersimpan ke tabel <code>buku_besar</code> Supabase.</p>
@@ -1540,7 +1543,7 @@ function pageInput(){
         </div>
       </div>
 
-      <div class="tab-panel" id="in-kegiatan">
+      <div class="tab-panel ${isSek?`active`:``}" id="in-kegiatan">
         <div class="card">
           <h3>Form Input Kegiatan / Pengumuman</h3>
           <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Akan tampil di halaman Kegiatan &amp; Beranda.</p>
@@ -1737,11 +1740,11 @@ function renderAntrianPengajuan(){
       let aksi;
       if (st==='diajukan'){
         aksi = '<select id="apg_bulan_'+p.id+'" style="font-size:11px;padding:2px">'+optB+'</select> <select id="apg_tahun_'+p.id+'" style="font-size:11px;padding:2px">'+optT+'</select>'+
-          '<div style="margin-top:4px"><button class="btn btn-success btn-sm" onclick="approvePengajuan('+p.id+')">Setujui</button> <button class="btn btn-danger btn-sm" onclick="rejectPengajuan('+p.id+')">Tolak</button> <button class="btn btn-ghost btn-sm" title="Hapus permanen (dengan alasan)" onclick="hapusPengajuan('+p.id+')">🗑</button></div>';
+          '<div style="margin-top:4px"><button class="btn btn-success btn-sm" onclick="approvePengajuan('+p.id+')">Setujui</button> <button class="btn btn-danger btn-sm" onclick="rejectPengajuan('+p.id+')">Tolak</button> <button class="btn btn-ghost btn-sm" title="Cetak ulang blanko" onclick="cetakUlangBlanko('+p.id+')">🖨</button> <button class="btn btn-ghost btn-sm" title="Hapus permanen (dengan alasan)" onclick="hapusPengajuan('+p.id+')">🗑</button></div>';
       } else if (st==='disetujui'){
-        aksi = 'Pencairan: '+BULAN_ID[(p.bulan_disburse||1)-1]+' '+(p.tahun_disburse||'')+'<div style="margin-top:4px"><button class="btn btn-ghost btn-sm" title="Hapus permanen" onclick="hapusPengajuan('+p.id+')">🗑 Hapus</button></div>';
+        aksi = 'Pencairan: '+BULAN_ID[(p.bulan_disburse||1)-1]+' '+(p.tahun_disburse||'')+'<div style="margin-top:4px"><button class="btn btn-ghost btn-sm" title="Cetak ulang blanko" onclick="cetakUlangBlanko('+p.id+')">🖨 Cetak Ulang</button> <button class="btn btn-ghost btn-sm" title="Hapus permanen" onclick="hapusPengajuan('+p.id+')">🗑 Hapus</button></div>';
       } else {
-        aksi = (p.catatan?('Catatan: '+p.catatan):'-')+'<div style="margin-top:4px"><button class="btn btn-ghost btn-sm" title="Hapus permanen" onclick="hapusPengajuan('+p.id+')">🗑 Hapus</button></div>';
+        aksi = (p.catatan?('Catatan: '+p.catatan):'-')+'<div style="margin-top:4px"><button class="btn btn-ghost btn-sm" title="Cetak ulang blanko" onclick="cetakUlangBlanko('+p.id+')">🖨 Cetak Ulang</button> <button class="btn btn-ghost btn-sm" title="Hapus permanen" onclick="hapusPengajuan('+p.id+')">🗑 Hapus</button></div>';
       }
       return '<tr><td>'+p.id+'</td><td>'+(p.nama||'')+'<br><span style="color:var(--muted)">'+(p.anggota_id||'')+'</span></td>'+
         '<td>'+(p.jenis||'')+'</td><td>'+fmtIDR(Number(p.pokok)||0)+'</td><td>'+(p.tenor||0)+' bln</td>'+
@@ -2168,6 +2171,49 @@ function pageSisaAngsuran(){
       </div>
     </div>
   </section>`;
+}
+
+/* ===== V3.9: Cetak Ulang Blanko Pinjaman dari Antrian Pengajuan ===== */
+function cetakUlangBlanko(id){
+  const src = (IS_LIVE && livePengajuan.length) ? livePengajuan : JSON.parse(localStorage.getItem("demo_pengajuan_pinjaman")||"[]");
+  const p = src.find(x=>String(x.id)===String(id));
+  if (!p){ toast("Pengajuan tidak ditemukan.","error"); return; }
+  blankoSavedId = p.id;
+  renderPage("blanko");
+  const set = (idEl,val) => { const el = typeof idEl==="string" ? $(idEl) : idEl; if (el && val!==undefined && val!==null && val!=="") el.value = val; };
+  set("bk_nama", p.nama||"");
+  set("bk_noanggota", p.anggota_id||"");
+  set("bk_ktp", p.ktp||"");
+  set("bk_pekerjaan", p.pekerjaan||"");
+  set("bk_alamat", p.alamat||"");
+  set("bk_nip", p.nip||"");
+  set("bk_hp", p.no_hp||"");
+  set("bk_reguler", p.reguler||0);
+  set("bk_khusus", p.khusus||0);
+  set("bk_barang", p.barang||0);
+  set("bk_ket_barang", p.ket_barang||"");
+  set("bk_jasa_reg", p.jasa_reg||0);
+  set("bk_jasa_khusus", p.jasa_khusus||0);
+  set("bk_angsuran_kali", p.angsuran_kali||0);
+  set("bk_tenor", p.tenor||0);
+  set("bk_tgl_potong", p.tgl_potong||"");
+  set("bk_bulan_lunas", p.bulan_lunas||"");
+  set("bk_tahun_lunas", p.tahun_lunas||"");
+  set("bk_tempat", p.tempat||"");
+  set("bk_tanggal", p.tanggal||"");
+  const radios = document.querySelectorAll('input[name="bk_pencairan"]');
+  radios.forEach(r => { r.checked = (r.value === (p.pencairan||"cash")); });
+  set("bk_bank", p.bank||"");
+  set("bk_rekening", p.rekening||"");
+  set("bk_an", p.an||"");
+  if (typeof blankoPencairan === "function") blankoPencairan();
+  if (typeof blankoSyncTenor === "function") blankoSyncTenor();
+  if (typeof blankoHitung === "function") blankoHitung();
+  const cb = $("bkCetakBtn"); if (cb) cb.style.display = "inline-block";
+  const st = $("bkStatus");
+  if (st){ st.style.display = "block"; st.innerHTML = "📄 Cetak ulang blanko dari Pengajuan <strong>#"+p.id+"</strong> — "+(p.nama||"")+". Klik <strong>Cetak / Simpan PDF</strong> bila dialog cetak tidak muncul."; }
+  toast("Blanko diisi dari pengajuan #"+p.id+" — membuka dialog cetak.","info");
+  try { cetakBlanko(); } catch(e){ toast("Klik tombol 'Cetak / Simpan PDF' di form blanko.","info"); }
 }
 
 /* ---------- Page: Kegiatan ---------- */
