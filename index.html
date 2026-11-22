@@ -45,6 +45,8 @@ nav.main a.active{background:var(--accent);color:var(--primary-dark)}
 .btn-ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.3)}
 .btn-ghost:hover{background:rgba(255,255,255,.1)}
 .btn-danger{background:var(--danger);color:#fff}
+.btn-del{background:#dc2626;color:#fff;border:1px solid #b91c1c}
+.btn-del:hover{background:#b91c1c}
 .btn-success{background:var(--success);color:#fff}
 .btn-sm{padding:6px 10px;font-size:13px}
 .btn:disabled{opacity:.5;cursor:not-allowed}
@@ -746,6 +748,7 @@ let livePengurus = [];
 let liveLapKeu = [];
 let livePinjaman = [];
 let livePelunasan = [];
+let liveKegiatan = [];
 let laporanBulan = "";                       // "" = semua bulan
 let laporanTahun = new Date().getFullYear();
 let currentUser = null;
@@ -1024,6 +1027,7 @@ function pageBeranda(){
           <button class="btn btn-ghost" onclick="nav('profil')">Profil Koperasi</button>
         </div>
         <div class="hero-stats">
+          <div class="hero-stat"><div class="num">${anggotaRows().length}</div><div class="lbl">Anggota Sistem</div></div>
           <div class="hero-stat"><div class="num">${DEMO.profile.jumlah_anggota}</div><div class="lbl">Anggota Terdaftar</div></div>
           <div class="hero-stat"><div class="num">${fmtIDR(totalAktiva)}</div><div class="lbl">Total Aktiva (Jun 2026)</div></div>
           <div class="hero-stat"><div class="num">${fmtIDR(shu)}</div><div class="lbl">SHU Jan–Jun 2026</div></div>
@@ -1548,9 +1552,9 @@ function pageInput(){
           <h3>Form Input Kegiatan / Pengumuman</h3>
           <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Akan tampil di halaman Kegiatan &amp; Beranda.</p>
           <form onsubmit="submitKegiatan(event)">
-            <div class="form-group"><label>Tanggal</label><input type="date" name="tanggal" required></div>
-            <div class="form-group"><label>Judul</label><input type="text" name="judul" placeholder="contoh: RAT Tahunan 2026" required></div>
-            <div class="form-group"><label>Deskripsi</label><textarea name="desc" rows="3" placeholder="Ringkasan kegiatan..." required></textarea></div>
+            <div class="form-group"><label>Tanggal</label><input type="date" id="kg_tanggal" name="tanggal" required></div>
+            <div class="form-group"><label>Judul</label><input type="text" id="kg_judul" name="judul" placeholder="contoh: RAT Tahunan 2026" required></div>
+            <div class="form-group"><label>Deskripsi</label><textarea id="kg_desc" name="desc" rows="3" placeholder="Ringkasan kegiatan..." required></textarea></div>
             <div class="form-group" style="grid-column:1/-1"><label>Foto Kegiatan (maks. 3)</label>
               <div style="display:flex;gap:12px;flex-wrap:wrap">
                 ${[1,2,3].map(i=>`<div style="text-align:center">
@@ -1561,8 +1565,14 @@ function pageInput(){
               </div>
               <p style="font-size:11px;color:var(--muted);margin-top:6px">JPG/PNG, otomatis dikecilkan ke 400px. Opsional.</p>
             </div>
-            <button class="btn btn-primary" type="submit">Simpan</button>
+            <button class="btn btn-primary" id="kgSubmitBtn" type="submit">Simpan</button>
+            <button class="btn btn-ghost" id="kgCancelBtn" type="button" style="display:none" onclick="cancelEditKegiatan()">Batal Edit</button>
           </form>
+        </div>
+        <div class="card" style="margin-top:14px">
+          <h3>📝 Daftar Kegiatan (Edit / Hapus)</h3>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Klik <strong>Edit</strong> untuk mengubah kegiatan lama, atau 🗑 untuk menghapus. Kegiatan bawaan (tanpa id) tidak dapat diubah.</p>
+          ${renderDaftarKegiatan()}
         </div>
       </div>
 
@@ -1650,10 +1660,29 @@ async function submitKegiatan(e){
   const f = e.target;
   const data = { tanggal:f.tanggal.value, judul:f.judul.value, desc:f.desc.value,
     foto1: kegiatanFotos[0]||null, foto2: kegiatanFotos[1]||null, foto3: kegiatanFotos[2]||null };
-  await saveRecord("kegiatan", data, "Kegiatan");
+  if (editKegiatanId){
+    if (IS_LIVE && sb){
+      const { error } = await sb.from("kegiatan").update(data).eq("id", editKegiatanId);
+      if (error){ toast("Gagal update kegiatan: "+error.message,"error"); return; }
+      toast("Kegiatan diperbarui.","success"); await syncFromSupabase();
+    } else {
+      let arr = JSON.parse(localStorage.getItem("demo_kegiatan")||"[]");
+      const it = arr.find(x=>String(x.id)===String(editKegiatanId));
+      if (it){ Object.assign(it, data); localStorage.setItem("demo_kegiatan", JSON.stringify(arr)); }
+      toast("(Demo) Kegiatan diperbarui.","success");
+    }
+    editKegiatanId = null;
+  } else {
+    await saveRecord("kegiatan", data, "Kegiatan");
+  }
   f.reset();
   kegiatanFotos = [null,null,null];
   ["kgFotoImg1","kgFotoImg2","kgFotoImg3"].forEach(id=>{ const e2=$(id); if(e2){ e2.style.display="none"; e2.src=""; } });
+  const kgSub=$("kgSubmitBtn"); if(kgSub) kgSub.textContent="Simpan";
+  const kgCxl=$("kgCancelBtn"); if(kgCxl) kgCxl.style.display="none";
+  renderPage("input");
+  const t = document.querySelector('.tab[onclick*="in-kegiatan"]');
+  if (t) t.click();
 }
 async function saveRecord(table, data, label){
   if (IS_LIVE && sb){
@@ -1740,11 +1769,11 @@ function renderAntrianPengajuan(){
       let aksi;
       if (st==='diajukan'){
         aksi = '<select id="apg_bulan_'+p.id+'" style="font-size:11px;padding:2px">'+optB+'</select> <select id="apg_tahun_'+p.id+'" style="font-size:11px;padding:2px">'+optT+'</select>'+
-          '<div style="margin-top:4px"><button class="btn btn-success btn-sm" onclick="approvePengajuan('+p.id+')">Setujui</button> <button class="btn btn-danger btn-sm" onclick="rejectPengajuan('+p.id+')">Tolak</button> <button class="btn btn-ghost btn-sm" title="Cetak ulang blanko" onclick="cetakUlangBlanko('+p.id+')">🖨</button> <button class="btn btn-ghost btn-sm" title="Hapus permanen (dengan alasan)" onclick="hapusPengajuan('+p.id+')">🗑</button></div>';
+          '<div style="margin-top:4px"><button class="btn btn-success btn-sm" onclick="approvePengajuan('+p.id+')">Setujui</button> <button class="btn btn-danger btn-sm" onclick="rejectPengajuan('+p.id+')">Tolak</button> <button class="btn btn-ghost btn-sm" title="Cetak ulang blanko" onclick="cetakUlangBlanko('+p.id+')">🖨</button> <button class="btn btn-del btn-sm" title="Hapus permanen (dengan alasan)" onclick="hapusPengajuan('+p.id+')">🗑</button></div>';
       } else if (st==='disetujui'){
-        aksi = 'Pencairan: '+BULAN_ID[(p.bulan_disburse||1)-1]+' '+(p.tahun_disburse||'')+'<div style="margin-top:4px"><button class="btn btn-ghost btn-sm" title="Cetak ulang blanko" onclick="cetakUlangBlanko('+p.id+')">🖨 Cetak Ulang</button> <button class="btn btn-ghost btn-sm" title="Hapus permanen" onclick="hapusPengajuan('+p.id+')">🗑 Hapus</button></div>';
+        aksi = 'Pencairan: '+BULAN_ID[(p.bulan_disburse||1)-1]+' '+(p.tahun_disburse||'')+'<div style="margin-top:4px"><button class="btn btn-ghost btn-sm" title="Cetak ulang blanko" onclick="cetakUlangBlanko('+p.id+')">🖨 Cetak Ulang</button> <button class="btn btn-del btn-sm" title="Hapus permanen" onclick="hapusPengajuan('+p.id+')">🗑 Hapus</button></div>';
       } else {
-        aksi = (p.catatan?('Catatan: '+p.catatan):'-')+'<div style="margin-top:4px"><button class="btn btn-ghost btn-sm" title="Cetak ulang blanko" onclick="cetakUlangBlanko('+p.id+')">🖨 Cetak Ulang</button> <button class="btn btn-ghost btn-sm" title="Hapus permanen" onclick="hapusPengajuan('+p.id+')">🗑 Hapus</button></div>';
+        aksi = (p.catatan?('Catatan: '+p.catatan):'-')+'<div style="margin-top:4px"><button class="btn btn-ghost btn-sm" title="Cetak ulang blanko" onclick="cetakUlangBlanko('+p.id+')">🖨 Cetak Ulang</button> <button class="btn btn-del btn-sm" title="Hapus permanen" onclick="hapusPengajuan('+p.id+')">🗑 Hapus</button></div>';
       }
       return '<tr><td>'+p.id+'</td><td>'+(p.nama||'')+'<br><span style="color:var(--muted)">'+(p.anggota_id||'')+'</span></td>'+
         '<td>'+(p.jenis||'')+'</td><td>'+fmtIDR(Number(p.pokok)||0)+'</td><td>'+(p.tenor||0)+' bln</td>'+
@@ -2080,21 +2109,21 @@ function renderRiwayatBukuBesar(){
   const rows = bukuBesarRowsRaw().slice().sort((a,b)=> new Date(b.tanggal||0)-new Date(a.tanggal||0)).slice(0,30);
   if (!rows.length) return '<p style="color:var(--muted);font-size:13px">Belum ada transaksi.</p>';
   return '<div class="table-wrap"><table style="font-size:12px"><thead><tr><th>Tgl</th><th>NB</th><th>Uraian</th><th>Akun</th><th class="num">D</th><th class="num">K</th><th></th></tr></thead><tbody>'+
-    rows.map(b=>'<tr><td>'+fmtTgl(b.tanggal)+'</td><td>'+(b.no_bukti||'')+'</td><td>'+(b.uraian||'')+'</td><td>'+(b.akun||b.kp||'')+'</td><td class="num">'+fmtIDR(Number(b.debet)||0)+'</td><td class="num">'+fmtIDR(Number(b.kredit)||0)+'</td><td>'+(b.id?'<button class="btn btn-ghost btn-sm" title="Hapus" onclick="hapusBukuBesar('+b.id+')">🗑</button>':'')+'</td></tr>').join('')+
+    rows.map(b=>'<tr><td>'+fmtTgl(b.tanggal)+'</td><td>'+(b.no_bukti||'')+'</td><td>'+(b.uraian||'')+'</td><td>'+(b.akun||b.kp||'')+'</td><td class="num">'+fmtIDR(Number(b.debet)||0)+'</td><td class="num">'+fmtIDR(Number(b.kredit)||0)+'</td><td>'+(b.id?'<button class="btn btn-del btn-sm" title="Hapus" onclick="hapusBukuBesar('+b.id+')">🗑</button>':'')+'</td></tr>').join('')+
     '</tbody></table></div>';
 }
 function renderRiwayatPinjaman(){
   const rows = pinjamanRowsRaw().slice().sort((a,b)=> (Number(b.tahun)||0)-(Number(a.tahun)||0)).slice(0,30);
   if (!rows.length) return '<p style="color:var(--muted);font-size:13px">Belum ada data pinjaman.</p>';
   return '<div class="table-wrap"><table style="font-size:12px"><thead><tr><th>Bulan</th><th>Tahun</th><th>Kategori</th><th class="num">Nilai</th><th></th></tr></thead><tbody>'+
-    rows.map(p=>'<tr><td>'+(p.bulan||'')+'</td><td>'+(p.tahun||'')+'</td><td>'+(p.kategori||'')+'</td><td class="num">'+fmtIDR(Number(p.nilai)||0)+'</td><td>'+(p.id?'<button class="btn btn-ghost btn-sm" title="Hapus" onclick="hapusPinjaman('+p.id+')">🗑</button>':'')+'</td></tr>').join('')+
+    rows.map(p=>'<tr><td>'+(p.bulan||'')+'</td><td>'+(p.tahun||'')+'</td><td>'+(p.kategori||'')+'</td><td class="num">'+fmtIDR(Number(p.nilai)||0)+'</td><td>'+(p.id?'<button class="btn btn-del btn-sm" title="Hapus" onclick="hapusPinjaman('+p.id+')">🗑</button>':'')+'</td></tr>').join('')+
     '</tbody></table></div>';
 }
 function renderRiwayatPelunasan(){
   const rows = pelunasanRowsRaw().slice().sort((a,b)=> new Date(b.tanggal||0)-new Date(a.tanggal||0)).slice(0,30);
   if (!rows.length) return '<p style="color:var(--muted);font-size:13px">Belum ada pelunasan tercatat.</p>';
   return '<div class="table-wrap"><table style="font-size:12px"><thead><tr><th>Tgl</th><th>Anggota</th><th>Bulan/Thn</th><th class="num">Jumlah</th><th>Ket</th><th></th></tr></thead><tbody>'+
-    rows.map(r=>'<tr><td>'+fmtTgl(r.tanggal)+'</td><td>'+(r.nama||r.anggota_id||'')+'</td><td>'+(BULAN_ID[(Number(r.bulan)||1)-1]||'')+' '+(r.tahun||'')+'</td><td class="num">'+fmtIDR(Number(r.jumlah)||0)+'</td><td>'+(r.keterangan||'')+'</td><td>'+(r.id?'<button class="btn btn-ghost btn-sm" title="Hapus" onclick="hapusPelunasan('+r.id+')">🗑</button>':'')+'</td></tr>').join('')+
+    rows.map(r=>'<tr><td>'+fmtTgl(r.tanggal)+'</td><td>'+(r.nama||r.anggota_id||'')+'</td><td>'+(BULAN_ID[(Number(r.bulan)||1)-1]||'')+' '+(r.tahun||'')+'</td><td class="num">'+fmtIDR(Number(r.jumlah)||0)+'</td><td>'+(r.keterangan||'')+'</td><td>'+(r.id?'<button class="btn btn-del btn-sm" title="Hapus" onclick="hapusPelunasan('+r.id+')">🗑</button>':'')+'</td></tr>').join('')+
     '</tbody></table></div>';
 }
 function pelunasanPengajuanOpts(){
@@ -2216,11 +2245,68 @@ function cetakUlangBlanko(id){
   try { cetakBlanko(); } catch(e){ toast("Klik tombol 'Cetak / Simpan PDF' di form blanko.","info"); }
 }
 
+/* ===== V3.10: Edit kegiatan lama + btn-del merah + dashboard anggota sistem ===== */
+let editKegiatanId = null;
+function kegiatanRows(){
+  if (IS_LIVE) return DEMO.kegiatan || [];
+  const extra = JSON.parse(localStorage.getItem("demo_kegiatan")||"[]");
+  return [...extra, ...(DEMO.kegiatan||[])].sort((a,b)=>new Date(b.tanggal||0)-new Date(a.tanggal||0));
+}
+function renderDaftarKegiatan(){
+  const rows = kegiatanRows().filter(k=>k.id);
+  if (!rows.length) return '<p style="color:var(--muted);font-size:13px">Belum ada kegiatan yang bisa diedit/dihapus. Kegiatan bawaan tidak dapat diubah.</p>';
+  return '<div class="table-wrap"><table style="font-size:12px"><thead><tr><th>Tgl</th><th>Judul</th><th>Deskripsi</th><th></th></tr></thead><tbody>'+
+    rows.map(k=>'<tr><td>'+fmtTgl(k.tanggal)+'</td><td>'+(k.judul||'')+'</td><td style="max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(k.desc||'').slice(0,80)+'</td><td><button class="btn btn-primary btn-sm" onclick="editKegiatan('+k.id+')">✏ Edit</button> <button class="btn btn-del btn-sm" title="Hapus" onclick="deleteKegiatan('+k.id+')">🗑</button></td></tr>').join('')+
+    '</tbody></table></div>';
+}
+function editKegiatan(id){
+  const k = kegiatanRows().find(x=>String(x.id)===String(id));
+  if (!k){ toast("Kegiatan tidak ditemukan.","error"); return; }
+  editKegiatanId = id;
+  renderPage("input");
+  const t = document.querySelector('.tab[onclick*="in-kegiatan"]');
+  if (t) t.click();
+  const setV = (el,v) => { if (el && v!==undefined && v!==null) el.value = v; };
+  const tgl = k.tanggal ? String(k.tanggal).slice(0,10) : "";
+  setV($("kg_tanggal"), tgl);
+  setV($("kg_judul"), k.judul||"");
+  setV($("kg_desc"), k.desc||"");
+  kegiatanFotos = [k.foto1||null, k.foto2||null, k.foto3||null];
+  ["kgFotoImg1","kgFotoImg2","kgFotoImg3"].forEach((idEl,i)=>{ const im=$(idEl); if(im){ if(kegiatanFotos[i]){ im.src=kegiatanFotos[i]; im.style.display="block"; } else { im.style.display="none"; im.src=""; } } });
+  const kgSub=$("kgSubmitBtn"); if(kgSub) kgSub.textContent="💾 Simpan Perubahan";
+  const kgCxl=$("kgCancelBtn"); if(kgCxl) kgCxl.style.display="inline-block";
+  toast("Mengedit kegiatan: "+(k.judul||"").slice(0,40),"info");
+}
+function cancelEditKegiatan(){
+  editKegiatanId = null;
+  const f = document.querySelector('#in-kegiatan form');
+  if (f) f.reset();
+  kegiatanFotos = [null,null,null];
+  ["kgFotoImg1","kgFotoImg2","kgFotoImg3"].forEach(idEl=>{ const im=$(idEl); if(im){ im.style.display="none"; im.src=""; } });
+  const kgSub=$("kgSubmitBtn"); if(kgSub) kgSub.textContent="Simpan";
+  const kgCxl=$("kgCancelBtn"); if(kgCxl) kgCxl.style.display="none";
+}
+async function deleteKegiatan(id){
+  if (!currentUser || !["admin","bendahara","sekretaris"].includes(currentUser.role)){ toast("Hanya admin/bendahara/sekretaris.","error"); return; }
+  const k = kegiatanRows().find(x=>String(x.id)===String(id));
+  if (!k){ toast("Kegiatan tidak ditemukan.","error"); return; }
+  if (!confirm("Hapus kegiatan:\n"+(k.judul||"")+"?")) return;
+  if (IS_LIVE && sb){
+    try { const { error } = await sb.from("kegiatan").delete().eq("id", id); if (error) throw error;
+      toast("Kegiatan dihapus.","success"); await syncFromSupabase(); renderPage("kegiatan");
+    } catch(err){ toast("Gagal hapus: "+(err.message||err),"error"); }
+  } else {
+    let arr = JSON.parse(localStorage.getItem("demo_kegiatan")||"[]");
+    arr = arr.filter(x=>String(x.id)!==String(id));
+    localStorage.setItem("demo_kegiatan", JSON.stringify(arr));
+    toast("(Demo) Kegiatan dihapus.","success"); renderPage("kegiatan");
+  }
+}
+
 /* ---------- Page: Kegiatan ---------- */
 function pageKegiatan(){
-  const extra = JSON.parse(localStorage.getItem("demo_kegiatan") || "[]");
-  const all = [...extra, ...DEMO.kegiatan].sort((a,b)=>new Date(b.tanggal)-new Date(a.tanggal));
-  const canInput = currentUser && ["bendahara","admin"].includes(currentUser.role);
+  const all = kegiatanRows();
+  const canInput = currentUser && ["bendahara","admin","sekretaris"].includes(currentUser.role);
   return `
   <section class="page active">
     <div class="container">
@@ -2238,6 +2324,7 @@ function pageKegiatan(){
               <p>${k.desc}</p>
               ${fotos.length?`<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">${fotos.map(f=>`<img src="${f}" style="width:92px;height:92px;border-radius:8px;object-fit:cover;border:1px solid var(--border);cursor:pointer" onclick="openLightbox(this.src)">`).join("")}</div>`:""}
               <p style="font-size:11px;color:var(--muted);margin-top:4px">${dt.full}</p>
+              ${k.id && canInput ? `<div style="margin-top:6px"><button class="btn btn-primary btn-sm" onclick="editKegiatan(${k.id})">✏ Edit</button> <button class="btn btn-del btn-sm" onclick="deleteKegiatan(${k.id})">🗑 Hapus</button></div>` : ""}
             </div>
           </div>`;
         }).join("")}
@@ -3730,9 +3817,10 @@ async function syncFromSupabase(){
     changed = true;
   }
   // KEGIATAN (merge with demo so demo items still show)
+  liveKegiatan = kegiatan || [];
   if (kegiatan && kegiatan.length){
     const demoTitles = new Set(DEMO.kegiatan.map(k=>k.judul));
-    const live = kegiatan.map(k => ({ tanggal:k.tanggal, judul:k.judul, desc:k.deskripsi||k.desc||"", foto1:k.foto1||"", foto2:k.foto2||"", foto3:k.foto3||"" }))
+    const live = kegiatan.map(k => ({ id:k.id, tanggal:k.tanggal, judul:k.judul, desc:k.deskripsi||k.desc||"", foto1:k.foto1||"", foto2:k.foto2||"", foto3:k.foto3||"" }))
       .filter(k => !demoTitles.has(k.judul));
     DEMO.kegiatan = [...live, ...DEMO.kegiatan].sort((a,b)=>new Date(b.tanggal)-new Date(a.tanggal));
     changed = true;
