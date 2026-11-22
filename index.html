@@ -95,8 +95,10 @@ tr:hover td{background:#fef9c3}
 /* ===== Forms ===== */
 .form-group{margin-bottom:14px}
 label{display:block;font-size:13px;font-weight:600;margin-bottom:5px;color:var(--text)}
-input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:#fff}
+input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;background:var(--light);color:var(--text)}
+input[type=checkbox],input[type=radio]{width:auto;margin-right:5px}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary-light);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+input::placeholder,textarea::placeholder{color:var(--muted);opacity:1}
 .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
 .form-row{display:flex;gap:10px;flex-wrap:wrap}
 
@@ -233,6 +235,7 @@ footer a:hover{color:var(--accent)}
       <a href="#" data-page="laporan" data-role="anggota,pengurus,pengawas,bendahara,admin">Laporan</a>
       <a href="#" data-page="input" data-role="bendahara,admin">Input Laporan</a>
       <a href="#" data-page="blanko" data-role="anggota,pengurus,pengawas,bendahara,admin">Blanko Pinjaman</a>
+      <a href="#" data-page="sisaangsuran" data-role="anggota,pengurus,pengawas,bendahara,admin">Sisa Angsuran</a>
       <a href="#" data-page="kegiatan">Kegiatan</a>
       <a href="#" data-page="admin" data-role="admin">Admin</a>
     </nav>
@@ -739,6 +742,8 @@ let liveBukuBesar = [];
 let liveAnggota = [];
 let livePengurus = [];
 let liveLapKeu = [];
+let livePinjaman = [];
+let livePelunasan = [];
 let laporanBulan = "";                       // "" = semua bulan
 let laporanTahun = new Date().getFullYear();
 let currentUser = null;
@@ -985,6 +990,7 @@ function renderPage(page){
     case "anggota": html = pageAnggota(); break;
     case "laporan": html = pageLaporan(); break;
     case "input": html = pageInput(); break;
+    case "sisaangsuran": html = pageSisaAngsuran(); break;
     case "kegiatan": html = pageKegiatan(); break;
     case "admin": html = pageAdmin(); break;
     case "profilsaya": html = pageProfilSaya(); break;
@@ -1441,6 +1447,7 @@ function pageInput(){
       <div class="tabs">
         <button class="tab active" onclick="switchTab(event,'in-bb')">Input Buku Besar</button>
         <button class="tab" onclick="switchTab(event,'in-pinjaman')">Input Pinjaman</button>
+        <button class="tab" onclick="switchTab(event,'in-pelunasan')">Pelunasan Angsuran</button>
         <button class="tab" onclick="switchTab(event,'in-kegiatan')">Input Kegiatan</button>
         <button class="tab" onclick="switchTab(event,'in-lapkeu')">Lap. Keuangan Tahunan</button>
       </div>
@@ -1475,6 +1482,10 @@ function pageInput(){
             </div>
           </details>
         </div>
+        <div class="card" style="margin-top:14px">
+          <h3>🗑 Riwayat Transaksi Buku Besar (hapus data uji coba)</h3>
+          ${renderRiwayatBukuBesar()}
+        </div>
       </div>
 
       <div class="card" style="background:var(--light);border-left:4px solid var(--primary);margin-bottom:16px">
@@ -1499,6 +1510,33 @@ function pageInput(){
             </div>
             <button class="btn btn-primary" type="submit">Simpan</button>
           </form>
+        </div>
+        <div class="card" style="margin-top:14px">
+          <h3>🗑 Riwayat Pinjaman (hapus data uji coba)</h3>
+          ${renderRiwayatPinjaman()}
+        </div>
+      </div>
+
+      <div class="tab-panel" id="in-pelunasan">
+        <div class="card">
+          <h3>💵 Pelunasan Angsuran Anggota (per bulan)</h3>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Catat pelunasan/angsuran bulanan anggota yang membayar pinjaman <strong>reguler/barang</strong>. Tersimpan ke tabel <code>pelunasan_pinjaman</code> &amp; dipakai menghitung sisa angsuran di menu <strong>Sisa Angsuran</strong>.</p>
+          <form onsubmit="submitPelunasan(event)">
+            <div class="form-grid">
+              <div class="form-group"><label>Anggota</label><select name="anggota_id" required>${anggotaRows().map(a=>`<option value="${a.id}">${a.id} — ${a.nama}</option>`).join("")}</select></div>
+              <div class="form-group"><label>Pengajuan Pinjaman (yg disetujui)</label><select name="pengajuan_id" required>${pelunasanPengajuanOpts()}</select></div>
+              <div class="form-group"><label>Bulan</label><select name="bulan" required>${BULAN_ID.map((b,i)=>`<option value="${i+1}">${b}</option>`).join("")}</select></div>
+              <div class="form-group"><label>Tahun</label><input type="number" name="tahun" value="${new Date().getFullYear()}" required></div>
+              <div class="form-group"><label>Tanggal Potong</label><input type="date" name="tanggal" required></div>
+              <div class="form-group"><label>Jumlah Pelunasan (Rp)</label><input type="number" name="jumlah" placeholder="contoh: 500000" required min="0"></div>
+              <div class="form-group" style="grid-column:1/-1"><label>Keterangan</label><input type="text" name="keterangan" placeholder="opsional: angsuran ke-3, pelunasan dipercepat, dst"></div>
+            </div>
+            <button class="btn btn-primary" type="submit">Simpan Pelunasan</button>
+          </form>
+        </div>
+        <div class="card" style="margin-top:14px">
+          <h3>🗑 Riwayat Pelunasan</h3>
+          ${renderRiwayatPelunasan()}
         </div>
       </div>
 
@@ -1699,11 +1737,11 @@ function renderAntrianPengajuan(){
       let aksi;
       if (st==='diajukan'){
         aksi = '<select id="apg_bulan_'+p.id+'" style="font-size:11px;padding:2px">'+optB+'</select> <select id="apg_tahun_'+p.id+'" style="font-size:11px;padding:2px">'+optT+'</select>'+
-          '<div style="margin-top:4px"><button class="btn btn-success btn-sm" onclick="approvePengajuan('+p.id+')">Setujui</button> <button class="btn btn-danger btn-sm" onclick="rejectPengajuan('+p.id+')">Tolak</button></div>';
+          '<div style="margin-top:4px"><button class="btn btn-success btn-sm" onclick="approvePengajuan('+p.id+')">Setujui</button> <button class="btn btn-danger btn-sm" onclick="rejectPengajuan('+p.id+')">Tolak</button> <button class="btn btn-ghost btn-sm" title="Hapus permanen (dengan alasan)" onclick="hapusPengajuan('+p.id+')">🗑</button></div>';
       } else if (st==='disetujui'){
-        aksi = 'Pencairan: '+BULAN_ID[(p.bulan_disburse||1)-1]+' '+(p.tahun_disburse||'');
+        aksi = 'Pencairan: '+BULAN_ID[(p.bulan_disburse||1)-1]+' '+(p.tahun_disburse||'')+'<div style="margin-top:4px"><button class="btn btn-ghost btn-sm" title="Hapus permanen" onclick="hapusPengajuan('+p.id+')">🗑 Hapus</button></div>';
       } else {
-        aksi = (p.catatan?('Catatan: '+p.catatan):'-');
+        aksi = (p.catatan?('Catatan: '+p.catatan):'-')+'<div style="margin-top:4px"><button class="btn btn-ghost btn-sm" title="Hapus permanen" onclick="hapusPengajuan('+p.id+')">🗑 Hapus</button></div>';
       }
       return '<tr><td>'+p.id+'</td><td>'+(p.nama||'')+'<br><span style="color:var(--muted)">'+(p.anggota_id||'')+'</span></td>'+
         '<td>'+(p.jenis||'')+'</td><td>'+fmtIDR(Number(p.pokok)||0)+'</td><td>'+(p.tenor||0)+' bln</td>'+
@@ -1957,6 +1995,179 @@ function bkBuatTtd(){
     if(IS_LIVE && sb && currentUser.id){ sb.from("profiles").update({ tanda_tangan: d }).eq("id", currentUser.id).then(()=>toast("Tanda tangan disimpan ke profil.","success")).catch(()=>{}); }
     const w=$("bkTtdWrap"); if(w){ const tmp=document.createElement("div"); tmp.innerHTML=bkTtdHtml(); w.replaceWith(tmp.firstChild); }
   });
+}
+
+/* ===== V3.8: Hapus data uji coba + Pelunasan bulanan + Sisa Angsuran/Jatuh Tempo ===== */
+function bukuBesarRowsRaw(){ return (IS_LIVE && liveBukuBesar.length) ? liveBukuBesar : JSON.parse(localStorage.getItem("demo_buku_besar")||"[]"); }
+function pinjamanRowsRaw(){ return (IS_LIVE && livePinjaman.length) ? livePinjaman : JSON.parse(localStorage.getItem("demo_pinjaman")||"[]"); }
+function pelunasanRowsRaw(){ return (IS_LIVE && livePelunasan.length) ? livePelunasan : JSON.parse(localStorage.getItem("demo_pelunasan_pinjaman")||"[]"); }
+function pengajuanRowsRaw(){ return (IS_LIVE && livePengajuan.length) ? livePengajuan : JSON.parse(localStorage.getItem("demo_pengajuan_pinjaman")||"[]"); }
+function fmtTgl(d){ if(!d) return "-"; const t=new Date(d); if(isNaN(t)) return String(d); return t.toLocaleDateString("id-CA",{day:"2-digit",month:"short",year:"numeric"}); }
+
+function _alasanHapus(jenis){
+  const a = prompt("Alasan hapus "+jenis+" (WAJIB — cth: data uji coba agar tidak masuk pembukuan):");
+  if (a===null) return null;
+  if (!a.trim()){ toast("Alasan wajib diisi.","error"); return null; }
+  return a.trim();
+}
+function _staffOnly(){ return currentUser && ["admin","bendahara"].includes(currentUser.role); }
+
+async function hapusPengajuan(id){
+  if (!_staffOnly()){ toast("Hanya admin/bendahara.","error"); return; }
+  const alasan = _alasanHapus("pengajuan"); if (alasan===null) return;
+  if (!confirm("HAPUS PERMANEN pengajuan #"+id+"?\nAlasan: "+alasan+"\nData keluar dari antrian & tidak masuk pembukuan.")) return;
+  if (IS_LIVE && sb){
+    try { const { error } = await sb.from("pengajuan_pinjaman").delete().eq("id", id); if (error) throw error;
+      toast("Pengajuan dihapus. Alasan: "+alasan,"success"); await syncFromSupabase(); renderPage("input");
+    } catch(err){ toast("Gagal hapus: "+(err.message||err),"error"); }
+  } else {
+    let arr = JSON.parse(localStorage.getItem("demo_pengajuan_pinjaman")||"[]");
+    arr = arr.filter(x=>String(x.id)!==String(id));
+    localStorage.setItem("demo_pengajuan_pinjaman", JSON.stringify(arr));
+    toast("(Demo) Pengajuan dihapus. Alasan: "+alasan,"success"); renderPage("input");
+  }
+}
+async function hapusBukuBesar(id){
+  if (!_staffOnly()){ toast("Hanya admin/bendahara.","error"); return; }
+  const alasan = _alasanHapus("transaksi buku besar"); if (alasan===null) return;
+  if (!confirm("HAPUS PERMANEN transaksi #"+id+"?\nAlasan: "+alasan)) return;
+  if (IS_LIVE && sb){
+    try { const { error } = await sb.from("buku_besar").delete().eq("id", id); if (error) throw error;
+      toast("Transaksi dihapus. Alasan: "+alasan,"success"); await syncFromSupabase(); renderPage("input");
+    } catch(err){ toast("Gagal hapus: "+(err.message||err),"error"); }
+  } else {
+    let arr = JSON.parse(localStorage.getItem("demo_buku_besar")||"[]");
+    arr = arr.filter(x=>String(x.id)!==String(id));
+    localStorage.setItem("demo_buku_besar", JSON.stringify(arr));
+    toast("(Demo) Transaksi dihapus. Alasan: "+alasan,"success"); renderPage("input");
+  }
+}
+async function hapusPinjaman(id){
+  if (!_staffOnly()){ toast("Hanya admin/bendahara.","error"); return; }
+  const alasan = _alasanHapus("data pinjaman"); if (alasan===null) return;
+  if (!confirm("HAPUS PERMANEN data pinjaman #"+id+"?\nAlasan: "+alasan)) return;
+  if (IS_LIVE && sb){
+    try { const { error } = await sb.from("pinjaman").delete().eq("id", id); if (error) throw error;
+      toast("Data pinjaman dihapus. Alasan: "+alasan,"success"); await syncFromSupabase(); renderPage("input");
+    } catch(err){ toast("Gagal hapus: "+(err.message||err),"error"); }
+  } else {
+    let arr = JSON.parse(localStorage.getItem("demo_pinjaman")||"[]");
+    arr = arr.filter(x=>String(x.id)!==String(id));
+    localStorage.setItem("demo_pinjaman", JSON.stringify(arr));
+    toast("(Demo) Data pinjaman dihapus. Alasan: "+alasan,"success"); renderPage("input");
+  }
+}
+async function hapusPelunasan(id){
+  if (!_staffOnly()){ toast("Hanya admin/bendahara.","error"); return; }
+  const alasan = _alasanHapus("pelunasan"); if (alasan===null) return;
+  if (!confirm("HAPUS pelunasan #"+id+"?\nAlasan: "+alasan)) return;
+  if (IS_LIVE && sb){
+    try { const { error } = await sb.from("pelunasan_pinjaman").delete().eq("id", id); if (error) throw error;
+      toast("Pelunasan dihapus. Alasan: "+alasan,"success"); await syncFromSupabase(); renderPage("input");
+    } catch(err){ toast("Gagal hapus: "+(err.message||err),"error"); }
+  } else {
+    let arr = JSON.parse(localStorage.getItem("demo_pelunasan_pinjaman")||"[]");
+    arr = arr.filter(x=>String(x.id)!==String(id));
+    localStorage.setItem("demo_pelunasan_pinjaman", JSON.stringify(arr));
+    toast("(Demo) Pelunasan dihapus. Alasan: "+alasan,"success"); renderPage("input");
+  }
+}
+
+function renderRiwayatBukuBesar(){
+  const rows = bukuBesarRowsRaw().slice().sort((a,b)=> new Date(b.tanggal||0)-new Date(a.tanggal||0)).slice(0,30);
+  if (!rows.length) return '<p style="color:var(--muted);font-size:13px">Belum ada transaksi.</p>';
+  return '<div class="table-wrap"><table style="font-size:12px"><thead><tr><th>Tgl</th><th>NB</th><th>Uraian</th><th>Akun</th><th class="num">D</th><th class="num">K</th><th></th></tr></thead><tbody>'+
+    rows.map(b=>'<tr><td>'+fmtTgl(b.tanggal)+'</td><td>'+(b.no_bukti||'')+'</td><td>'+(b.uraian||'')+'</td><td>'+(b.akun||b.kp||'')+'</td><td class="num">'+fmtIDR(Number(b.debet)||0)+'</td><td class="num">'+fmtIDR(Number(b.kredit)||0)+'</td><td>'+(b.id?'<button class="btn btn-ghost btn-sm" title="Hapus" onclick="hapusBukuBesar('+b.id+')">🗑</button>':'')+'</td></tr>').join('')+
+    '</tbody></table></div>';
+}
+function renderRiwayatPinjaman(){
+  const rows = pinjamanRowsRaw().slice().sort((a,b)=> (Number(b.tahun)||0)-(Number(a.tahun)||0)).slice(0,30);
+  if (!rows.length) return '<p style="color:var(--muted);font-size:13px">Belum ada data pinjaman.</p>';
+  return '<div class="table-wrap"><table style="font-size:12px"><thead><tr><th>Bulan</th><th>Tahun</th><th>Kategori</th><th class="num">Nilai</th><th></th></tr></thead><tbody>'+
+    rows.map(p=>'<tr><td>'+(p.bulan||'')+'</td><td>'+(p.tahun||'')+'</td><td>'+(p.kategori||'')+'</td><td class="num">'+fmtIDR(Number(p.nilai)||0)+'</td><td>'+(p.id?'<button class="btn btn-ghost btn-sm" title="Hapus" onclick="hapusPinjaman('+p.id+')">🗑</button>':'')+'</td></tr>').join('')+
+    '</tbody></table></div>';
+}
+function renderRiwayatPelunasan(){
+  const rows = pelunasanRowsRaw().slice().sort((a,b)=> new Date(b.tanggal||0)-new Date(a.tanggal||0)).slice(0,30);
+  if (!rows.length) return '<p style="color:var(--muted);font-size:13px">Belum ada pelunasan tercatat.</p>';
+  return '<div class="table-wrap"><table style="font-size:12px"><thead><tr><th>Tgl</th><th>Anggota</th><th>Bulan/Thn</th><th class="num">Jumlah</th><th>Ket</th><th></th></tr></thead><tbody>'+
+    rows.map(r=>'<tr><td>'+fmtTgl(r.tanggal)+'</td><td>'+(r.nama||r.anggota_id||'')+'</td><td>'+(BULAN_ID[(Number(r.bulan)||1)-1]||'')+' '+(r.tahun||'')+'</td><td class="num">'+fmtIDR(Number(r.jumlah)||0)+'</td><td>'+(r.keterangan||'')+'</td><td>'+(r.id?'<button class="btn btn-ghost btn-sm" title="Hapus" onclick="hapusPelunasan('+r.id+')">🗑</button>':'')+'</td></tr>').join('')+
+    '</tbody></table></div>';
+}
+function pelunasanPengajuanOpts(){
+  const peng = pengajuanRowsRaw().filter(p=>p.status==="disetujui");
+  if (!peng.length) return '<option value="">(belum ada pengajuan disetujui)</option>';
+  return peng.map(p=>'<option value="'+p.id+'">#'+p.id+' — '+(p.nama||p.anggota_id||'?')+' · '+(p.jenis||'')+' · '+fmtIDR(Number(p.pokok)||0)+'</option>').join('');
+}
+async function submitPelunasan(e){
+  e.preventDefault();
+  const f = e.target;
+  const pengId = f.pengajuan_id.value;
+  if (!pengId){ toast("Pilih pengajuan pinjaman yang disetujui.","error"); return; }
+  const peng = pengajuanRowsRaw().find(p=>String(p.id)===String(pengId)) || {};
+  const ag = anggotaRows().find(a=>a.id===f.anggota_id.value) || {};
+  const data = {
+    pengajuan_id: Number(pengId)||null,
+    anggota_id: f.anggota_id.value,
+    nama: peng.nama || ag.nama || "",
+    bulan: Number(f.bulan.value), tahun: Number(f.tahun.value),
+    tanggal: f.tanggal.value, jumlah: Number(f.jumlah.value),
+    keterangan: f.keterangan.value || ""
+  };
+  await saveRecord("pelunasan_pinjaman", data, "Pelunasan");
+  f.reset();
+}
+
+/* --- Menu Sisa Angsuran & Jatuh Tempo --- */
+function addMonthsBulan(bulan, tahun, n){
+  const idx = (Number(bulan)||1) - 1 + (Number(n)||0);
+  const y = Number(tahun) + Math.floor(idx/12);
+  const b = ((idx % 12) + 12) % 12 + 1;
+  return BULAN_ID[b-1] + " " + y;
+}
+function _badge(st){
+  return st==='Lunas' ? '<span style="display:inline-block;padding:2px 8px;border-radius:10px;background:#16a34a;color:#fff;font-size:11px;font-weight:700">Lunas</span>'
+                      : '<span style="display:inline-block;padding:2px 8px;border-radius:10px;background:#f59e0b;color:#fff;font-size:11px;font-weight:700">Aktif</span>';
+}
+function pageSisaAngsuran(){
+  if (!currentUser) return pageGate("Sisa Angsuran", "Silakan masuk untuk melihat sisa angsuran pinjaman Anda.");
+  const isStaff = ["pengurus","pengawas","bendahara","admin"].includes(currentUser.role);
+  const peng = pengajuanRowsRaw().filter(p=>p.status==="disetujui");
+  const pel = pelunasanRowsRaw();
+  const visible = peng.filter(p => isStaff || String(p.user_id)===String(currentUser.id) || String(p.anggota_id)===String(currentUser.anggota_id||""));
+  const reguler=[], khusus=[];
+  visible.forEach(p=>{
+    const isKhusus = (String(p.jenis||"").toLowerCase().includes("khusus")) || Number(p.khusus)>0;
+    const dibayar = pel.filter(x=>String(x.pengajuan_id)===String(p.id)).reduce((s,x)=>s+(Number(x.jumlah)||0),0);
+    if (isKhusus){
+      const jt = (p.bulan_lunas && p.tahun_lunas) ? BULAN_ID[(Number(p.bulan_lunas)||1)-1]+" "+p.tahun_lunas
+        : addMonthsBulan(p.bulan_disburse||1, p.tahun_disburse||new Date().getFullYear(), p.tenor||0);
+      khusus.push({p, jt, dibayar, lunas: dibayar>=(Number(p.pokok)||0) && (Number(p.pokok)||0)>0});
+    } else {
+      const angBln = Number(p.angsuran_bln)||0;
+      const angKe = angBln>0 ? Math.floor(dibayar/angBln) : 0;
+      const sisaPokok = Math.max(0, (Number(p.pokok)||0) - dibayar);
+      const sisaTenor = Math.max(0, (Number(p.tenor)||0) - angKe);
+      reguler.push({p, dibayar, angKe, sisaPokok, sisaTenor, lunas: sisaPokok<=0 && (Number(p.pokok)||0)>0});
+    }
+  });
+  const rowRB = r => '<tr><td>'+(r.p.nama||'-')+'<br><span style="color:var(--muted);font-size:11px">'+(r.p.anggota_id||'')+'</span></td><td>'+(r.p.jenis||'')+'</td><td class="num">'+fmtIDR(Number(r.p.pokok)||0)+'</td><td>'+(r.p.tenor||0)+' bln</td><td class="num">'+fmtIDR(Number(r.p.angsuran_bln)||0)+'</td><td>'+(r.p.tgl_potong?('Tgl '+r.p.tgl_potong):'-')+'</td><td>'+r.angKe+'</td><td class="num">'+fmtIDR(r.dibayar)+'</td><td class="num">'+fmtIDR(r.sisaPokok)+'</td><td>'+r.sisaTenor+' bln</td><td>'+_badge(r.lunas?'Lunas':'Aktif')+'</td></tr>';
+  const rowK = r => '<tr><td>'+(r.p.nama||'-')+'<br><span style="color:var(--muted);font-size:11px">'+(r.p.anggota_id||'')+'</span></td><td class="num">'+fmtIDR(Number(r.p.pokok)||0)+'</td><td class="num">'+fmtIDR(Number(r.p.khusus)||0)+'</td><td>'+(r.p.tenor||0)+' bln</td><td><strong>'+r.jt+'</strong></td><td class="num">'+fmtIDR(r.dibayar)+'</td><td>'+_badge(r.lunas?'Lunas':'Aktif')+'</td></tr>';
+  return `
+  <section class="page active">
+    <div class="container">
+      <h2 class="section-title">Sisa Angsuran &amp; Jatuh Tempo Pinjaman</h2>
+      <p class="section-sub">${isStaff ? "Semua pinjaman aktif anggota." : "Sisa pinjaman Anda."} Pelunasan dicatat bendahara di menu Input Laporan &rarr; Pelunasan Angsuran.</p>
+      <div class="card" style="margin-bottom:16px">
+        <h3>📌 Pinjaman Reguler &amp; Barang — Sisa Angsuran</h3>
+        ${reguler.length ? '<div class="table-wrap"><table style="font-size:12px"><thead><tr><th>Anggota</th><th>Jenis</th><th class="num">Pokok</th><th>Tenor</th><th class="num">Angsuran/bln</th><th>Tgl Potong</th><th>Angg. ke</th><th class="num">Dibayar</th><th class="num">Sisa Pokok</th><th>Sisa Tenor</th><th>Status</th></tr></thead><tbody>'+reguler.map(rowRB).join('')+'</tbody></table></div>' : '<p style="color:var(--muted);font-size:13px">Belum ada pinjaman reguler/barang aktif.</p>'}
+      </div>
+      <div class="card">
+        <h3>⏰ Pinjaman Khusus — Jatuh Tempo</h3>
+        ${khusus.length ? '<div class="table-wrap"><table style="font-size:12px"><thead><tr><th>Anggota</th><th class="num">Pokok</th><th class="num">Pinj. Khusus</th><th>Tenor</th><th>Jatuh Tempo</th><th class="num">Dibayar</th><th>Status</th></tr></thead><tbody>'+khusus.map(rowK).join('')+'</tbody></table></div>' : '<p style="color:var(--muted);font-size:13px">Belum ada pinjaman khusus aktif.</p>'}
+      </div>
+    </div>
+  </section>`;
 }
 
 /* ---------- Page: Kegiatan ---------- */
@@ -3456,11 +3667,11 @@ async function syncFromSupabase(){
       return data;
     } catch(e){ return null; }
   };
-  const [anggota, kegiatan, shuItems, neracaItems, pinjaman, settings, bukuBesar, pengurus, lapKeu, pengajuan] = await Promise.all([
+  const [anggota, kegiatan, shuItems, neracaItems, pinjaman, settings, bukuBesar, pengurus, lapKeu, pengajuan, pelunasan] = await Promise.all([
     fetchTable("anggota"), fetchTable("kegiatan"), fetchTable("shu_items"),
     fetchTable("neraca_items"), fetchTable("pinjaman"), fetchTable("settings"),
     fetchTable("buku_besar"), fetchTable("pengurus"), fetchTable("laporan_keuangan"),
-    fetchTable("pengajuan_pinjaman")
+    fetchTable("pengajuan_pinjaman"), fetchTable("pelunasan_pinjaman")
   ]);
   let changed = false;
   // ANGGOTA
@@ -3517,10 +3728,13 @@ async function syncFromSupabase(){
     changed = true;
   }
   // PINJAMAN
+  livePinjaman = pinjaman || [];
   if (pinjaman && pinjaman.length){
-    DEMO.pinjaman = pinjaman.map(p=>({bulan:p.bulan, kategori:p.kategori, nilai:Number(p.nilai)||0, tahun:Number(p.tahun)}));
+    DEMO.pinjaman = pinjaman.map(p=>({bulan:p.bulan, kategori:p.kategori, nilai:Number(p.nilai)||0, tahun:Number(p.tahun), id:p.id}));
     changed = true;
   }
+  // PELUNASAN PINJAMAN (angsuran bulanan anggota — untuk sisa angsuran)
+  if (pelunasan){ livePelunasan = pelunasan; if (pelunasan.length) changed = true; }
   // SETTINGS → profile
   if (settings && settings.length){
     const map = {}; settings.forEach(s => map[s.key]=s.value);
