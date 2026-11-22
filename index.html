@@ -256,12 +256,32 @@ footer a:hover{color:var(--accent)}
       </div>
       <div id="signupFields" style="display:none">
         <div class="form-group">
-          <label>Alamat</label>
+          <label>Nomor KTP (wajib)</label>
+          <input type="text" id="loginKtp" placeholder="16 digit nomor KTP" maxlength="16">
+        </div>
+        <div class="form-group">
+          <label>Tempat Lahir (wajib)</label>
+          <input type="text" id="loginTempatLahir" placeholder="contoh: Banyuwangi">
+        </div>
+        <div class="form-group">
+          <label>Tanggal Lahir (wajib)</label>
+          <input type="date" id="loginTglLahir">
+        </div>
+        <div class="form-group">
+          <label>Alamat Rumah (wajib)</label>
           <input type="text" id="loginAlamat" placeholder="contoh: Jl. Nusantara No. 01, Banyuwangi">
         </div>
         <div class="form-group">
           <label>No. HP</label>
           <input type="text" id="loginHp" placeholder="contoh: 0812xxxxxxx">
+        </div>
+        <div class="form-group">
+          <label>Pekerjaan</label>
+          <select id="loginPekerjaan" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px">
+            <option value="Karyawan PLN">Karyawan PLN</option>
+            <option value="TAD">TAD</option>
+            <option value="Pensiunan">Pensiunan</option>
+          </select>
         </div>
         <div class="form-group">
           <label>Foto (wajib) — JPG/PNG, akan dikecilkan otomatis</label>
@@ -709,15 +729,39 @@ function toggleSignupMode(signup){
   if (!isSignup){ signupFotoData = null; const pv = $("loginFotoPreview"); if (pv){ pv.style.display="none"; pv.src=""; } const fi = $("loginFoto"); if (fi) fi.value=""; }
 }
 
+function profToUser(prof, fb){
+  fb = fb || {};
+  return {
+    id: prof?.id || fb.id || "",
+    email: prof?.email || fb.email || "",
+    role: prof?.role || "anggota",
+    nama: prof?.nama || fb.nama || fb.email || "",
+    alamat: prof?.alamat || "",
+    no_hp: prof?.no_hp || "",
+    foto: prof?.foto || "",
+    ktp: prof?.ktp || "",
+    tempat_lahir: prof?.tempat_lahir || "",
+    tgl_lahir: prof?.tgl_lahir || "",
+    pekerjaan: prof?.pekerjaan || "",
+    anggota_id: prof?.anggota_id || ""
+  };
+}
 async function signup(){
   const email = $("loginEmail").value.trim().toLowerCase();
   const pass = $("loginPass").value;
   const nama = $("loginNama").value.trim();
+  const ktp = $("loginKtp").value.trim();
+  const tempatLahir = $("loginTempatLahir").value.trim();
+  const tglLahir = $("loginTglLahir").value;
   const alamat = $("loginAlamat").value.trim();
   const no_hp = $("loginHp").value.trim();
+  const pekerjaan = $("loginPekerjaan") ? $("loginPekerjaan").value : "Karyawan PLN";
   $("loginError").textContent = "";
   if (!email || !pass || !nama){ $("loginError").textContent = "Nama, email, dan kata sandi wajib diisi."; return; }
   if (pass.length < 6){ $("loginError").textContent = "Kata sandi minimal 6 karakter."; return; }
+  if (!ktp){ $("loginError").textContent = "Nomor KTP wajib diisi."; return; }
+  if (!tempatLahir || !tglLahir){ $("loginError").textContent = "Tempat & tanggal lahir wajib diisi."; return; }
+  if (!alamat){ $("loginError").textContent = "Alamat rumah wajib diisi."; return; }
   if (!signupFotoData){ $("loginError").textContent = "Foto wajib diunggah saat pendaftaran."; return; }
   if (!IS_LIVE || !sb){
     $("loginError").textContent = "Pendaftaran hanya tersedia saat website terhubung ke Supabase (mode LIVE).";
@@ -726,7 +770,8 @@ async function signup(){
   try {
     const { data, error } = await sb.auth.signUp({
       email, password: pass,
-      options: { data: { nama: nama, role: "anggota", alamat: alamat, no_hp: no_hp, foto: signupFotoData } }
+      options: { data: { nama: nama, role: "anggota", alamat: alamat, no_hp: no_hp, foto: signupFotoData,
+                         ktp: ktp, tempat_lahir: tempatLahir, tgl_lahir: tglLahir, pekerjaan: pekerjaan } }
     });
     if (error) throw error;
     const usedFoto = signupFotoData; signupFotoData = null;
@@ -736,8 +781,7 @@ async function signup(){
       toast("Cek email untuk verifikasi akun.", "success");
     } else if (data.session){
       const { data: prof } = await sb.from("profiles").select("*").eq("id", data.user.id).single();
-      currentUser = { id: data.user.id, email, role: prof?.role || "anggota", nama: prof?.nama || nama,
-                      alamat: prof?.alamat || alamat, no_hp: prof?.no_hp || no_hp, foto: prof?.foto || usedFoto };
+      currentUser = profToUser(prof, { id: data.user.id, email, nama, alamat, no_hp, foto: usedFoto });
       postLogin();
       toast("Pendaftaran berhasil! Peran Anda: Anggota.", "success");
     }
@@ -758,7 +802,7 @@ async function login(){
       if (error) throw error;
       // fetch profile
       const { data: prof } = await sb.from("profiles").select("*").eq("id", data.user.id).single();
-      currentUser = { id: data.user.id, email, role: prof?.role || "anggota", nama: prof?.nama || email };
+      currentUser = profToUser(prof, { id: data.user.id, email });
       postLogin();
     } catch (err) {
       $("loginError").textContent = "Gagal masuk: " + (err.message || "kesalahan tidak diketahui");
@@ -770,7 +814,7 @@ async function login(){
       $("loginError").textContent = "Email atau kata sandi salah (mode demo). Lihat akun demo di bawah.";
       return;
     }
-    currentUser = { id: u.id, email, role: u.role, nama: u.nama };
+    currentUser = { id: u.id, email, role: u.role, nama: u.nama, alamat: u.alamat||"", no_hp: u.no_hp||"", ktp: u.ktp||"", tempat_lahir: u.tempat_lahir||"", tgl_lahir: u.tgl_lahir||"", pekerjaan: u.pekerjaan||"", anggota_id: u.anggota_id||"" };
     postLogin();
   }
 }
@@ -2009,7 +2053,7 @@ function pageProfilSaya(){
   <section class="page active">
     <div class="container">
       <h2 class="section-title">Profil Saya</h2>
-      <p class="section-sub">Data pribadi anggota — nama, alamat, no. HP, dan foto</p>
+      <p class="section-sub">Data pribadi anggota — KTP, tempat/tgl lahir, pekerjaan, alamat, no. HP, dan foto</p>
       <div class="card" style="max-width:640px">
         <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start">
           <div style="text-align:center">
@@ -2022,7 +2066,11 @@ function pageProfilSaya(){
           <div style="flex:1;min-width:280px">
             <div class="form-group"><label>Nama Lengkap</label><input type="text" id="psNama" value="${currentUser.nama||''}"></div>
             <div class="form-group"><label>Email</label><input type="email" id="psEmail" value="${currentUser.email||''}" disabled style="background:var(--light);color:var(--muted)"></div>
-            <div class="form-group"><label>Alamat</label><input type="text" id="psAlamat" value="${currentUser.alamat||''}" placeholder="contoh: Jl. Nusantara No. 01, Banyuwangi"></div>
+            <div class="form-group"><label>Nomor KTP</label><input type="text" id="psKtp" value="${currentUser.ktp||''}" placeholder="16 digit KTP"></div>
+            <div class="form-group"><label>Tempat Lahir</label><input type="text" id="psTempatLahir" value="${currentUser.tempat_lahir||''}" placeholder="contoh: Banyuwangi"></div>
+            <div class="form-group"><label>Tanggal Lahir</label><input type="date" id="psTglLahir" value="${currentUser.tgl_lahir||''}"></div>
+            <div class="form-group"><label>Pekerjaan</label><select id="psPekerjaan" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px"><option value="Karyawan PLN" ${currentUser.pekerjaan==='Karyawan PLN'?'selected':''}>Karyawan PLN</option><option value="TAD" ${currentUser.pekerjaan==='TAD'?'selected':''}>TAD</option><option value="Pensiunan" ${currentUser.pekerjaan==='Pensiunan'?'selected':''}>Pensiunan</option></select></div>
+            <div class="form-group"><label>Alamat Rumah</label><input type="text" id="psAlamat" value="${currentUser.alamat||''}" placeholder="contoh: Jl. Nusantara No. 01, Banyuwangi"></div>
             <div class="form-group"><label>No. HP</label><input type="text" id="psHp" value="${currentUser.no_hp||''}" placeholder="contoh: 0812xxxxxxx"></div>
             <div style="display:flex;gap:8px;margin-top:8px">
               <button class="btn btn-primary" onclick="saveProfilSaya()">Simpan Perubahan</button>
@@ -2037,11 +2085,15 @@ function pageProfilSaya(){
 async function saveProfilSaya(){
   if (!currentUser){ toast("Anda belum login.","error"); return; }
   const nama = $("psNama").value.trim();
+  const ktp = $("psKtp").value.trim();
+  const tempat_lahir = $("psTempatLahir").value.trim();
+  const tgl_lahir = $("psTglLahir").value;
+  const pekerjaan = $("psPekerjaan") ? $("psPekerjaan").value : "";
   const alamat = $("psAlamat").value.trim();
   const no_hp = $("psHp").value.trim();
   if (!nama){ toast("Nama tidak boleh kosong.","error"); return; }
   if (IS_LIVE && sb){
-    const upd = { nama, alamat, no_hp };
+    const upd = { nama, ktp, tempat_lahir, tgl_lahir, pekerjaan, alamat, no_hp };
     if (editFotoData) upd.foto = editFotoData;
     try {
       const { error } = await sb.from("profiles").update(upd).eq("id", currentUser.id);
@@ -2053,7 +2105,7 @@ async function saveProfilSaya(){
       renderPage("profilsaya");
     } catch(err){ toast("Gagal simpan: "+(err.message||err),"error"); }
   } else {
-    currentUser = { ...currentUser, nama, alamat, no_hp };
+    currentUser = { ...currentUser, nama, ktp, tempat_lahir, tgl_lahir, pekerjaan, alamat, no_hp };
     toast("(Demo) Profil disimpan di browser.","info");
     updateUserUI();
     renderPage("profilsaya");
@@ -2269,6 +2321,13 @@ function pageBlanko(){
   const aNama = currentUser.nama || '';
   const aAlamat = currentUser.alamat || '';
   const aHp = currentUser.no_hp || '';
+  const aKtp = currentUser.ktp || '';
+  const aTempatLahir = currentUser.tempat_lahir || '';
+  const aTglLahir = currentUser.tgl_lahir || '';
+  const aLahir = [aTempatLahir, aTglLahir].filter(Boolean).join(', ');
+  const aPekerjaan = currentUser.pekerjaan || 'Karyawan PLN';
+  const aNoAnggota = currentUser.anggota_id || '';
+  const optPekerjaan = ["Karyawan PLN","TAD","Pensiunan"].map(p=>`<option value="${p}" ${p===aPekerjaan?'selected':''}>${p}</option>`).join("");
   const yNow = new Date().getFullYear();
   const mNow = new Date().getMonth()+1;
   const optBulan = BULAN_ID.map((b,i)=>`<option value="${i+1}" ${i+1===mNow?'selected':''}>${b}</option>`).join("");
@@ -2279,7 +2338,6 @@ function pageBlanko(){
       <h2 class="section-title">Blanko Pinjaman Online</h2>
       <p class="section-sub">Perjanjian Pinjaman — ${NAMA_KOPERASI}. Pengurus &amp; tanda tangan otomatis; jasa terkunci (ubah di Admin).</p>
       <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-        <button class="btn btn-primary" onclick="cetakBlanko()">🖨 Cetak / Simpan PDF</button>
         <button class="btn btn-ghost" onclick="renderPage('blanko')">↺ Reset Form</button>
       </div>
       <div class="card">
@@ -2301,14 +2359,14 @@ function pageBlanko(){
           <p style="font-weight:700;margin-top:10px">PIHAK KEDUA (Peminjam):</p>
           <div class="form-grid">
             <div class="form-group"><label>Nama Pemohon (otomatis — akun login)</label><input id="bk_nama" value="${aNama}" readonly style="background:var(--light)"></div>
-            <div class="form-group"><label>Nomor Anggota</label><input id="bk_noanggota" placeholder="isi nomor anggota"></div>
-            <div class="form-group"><label>Nomor KTP</label><input id="bk_ktp"></div>
-            <div class="form-group"><label>Tempat/Tgl. Lahir</label><input id="bk_lahir"></div>
-            <div class="form-group"><label>Pekerjaan</label><input id="bk_pekerjaan" value="Karyawan PLN"></div>
-            <div class="form-group" style="grid-column:1/-1"><label>Alamat Rumah</label><input id="bk_alamat" value="${aAlamat}"></div>
+            <div class="form-group"><label>Nomor Anggota (otomatis)</label><input id="bk_noanggota" value="${aNoAnggota}" readonly style="background:var(--light)"></div>
+            <div class="form-group"><label>Nomor KTP (otomatis)</label><input id="bk_ktp" value="${aKtp}" readonly style="background:var(--light)"></div>
+            <div class="form-group"><label>Tempat/Tgl. Lahir (otomatis)</label><input id="bk_lahir" value="${aLahir}" readonly style="background:var(--light)"></div>
+            <div class="form-group"><label>Pekerjaan</label><select id="bk_pekerjaan" onchange="blankoHitung()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px">${optPekerjaan}</select></div>
+            <div class="form-group" style="grid-column:1/-1"><label>Alamat Rumah (otomatis)</label><input id="bk_alamat" value="${aAlamat}" readonly style="background:var(--light)"></div>
             <div class="form-group"><label>Alamat Kantor</label><input id="bk_kantor" value="PT PLN (Persero) UP3 Banyuwangi"></div>
             <div class="form-group"><label>NIPeg/NIKary</label><input id="bk_nip"></div>
-            <div class="form-group"><label>No. HP</label><input id="bk_hp" value="${aHp}"></div>
+            <div class="form-group"><label>No. HP (otomatis)</label><input id="bk_hp" value="${aHp}" readonly style="background:var(--light)"></div>
           </div>
           <h4 style="margin-top:14px;background:var(--light);padding:6px 10px">PASAL 1 — PINJAMAN</h4>
           <div class="form-grid">
@@ -2336,8 +2394,8 @@ function pageBlanko(){
           <h4 style="margin-top:14px;background:var(--light);padding:6px 10px">PASAL 2 — ANGSURAN POKOK &amp; JASA</h4>
           <div class="form-grid">
             <div class="form-group"><label>Jasa Reguler (%) — 🔒 terkunci</label><input type="number" id="bk_jasa_reg" value="${JASA_REG}" step="0.1" readonly style="background:var(--light)" title="Diubah hanya Admin via Panel Admin"></div>
-            <div class="form-group"><label>Jangka Waktu (bulan)</label><input type="number" id="bk_tenor" value="12" oninput="blankoHitung()"></div>
-            <div class="form-group"><label>Jumlah Angsuran (kali)</label><input type="number" id="bk_angsuran_kali" value="12" oninput="blankoHitung()"></div>
+            <div class="form-group"><label>Jangka Waktu (bulan) — otomatis = Jumlah Angsuran</label><input type="number" id="bk_tenor" value="12" readonly style="background:var(--light)"></div>
+            <div class="form-group"><label>Jumlah Angsuran (kali)</label><input type="number" id="bk_angsuran_kali" value="12" oninput="blankoSyncTenor();blankoHitung()"></div>
             <div class="form-group"><label>Tgl. Potong Gaji</label><input type="number" id="bk_tgl_potong" value="25"></div>
             <div class="form-group"><label>Jasa Khusus (%) — 🔒 terkunci</label><input type="number" id="bk_jasa_khusus" value="${JASA_KHUSUS}" step="0.1" readonly style="background:var(--light)" title="Diubah hanya Admin via Panel Admin"></div>
             <div class="form-group"><label>Bulan Pelunasan Khusus</label><select id="bk_bulan_lunas" onchange="blankoHitung()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px">${optBulan}</select></div>
@@ -2364,10 +2422,16 @@ function pageBlanko(){
             <div><strong>Pihak Kedua</strong><br>Pemohon<br><br><br>(${aNama || '. . . . . . . . . . . . . . . .'})</div>
             <div><strong>Mengetahui</strong><br>Bendahara ${NAMA_KOPERASI}<br><br><br>(${bend.nama})</div>
           </div>
+          <div style="display:flex;justify-content:flex-end;margin-top:18px">
+            <button class="btn btn-primary" onclick="cetakBlanko()">🖨 Cetak / Simpan PDF</button>
+          </div>
         </form>
       </div>
     </div>
   </section>`;
+}
+function blankoSyncTenor(){
+  if ($("bk_tenor") && $("bk_angsuran_kali")) $("bk_tenor").value = $("bk_angsuran_kali").value;
 }
 function blankoPencairan(){
   const sel = document.querySelector('input[name="bk_pencairan"]:checked');
@@ -2377,6 +2441,7 @@ function blankoPencairan(){
   if (mode === "cash"){ ["bk_bank","bk_rekening","bk_an"].forEach(id=>{ const e=$(id); if(e) e.value=""; }); }
 }
 function blankoHitung(){
+  blankoSyncTenor();
   [["bk_reguler","bk_reguler_terbilang"],["bk_khusus","bk_khusus_terbilang"],["bk_barang","bk_barang_terbilang"]].forEach(([s,d])=>{
     const val = Number($(s).value)||0;
     $(d).value = val>0 ? terbilang(val) : "";
@@ -2890,7 +2955,7 @@ window.addEventListener("DOMContentLoaded", () => {
     sb.auth.getSession().then(async ({ data }) => {
       if (data.session){
         const { data: prof } = await sb.from("profiles").select("*").eq("id", data.session.user.id).single();
-        currentUser = { id: data.session.user.id, email: data.session.user.email, role: prof?.role||"anggota", nama: prof?.nama||data.session.user.email };
+        currentUser = profToUser(prof, { id: data.session.user.id, email: data.session.user.email });
         updateUserUI();
         nav("beranda");
       }
