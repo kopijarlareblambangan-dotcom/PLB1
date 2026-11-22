@@ -224,6 +224,7 @@ footer a:hover{color:var(--accent)}
       <a href="#" data-page="profilsaya" data-role="anggota,pengurus,pengawas,bendahara,admin">Profil Saya</a>
       <a href="#" data-page="laporan" data-role="anggota,pengurus,pengawas,bendahara,admin">Laporan</a>
       <a href="#" data-page="input" data-role="bendahara,admin">Input Laporan</a>
+      <a href="#" data-page="blanko" data-role="anggota,pengurus,pengawas,bendahara,admin">Blanko Pinjaman</a>
       <a href="#" data-page="kegiatan">Kegiatan</a>
       <a href="#" data-page="admin" data-role="admin">Admin</a>
     </nav>
@@ -429,9 +430,10 @@ footer a:hover{color:var(--accent)}
   </div>
 </footer>
 
-<!-- Supabase + Chart.js CDN -->
+<!-- Supabase + Chart.js + SheetJS CDN -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <script>
 /* ============================================================
@@ -630,6 +632,7 @@ const BULAN_ID = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agus
 let liveBukuBesar = [];
 let liveAnggota = [];
 let livePengurus = [];
+let liveLapKeu = [];
 let laporanBulan = "";                       // "" = semua bulan
 let laporanTahun = new Date().getFullYear();
 let currentUser = null;
@@ -780,6 +783,7 @@ function postLogin(){
     loadUsers().catch(()=>{});
     loadAnggota().catch(()=>{});
     loadPengurus().catch(()=>{});
+    loadLapKeu().catch(()=>{});
   }
   nav("beranda");
 }
@@ -823,6 +827,7 @@ function renderPage(page){
     case "kegiatan": html = pageKegiatan(); break;
     case "admin": html = pageAdmin(); break;
     case "profilsaya": html = pageProfilSaya(); break;
+    case "blanko": html = pageBlanko(); break;
     case "gate": html = pageGate(); break;
     default: html = pageBeranda();
   }
@@ -1161,6 +1166,7 @@ function pageLaporan(){
         <button class="tab" onclick="switchTab(event,'tab-bb')">Buku Besar</button>
         <button class="tab" onclick="switchTab(event,'tab-pinjaman')">Pinjaman</button>
         <button class="tab" onclick="switchTab(event,'tab-grafik')">Grafik</button>
+        <button class="tab" onclick="switchTab(event,'tab-evaluasi')">Evaluasi Tahunan</button>
       </div>
 
       <div class="tab-panel active" id="tab-shu">
@@ -1243,6 +1249,10 @@ function pageLaporan(){
           <div class="card"><h3>Tren Pinjaman Bulanan ${laporanTahun}</h3><div class="chart-wrap"><canvas id="chartTrenPinjaman" height="200"></canvas></div></div>
         </div>
       </div>
+
+      <div class="tab-panel" id="tab-evaluasi">
+        ${renderEvaluasi()}
+      </div>
     </div>
   </section>`;
 }
@@ -1252,8 +1262,8 @@ function switchTab(e, id){
   document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
   e.target.classList.add("active");
   $(id).classList.add("active");
-  // re-render charts if grafik tab
-  if (id === "tab-grafik") setTimeout(renderCharts, 50);
+  // re-render charts if grafik/evaluasi tab
+  if (id === "tab-grafik" || id === "tab-evaluasi") setTimeout(renderCharts, 50);
 }
 
 /* ---------- Page: Input Laporan (Bendahara/Admin) ---------- */
@@ -1270,6 +1280,7 @@ function pageInput(){
         <button class="tab active" onclick="switchTab(event,'in-bb')">Input Buku Besar</button>
         <button class="tab" onclick="switchTab(event,'in-pinjaman')">Input Pinjaman</button>
         <button class="tab" onclick="switchTab(event,'in-kegiatan')">Input Kegiatan</button>
+        <button class="tab" onclick="switchTab(event,'in-lapkeu')">Lap. Keuangan Tahunan</button>
       </div>
 
       <div class="tab-panel active" id="in-bb">
@@ -1334,6 +1345,37 @@ function pageInput(){
             <div class="form-group"><label>Deskripsi</label><textarea name="desc" rows="3" placeholder="Ringkasan kegiatan..." required></textarea></div>
             <button class="btn btn-primary" type="submit">Simpan</button>
           </form>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="in-lapkeu">
+        <div class="card">
+          <h3>Upload Laporan Keuangan Tahunan</h3>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Upload file Excel (.xlsx) laporan keuangan per tahun. Sistem otomatis membaca angka kunci Neraca + SHU dari sheet <code>NERACA</code> &amp; <code>LAP RL</code> — verifikasi lalu Simpan. Tersimpan ke tabel <code>laporan_keuangan</code>.</p>
+          <div class="form-grid">
+            <div class="form-group"><label>Tahun</label><input type="number" id="lk_tahun" value="${new Date().getFullYear()}" style="width:120px"></div>
+            <div class="form-group" style="grid-column:1/-1"><label>File Excel (.xlsx)</label><input type="file" id="lk_file" accept=".xlsx" onchange="parseLapKeuXlsx(this.files[0])"></div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group"><label>Aktiva Lancar</label><input type="number" id="lk_aktiva_lancar" value="0"></div>
+            <div class="form-group"><label>Aktiva Tetap</label><input type="number" id="lk_aktiva_tetap" value="0"></div>
+            <div class="form-group"><label>Total Aktiva</label><input type="number" id="lk_total_aktiva" value="0"></div>
+            <div class="form-group"><label>Kewajiban</label><input type="number" id="lk_kewajiban" value="0"></div>
+            <div class="form-group"><label>Ekuitas</label><input type="number" id="lk_ekuitas" value="0"></div>
+            <div class="form-group"><label>Pendapatan</label><input type="number" id="lk_pendapatan" value="0"></div>
+            <div class="form-group"><label>Beban</label><input type="number" id="lk_beban" value="0"></div>
+            <div class="form-group"><label>SHU sebelum Pajak</label><input type="number" id="lk_shu_sebelum" value="0"></div>
+            <div class="form-group"><label>PPH</label><input type="number" id="lk_pph" value="0"></div>
+            <div class="form-group"><label>SHU Bersih</label><input type="number" id="lk_shu_bersih" value="0"></div>
+          </div>
+          <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-primary" onclick="saveLapKeu()">Simpan Laporan</button>
+            <button class="btn btn-ghost" onclick="resetLapKeuForm()">Reset Form</button>
+          </div>
+        </div>
+        <div class="card" style="margin-top:14px">
+          <h3>Laporan Keuangan Tersimpan</h3>
+          ${renderLapKeuList()}
         </div>
       </div>
     </div>
@@ -1586,6 +1628,29 @@ function renderCharts(){
         {label:"Anggota", data:byKat("Anggota"), borderColor:"#1e3a8a", backgroundColor:"rgba(30,58,138,.1)", fill:true},
         {label:"TAD", data:byKat("TAD"), borderColor:"#facc15", backgroundColor:"rgba(250,204,21,.1)", fill:true},
         {label:"Khusus", data:byKat("Khusus"), borderColor:"#16a34a", backgroundColor:"rgba(22,163,74,.1)", fill:true}
+      ]},
+      options:{ responsive:true, plugins:{legend:{position:"bottom"}}, scales:{y:{ticks:{callback:v=>"Rp "+(v/1000000).toFixed(0)+"jt"}}} }
+    });
+  }
+  // Evaluasi Tahunan — SHU bersih & Neraca (dari liveLapKeu / seed)
+  if ($("chartEvalSHU")){
+    const er = lapKeuRows().slice().sort((a,b)=>a.tahun-b.tahun);
+    chartInstances.evalShu = new Chart($("chartEvalSHU"), {
+      type:"line",
+      data:{ labels: er.map(r=>r.tahun), datasets:[
+        {label:"SHU Bersih", data: er.map(r=>r.shu_bersih), borderColor:"#1e3a8a", backgroundColor:"rgba(30,58,138,.15)", fill:true, tension:.3}
+      ]},
+      options:{ responsive:true, plugins:{legend:{position:"bottom"}}, scales:{y:{ticks:{callback:v=>"Rp "+(v/1000000).toFixed(0)+"jt"}}} }
+    });
+  }
+  if ($("chartEvalNeraca")){
+    const er = lapKeuRows().slice().sort((a,b)=>a.tahun-b.tahun);
+    chartInstances.evalNrc = new Chart($("chartEvalNeraca"), {
+      type:"bar",
+      data:{ labels: er.map(r=>r.tahun), datasets:[
+        {label:"Total Aktiva", data: er.map(r=>r.total_aktiva), backgroundColor:"#1e3a8a"},
+        {label:"Kewajiban", data: er.map(r=>r.kewajiban), backgroundColor:"#f59e0b"},
+        {label:"Ekuitas", data: er.map(r=>r.ekuitas), backgroundColor:"#16a34a"}
       ]},
       options:{ responsive:true, plugins:{legend:{position:"bottom"}}, scales:{y:{ticks:{callback:v=>"Rp "+(v/1000000).toFixed(0)+"jt"}}} }
     });
@@ -2134,6 +2199,439 @@ async function deletePengurus(idx){
   }
 }
 
+/* ===== V3: Blanko Pinjaman Online + Laporan Keuangan Tahunan (upload/evaluasi) ===== */
+const NAMA_KOPERASI = "KOPERASI PIJAR LARE BLAMBANGAN";
+
+/* --- Terbilang (angka → huruf Indonesia) --- */
+function terbilang(n){
+  n = Math.floor(Math.abs(Number(n)||0));
+  if (n === 0) return "Nol Rupiah";
+  const s = ["","Satu","Dua","Tiga","Empat","Lima","Enam","Tujuh","Delapan","Sembilan","Sepuluh","Sebelas"];
+  function c(x){
+    if (x < 12) return s[x];
+    if (x < 20) return c(x-10) + " Belas";
+    if (x < 100) return c(Math.floor(x/10)) + " Puluh" + (x%10?" "+c(x%10):"");
+    if (x < 200) return "Seratus" + (x-100?" "+c(x-100):"");
+    if (x < 1000) return c(Math.floor(x/100)) + " Ratus" + (x%100?" "+c(x%100):"");
+    if (x < 2000) return "Seribu" + (x-1000?" "+c(x-1000):"");
+    if (x < 1e6) return c(Math.floor(x/1000)) + " Ribu" + (x%1000?" "+c(x%1000):"");
+    if (x < 1e9) return c(Math.floor(x/1e6)) + " Juta" + (x%1e6?" "+c(x%1e6):"");
+    if (x < 1e12) return c(Math.floor(x/1e9)) + " Miliar" + (x%1e9?" "+c(x%1e9):"");
+    return c(Math.floor(x/1e12)) + " Triliun" + (x%1e12?" "+c(x%1e12):"");
+  }
+  return c(n) + " Rupiah";
+}
+
+/* --- Blanko: auto-isi pengurus --- */
+function blankoPengurus(jabatanKey){
+  const rows = pengurusRows();
+  return rows.find(p => (p.jabatan||"").toLowerCase().includes(jabatanKey)) || rows[0] || {nama:"", jabatan:""};
+}
+
+function pageBlanko(){
+  if (!currentUser) return pageGate("Blanko Pinjaman", "Silakan masuk untuk mengisi &amp; mencetak blanko pinjaman.");
+  const ketua = blankoPengurus("ketua");
+  const bend = blankoPengurus("bendahara");
+  return `
+  <section class="page active">
+    <div class="container">
+      <h2 class="section-title">Blanko Pinjaman Online</h2>
+      <p class="section-sub">Perjanjian Pinjaman — ${NAMA_KOPERASI}. Pengurus &amp; tanda tangan otomatis dari struktur pengurus.</p>
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="cetakBlanko()">🖨 Cetak / Simpan PDF</button>
+        <button class="btn btn-ghost" onclick="renderPage('blanko')">↺ Reset Form</button>
+      </div>
+      <div class="card">
+        <form id="blankoForm" onsubmit="return false">
+          <h3 style="text-align:center;text-decoration:underline;margin-top:0">PERJANJIAN PINJAMAN</h3>
+          <p style="font-weight:700">PIHAK PERTAMA (Pemberi Pinjaman):</p>
+          <div class="form-grid">
+            <div class="form-group"><label>Nama (otomatis)</label><input value="${ketua.nama}" readonly style="background:var(--light)"></div>
+            <div class="form-group"><label>Jabatan (otomatis)</label><input value="Ketua ${NAMA_KOPERASI}" readonly style="background:var(--light)"></div>
+            <div class="form-group" style="grid-column:1/-1"><label>Alamat</label><input value="Jl. Nusantara No. 1 Banyuwangi" readonly style="background:var(--light)"></div>
+          </div>
+          <p style="font-weight:700;margin-top:10px">PIHAK KEDUA (Peminjam):</p>
+          <div class="form-grid">
+            <div class="form-group"><label>Nama</label><input id="bk_nama" value="${currentUser.nama||''}"></div>
+            <div class="form-group"><label>Nomor Anggota</label><input id="bk_noanggota"></div>
+            <div class="form-group"><label>Nomor KTP</label><input id="bk_ktp"></div>
+            <div class="form-group"><label>Tempat/Tgl. Lahir</label><input id="bk_lahir"></div>
+            <div class="form-group"><label>Pekerjaan</label><input id="bk_pekerjaan" value="Karyawan PLN"></div>
+            <div class="form-group" style="grid-column:1/-1"><label>Alamat Rumah</label><input id="bk_alamat" value="${currentUser.alamat||''}"></div>
+            <div class="form-group"><label>Alamat Kantor</label><input id="bk_kantor" value="PT PLN (Persero) UP3 Banyuwangi"></div>
+            <div class="form-group"><label>NIPeg/NIKary</label><input id="bk_nip"></div>
+            <div class="form-group"><label>No. HP</label><input id="bk_hp" value="${currentUser.no_hp||''}"></div>
+          </div>
+          <h4 style="margin-top:14px;background:var(--light);padding:6px 10px">PASAL 1 — PINJAMAN</h4>
+          <div class="form-grid">
+            <div class="form-group"><label>Pinjaman Reguler (Rp)</label><input type="number" id="bk_reguler" oninput="blankoTerbilang()" placeholder="0"></div>
+            <div class="form-group"><label>Terbilang (otomatis)</label><input id="bk_reguler_terbilang" readonly style="background:var(--light)"></div>
+            <div class="form-group"><label>Pinjaman Khusus (Rp)</label><input type="number" id="bk_khusus" oninput="blankoTerbilang()" placeholder="0"></div>
+            <div class="form-group"><label>Terbilang (otomatis)</label><input id="bk_khusus_terbilang" readonly style="background:var(--light)"></div>
+            <div class="form-group"><label>Pinjaman Barang (Rp)</label><input type="number" id="bk_barang" oninput="blankoTerbilang()" placeholder="0"></div>
+            <div class="form-group"><label>Terbilang (otomatis)</label><input id="bk_barang_terbilang" readonly style="background:var(--light)"></div>
+            <div class="form-group" style="grid-column:1/-1"><label>Keterangan Barang</label><input id="bk_ket_barang"></div>
+            <div class="form-group" style="grid-column:1/-1"><label>Pencairan (Cash / Transfer ke Rek.)</label><input id="bk_rekening" placeholder="No. Rek ... Bank ... a/n ..."></div>
+          </div>
+          <h4 style="margin-top:14px;background:var(--light);padding:6px 10px">PASAL 2 — ANGSURAN POKOK &amp; JASA</h4>
+          <div class="form-grid">
+            <div class="form-group"><label>Jasa Reguler (%)</label><input type="number" id="bk_jasa_reg" value="1.5" step="0.1"></div>
+            <div class="form-group"><label>Jangka Waktu (bulan)</label><input type="number" id="bk_tenor" value="12"></div>
+            <div class="form-group"><label>Jumlah Angsuran (kali)</label><input type="number" id="bk_angsuran_kali" value="12"></div>
+            <div class="form-group"><label>Tgl. Potong Gaji</label><input type="number" id="bk_tgl_potong" value="25"></div>
+            <div class="form-group"><label>Jasa Khusus (%)</label><input type="number" id="bk_jasa_khusus" step="0.1"></div>
+            <div class="form-group"><label>Pelunasan Khusus (bulan)</label><input id="bk_lunas_khusus" placeholder="contoh: Maret 2027"></div>
+          </div>
+          <div class="card" style="background:var(--light);margin-top:14px;border:none">
+            <p style="font-size:13px;margin:4px 0"><strong>PASAL 3 — Biaya Jaminan Pinjaman:</strong> 1% dari pokok reguler = <strong id="bk_jaminan">${fmtIDR(0)}</strong> (dikembalikan saat lunas; klausul meninggal dunia 70% berlaku).</p>
+            <p style="font-size:13px;margin:4px 0"><strong>PASAL 4 — Denda Keterlambatan:</strong> 5%/bulan dari pokok+jasa tertunggak.</p>
+            <p style="font-size:13px;margin:4px 0"><strong>PASAL 5–7:</strong> Hak &amp; Kewajiban, Jaminan/Agunan, Perselisihan (domisili hukum PN setempat).</p>
+          </div>
+          <h4 style="margin-top:14px;background:var(--light);padding:6px 10px">PENUTUP &amp; TANDA TANGAN</h4>
+          <div class="form-grid">
+            <div class="form-group"><label>Dibuat di</label><input id="bk_tempat" value="Banyuwangi"></div>
+            <div class="form-group"><label>Tanggal</label><input type="date" id="bk_tanggal" value="${new Date().toISOString().slice(0,10)}"></div>
+          </div>
+          <div class="grid-3" style="margin-top:14px;text-align:center">
+            <div><strong>Pihak Pertama</strong><br>Ketua ${NAMA_KOPERASI}<br><br><br>(${ketua.nama})</div>
+            <div><strong>Pihak Kedua</strong><br>Pemohon<br><br><br>(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</div>
+            <div><strong>Mengetahui</strong><br>Bendahara ${NAMA_KOPERASI}<br><br><br>(${bend.nama})</div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>`;
+}
+function blankoTerbilang(){
+  [["bk_reguler","bk_reguler_terbilang"],["bk_khusus","bk_khusus_terbilang"],["bk_barang","bk_barang_terbilang"]].forEach(([s,d])=>{
+    const v = Number($(s).value)||0;
+    $(d).value = v>0 ? terbilang(v) : "";
+  });
+  const reg = Number($("bk_reguler").value)||0;
+  if ($("bk_jaminan")) $("bk_jaminan").textContent = fmtIDR(Math.round(reg*0.01));
+}
+function cetakBlanko(){
+  const v = id => ($(id) ? $(id).value : "");
+  const ketua = blankoPengurus("ketua"), bend = blankoPengurus("bendahara");
+  const reg = Number(v("bk_reguler"))||0, khu = Number(v("bk_khusus"))||0, bar = Number(v("bk_barang"))||0;
+  const jaminan = Math.round(reg*0.01);
+  const tgl = v("bk_tanggal");
+  const tglTxt = tgl ? new Date(tgl).toLocaleDateString("id-ID",{day:"2-digit",month:"long",year:"numeric"}) : "..................";
+  const rp = n => n ? fmtIDR(n) : "..................";
+  const tb = n => n ? terbilang(n) : "..................";
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Perjanjian Pinjaman — ${v("bk_nama")||"Pemohon"}</title>
+  <style>
+  @page{size:A4;margin:1.6cm} body{font-family:'Times New Roman',serif;font-size:12px;color:#000;line-height:1.55}
+  .kop{text-align:center;border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:14px}
+  .kop h1{font-size:16px;margin:0}.kop h2{font-size:12px;margin:2px 0 0;font-weight:400}
+  h2.judul{text-align:center;text-decoration:underline;font-size:14px;margin:16px 0 10px}
+  .pasal{font-weight:700;margin:12px 0 4px;text-transform:uppercase;font-size:12px}
+  table{width:100%;border-collapse:collapse;margin:4px 0}
+  td{vertical-align:top;padding:2px 4px;font-size:12px}
+  td.lbl{width:180px}
+  .tt{width:33%;text-align:center;font-size:11px;vertical-align:top}
+  .tt .nm{margin-top:56px;border-top:1px solid #000;padding-top:2px;font-weight:700}
+  .small{font-size:11px}
+  @media print{.noprint{display:none}}
+  </style></head><body>
+  <div class="kop"><h1>${NAMA_KOPERASI}</h1><h2>PT PLN (Persero) UP3 Banyuwangi</h2></div>
+  <h2 class="judul">PERJANJIAN PINJAMAN</h2>
+  <p><b>Pihak Pertama:</b></p>
+  <table>
+  <tr><td class="lbl">Nama</td><td>: ${ketua.nama}</td></tr>
+  <tr><td class="lbl">Jabatan</td><td>: Ketua ${NAMA_KOPERASI}</td></tr>
+  <tr><td class="lbl">Alamat</td><td>: Jl. Nusantara No. 1 Banyuwangi</td></tr></table>
+  <p>Yang selanjutnya disebut sebagai <b>Pihak Pertama</b>.</p>
+  <p><b>Pihak Kedua:</b></p>
+  <table>
+  <tr><td class="lbl">Nama</td><td>: ${v("bk_nama")}</td></tr>
+  <tr><td class="lbl">Nomor Anggota</td><td>: ${v("bk_noanggota")||"-"}</td></tr>
+  <tr><td class="lbl">Nomor KTP</td><td>: ${v("bk_ktp")||"-"}</td></tr>
+  <tr><td class="lbl">Tempat/Tgl. Lahir</td><td>: ${v("bk_lahir")||"-"}</td></tr>
+  <tr><td class="lbl">Pekerjaan</td><td>: ${v("bk_pekerjaan")||"-"}</td></tr>
+  <tr><td class="lbl">Alamat Rumah</td><td>: ${v("bk_alamat")||"-"}</td></tr>
+  <tr><td class="lbl">Alamat Kantor</td><td>: ${v("bk_kantor")||"-"}</td></tr>
+  <tr><td class="lbl">NIPeg/NIKary</td><td>: ${v("bk_nip")||"-"}</td></tr>
+  <tr><td class="lbl">No. HP</td><td>: ${v("bk_hp")||"-"}</td></tr></table>
+  <p>Yang selanjutnya disebut sebagai <b>Pihak Kedua</b>.</p>
+  <p>Pihak Pertama dan Pihak Kedua secara bersama-sama mengadakan persetujuan dengan ketentuan sebagai berikut:</p>
+  <p class="pasal">Pasal 1 — Pinjaman</p>
+  <p>Pihak Pertama memberikan pinjaman kepada Pihak Kedua berupa:</p>
+  <table>
+  <tr><td class="lbl">1. Pinjaman Reguler</td><td>: Rp ${rp(reg)}</td></tr>
+  <tr><td class="lbl">&nbsp;&nbsp;&nbsp;Terbilang</td><td>: ${tb(reg)}</td></tr>
+  <tr><td class="lbl">2. Pinjaman Khusus</td><td>: Rp ${rp(khu)}</td></tr>
+  <tr><td class="lbl">&nbsp;&nbsp;&nbsp;Terbilang</td><td>: ${tb(khu)}</td></tr>
+  <tr><td class="lbl">3. Pinjaman Barang</td><td>: Rp ${rp(bar)}</td></tr>
+  <tr><td class="lbl">&nbsp;&nbsp;&nbsp;Terbilang</td><td>: ${tb(bar)}</td></tr>
+  <tr><td class="lbl">Keterangan Barang</td><td>: ${v("bk_ket_barang")||"-"}</td></tr>
+  <tr><td class="lbl">Pencairan</td><td>: ${v("bk_rekening")||"Cash"}</td></tr></table>
+  <p class="pasal">Pasal 2 — Angsuran Pokok dan Jasa</p>
+  <p>1) Pihak Kedua setuju membayar jasa pinjaman sebesar <b>${v("bk_jasa_reg")||"..."}%</b> (tetap untuk pinjaman reguler &amp; barang).<br>
+  2) Pokok + jasa dilunasi dalam <b>${v("bk_tenor")||"..."}</b> bulan / <b>${v("bk_angsuran_kali")||"..."}</b> kali angsuran, sanggup dipotong gaji tanggal <b>${v("bk_tgl_potong")||"..."}</b> setiap bulan.<br>
+  3) Pinjaman khusus jasa <b>${v("bk_jasa_khusus")||"..."}%</b> sesuai jatuh tempo; pelunasan maksimal 6 bulan, dilunasi pada <b>${v("bk_lunas_khusus")||"..."}</b>.</p>
+  <p class="pasal">Pasal 3 — Biaya Jaminan Pinjaman</p>
+  <p>1) Biaya Jaminan 1% dari pinjaman pokok reguler = <b>Rp ${fmtIDR(jaminan)}</b>, dikelola ${NAMA_KOPERASI}.<br>
+  2) Jika angsuran &gt;70% lalu peminjam meninggal dunia, sisa pinjaman tanggung jawab Koperasi; jika &lt;70% menjadi tanggung jawab ahli waris.<br>
+  3) Biaya Jaminan dikembalikan saat pinjaman lunas.</p>
+  <p class="pasal">Pasal 4 — Denda Keterlambatan</p>
+  <p>Setiap keterlambatan angsuran pokok &amp; jasa dikenakan denda 5% per bulan dari pokok+jasa tertunggak.</p>
+  <p class="pasal">Pasal 5 — Hak dan Kewajiban</p>
+  <p class="small">Pihak Pertama berhak mendapat informasi keuangan, memberikan pinjaman sesuai RAT, dan menagih pelunasan penuh jika angsuran &gt;70%. Pihak Pertama wajib menyerahkan dana sesuai perjanjian &amp; memberi pengurangan jasa jika pelunasan &lt;70%. Pihak Kedua berhak mengelola dana &amp; mendapat pengurangan jasa jika lunas &lt;70%; wajib memberi info keuangan, melunasi penuh jika &gt;70%, dan melunasi seluruh pinjaman jika berhenti bekerja (mutasi/mengundurkan diri/PHK/meninggal) dari dana Jamsostek/THP/DPLK/pesangon.</p>
+  <p class="pasal">Pasal 6 — Jaminan &amp; Pasal 7 — Perselisihan</p>
+  <p class="small">Jika pinjaman melebihi batas, Pihak Kedua sanggup memberi agunan. Pihak Pertama berhak menggunakan agunan jika terjadi tunggakan/macet. Perselisihan diselesaikan di Pengadilan Negeri domisili perjanjian ditandatangani.</p>
+  <p>Demikian Perjanjian Pinjaman ini telah dibaca dan dipahami, ditandatangani dalam 2 rangkap dengan kekuatan hukum yang sama.</p>
+  <table style="margin-top:8px"><tr><td class="lbl">Dibuat di</td><td>: ${v("bk_tempat")||"Banyuwangi"}</td></tr>
+  <tr><td class="lbl">Tanggal</td><td>: ${tglTxt}</td></tr></table>
+  <table style="margin-top:22px"><tr>
+  <td class="tt"><b>Pihak Pertama</b><br>Ketua ${NAMA_KOPERASI}<div class="nm">(${ketua.nama})</div></td>
+  <td class="tt"><b>Pihak Kedua</b><br>Pemohon<div class="nm">(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</div></td>
+  <td class="tt"><b>Mengetahui</b><br>Bendahara ${NAMA_KOPERASI}<div class="nm">(${bend.nama})</div></td>
+  </tr></table>
+  <p class="noprint" style="text-align:center;margin-top:24px"><button onclick="window.print()" style="padding:8px 24px;font-size:14px;cursor:pointer">🖨 Cetak / Save as PDF</button></p>
+  <script>window.onload=function(){setTimeout(function(){window.print()},400)}<\/script>
+  </body></html>`;
+  const w = window.open("", "_blank");
+  if (!w){ toast("Popup diblokir browser. Izinkan popup untuk mencetak blanko.", "error"); return; }
+  w.document.write(html); w.document.close();
+  toast("Dialog cetak dibuka — pilih Save as PDF.", "info");
+}
+
+/* --- Laporan Keuangan Tahunan: load / list / parse / save / delete --- */
+async function loadLapKeu(){
+  if (!IS_LIVE || !sb) return;
+  try {
+    const { data, error } = await sb.from("laporan_keuangan").select("*").order("tahun", { ascending: true });
+    if (error) throw error;
+    liveLapKeu = (data || []).map(r => ({ ...r }));
+  } catch(e){ console.warn("loadLapKeu:", e.message || e); liveLapKeu = []; }
+}
+function lapKeuRows(){
+  if (IS_LIVE && liveLapKeu.length) return liveLapKeu;
+  return [
+    { tahun:2023, aktiva_lancar:1940809598, aktiva_tetap:4779479, total_aktiva:1945589077, kewajiban:446050319, ekuitas:1499538758, pendapatan:468196806, beban:243025347, shu_sebelum_pajak:225171459, pph:24692030, shu_bersih:200479429 },
+    { tahun:2024, aktiva_lancar:1841147604, aktiva_tetap:1418229, total_aktiva:1842565833, kewajiban:456975142, ekuitas:1385590691, pendapatan:410930908, beban:220462744, shu_sebelum_pajak:190468164, pph:20851050, shu_bersih:169617114 },
+    { tahun:2025, aktiva_lancar:1788549084, aktiva_tetap:0, total_aktiva:1788549084, kewajiban:433468146, ekuitas:1355080938, pendapatan:484049335, beban:295712009, shu_sebelum_pajak:188337326, pph:20663500, shu_bersih:167673826 }
+  ];
+}
+function renderLapKeuList(){
+  const rows = lapKeuRows().slice().sort((a,b)=>b.tahun-a.tahun);
+  const canManage = currentUser && ["admin","bendahara","pengurus"].includes(currentUser.role);
+  if (!rows.length) return "<p style='color:var(--muted)'>Belum ada laporan tersimpan.</p>";
+  return `<div class="table-wrap"><table class="table-fin">
+    <thead><tr><th>Tahun</th><th class="num">Total Aktiva</th><th class="num">Kewajiban</th><th class="num">Ekuitas</th><th class="num">SHU Bersih</th><th>File</th>${canManage?'<th>Aksi</th>':''}</tr></thead>
+    <tbody>${rows.map(r=>`<tr>
+      <td><strong>${r.tahun}</strong></td>
+      <td class="num">${fmtIDR(r.total_aktiva||0)}</td>
+      <td class="num">${fmtIDR(r.kewajiban||0)}</td>
+      <td class="num">${fmtIDR(r.ekuitas||0)}</td>
+      <td class="num"><strong>${fmtIDR(r.shu_bersih||0)}</strong></td>
+      <td>${r.file_data ? `<a href="${r.file_data}" download="${r.file_name||('LapKeu_'+r.tahun+'.xlsx')}" style="font-size:12px">⬇ Unduh</a>` : '<span style="color:var(--muted);font-size:12px">-</span>'}</td>
+      ${canManage ? `<td style="white-space:nowrap"><button class="btn btn-blue btn-sm" onclick="editLapKeu(${r.tahun})">Edit</button> <button class="btn btn-danger btn-sm" onclick="deleteLapKeu(${r.id||0})">Hapus</button></td>` : ''}
+    </tr>`).join("")}</tbody>
+  </table></div>`;
+}
+function resetLapKeuForm(){
+  ["lk_aktiva_lancar","lk_aktiva_tetap","lk_total_aktiva","lk_kewajiban","lk_ekuitas","lk_pendapatan","lk_beban","lk_shu_sebelum","lk_pph","lk_shu_bersih"].forEach(id=>{ const e=$(id); if(e) e.value=0; });
+  const f=$("lk_file"); if(f) f.value="";
+  toast("Form direset.","info");
+}
+function editLapKeu(tahun){
+  const r = lapKeuRows().find(x => x.tahun === tahun);
+  if (!r){ toast("Data tidak ditemukan.","error"); return; }
+  $("lk_tahun").value = r.tahun;
+  $("lk_aktiva_lancar").value = r.aktiva_lancar||0;
+  $("lk_aktiva_tetap").value = r.aktiva_tetap||0;
+  $("lk_total_aktiva").value = r.total_aktiva||0;
+  $("lk_kewajiban").value = r.kewajiban||0;
+  $("lk_ekuitas").value = r.ekuitas||0;
+  $("lk_pendapatan").value = r.pendapatan||0;
+  $("lk_beban").value = r.beban||0;
+  $("lk_shu_sebelum").value = r.shu_sebelum_pajak||0;
+  $("lk_pph").value = r.pph||0;
+  $("lk_shu_bersih").value = r.shu_bersih||0;
+  const f=$("lk_file"); if(f) f.value="";
+  const panel=document.getElementById("in-lapkeu"); if(panel) panel.scrollIntoView({behavior:"smooth"});
+  toast("Data tahun "+tahun+" dimuat — ubah lalu Simpan.","info");
+}
+function parseLapKeuXlsx(file){
+  if (!file) return;
+  if (typeof XLSX === "undefined"){ toast("Library Excel belum termuat. Isi angka manual lalu Simpan.","error"); return; }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const wb = XLSX.read(new Uint8Array(e.target.result), { type:"array" });
+      const findSheet = kw => wb.SheetNames.find(n => n.toUpperCase().includes(kw) && !n.toUpperCase().includes("LAJUR"));
+      const neracaName = findSheet("NERACA");
+      const shuName = wb.SheetNames.find(n => /RL|RUGI|SHU/.test(n.toUpperCase()));
+      const getVal = (ws, label, offset) => {
+        if (!ws || !ws["!ref"]) return null;
+        const range = XLSX.utils.decode_range(ws["!ref"]);
+        for (let r=range.s.r; r<=range.e.r; r++){
+          for (let c=range.s.c; c<=range.e.c; c++){
+            const cell = ws[XLSX.utils.encode_cell({r,c})];
+            if (cell && String(cell.v||"").toUpperCase().includes(label)){
+              const vc = ws[XLSX.utils.encode_cell({r, c:c+offset})];
+              if (vc){
+                let val = vc.v;
+                if (typeof val === "string") val = Number(String(val).replace(/\./g,"").replace(/,/g,"."));
+                if (typeof val === "number" && !isNaN(val)) return val;
+              }
+            }
+          }
+        }
+        return null;
+      };
+      const out = {};
+      if (neracaName){
+        const ws = wb.Sheets[neracaName];
+        out.aktiva_lancar = getVal(ws,"JUMLAH AKTIVA LANCAR",1);
+        out.aktiva_tetap = getVal(ws,"JUMLAH AKTIVA TETAP",1);
+        out.total_aktiva = getVal(ws,"TOTAL",1);
+        out.kewajiban = getVal(ws,"JUMLAH KEWAJIBAN",2);
+        out.ekuitas = getVal(ws,"JUMLAH KEKAYAAN BERSIH",2);
+      }
+      if (shuName){
+        const ws = wb.Sheets[shuName];
+        out.pendapatan = getVal(ws,"PENDAPATAN DAN BIAYA",1);
+        out.beban = getVal(ws,"PENDAPATAN DAN BIAYA",2);
+        out.shu_sebelum_pajak = getVal(ws,"PENDAPATAN DAN BIAYA",3);
+        out.pph = getVal(ws,"JUMLAH PPH",3);
+        out.shu_bersih = getVal(ws,"PENDAPATAN BERSIH",3);
+      }
+      const setN = (id,val) => { const el=$(id); if(el) el.value = (val==null?0:val); };
+      setN("lk_aktiva_lancar", out.aktiva_lancar);
+      setN("lk_aktiva_tetap", out.aktiva_tetap);
+      setN("lk_total_aktiva", out.total_aktiva);
+      setN("lk_kewajiban", out.kewajiban);
+      setN("lk_ekuitas", out.ekuitas);
+      setN("lk_pendapatan", out.pendapatan);
+      setN("lk_beban", out.beban);
+      setN("lk_shu_sebelum", out.shu_sebelum_pajak);
+      setN("lk_pph", out.pph);
+      setN("lk_shu_bersih", out.shu_bersih);
+      const found = Object.values(out).filter(v => v != null && v !== 0).length;
+      toast("File di-parse: "+found+" angka terbaca. Verifikasi lalu Simpan.", found ? "success" : "error");
+    } catch(err){
+      toast("Gagal parse Excel: "+(err.message||err)+". Isi angka manual.", "error");
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+async function saveLapKeu(){
+  const tahun = Number($("lk_tahun").value);
+  if (!tahun){ toast("Tahun wajib diisi.","error"); return; }
+  const fileInput = $("lk_file");
+  let fileData = null, fileName = null;
+  if (fileInput && fileInput.files[0]){
+    fileName = fileInput.files[0].name;
+    fileData = await new Promise(res => {
+      const r = new FileReader();
+      r.onload = e => res(e.target.result);
+      r.readAsDataURL(fileInput.files[0]);
+    });
+  }
+  const data = {
+    tahun,
+    aktiva_lancar: Number($("lk_aktiva_lancar").value)||0,
+    aktiva_tetap: Number($("lk_aktiva_tetap").value)||0,
+    total_aktiva: Number($("lk_total_aktiva").value)||0,
+    kewajiban: Number($("lk_kewajiban").value)||0,
+    ekuitas: Number($("lk_ekuitas").value)||0,
+    pendapatan: Number($("lk_pendapatan").value)||0,
+    beban: Number($("lk_beban").value)||0,
+    shu_sebelum_pajak: Number($("lk_shu_sebelum").value)||0,
+    pph: Number($("lk_pph").value)||0,
+    shu_bersih: Number($("lk_shu_bersih").value)||0,
+    uploaded_by: currentUser.id
+  };
+  if (fileData){ data.file_data = fileData; data.file_name = fileName; }
+  if (IS_LIVE && sb){
+    try {
+      const existing = liveLapKeu.find(r => r.tahun === tahun);
+      if (existing){
+        const { error } = await sb.from("laporan_keuangan").update(data).eq("id", existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await sb.from("laporan_keuangan").insert(data);
+        if (error) throw error;
+      }
+      await loadLapKeu();
+      toast("Laporan keuangan tahun "+tahun+" tersimpan.", "success");
+      renderPage("input");
+    } catch(err){ toast("Gagal simpan: "+(err.message||err), "error"); }
+  } else {
+    toast("(Demo) Laporan keuangan tahun "+tahun+" disimpan di browser.", "info");
+    renderPage("input");
+  }
+}
+async function deleteLapKeu(id){
+  if (!id || !IS_LIVE || !sb){ toast("(Demo) Jalankan di mode LIVE untuk hapus data.", "info"); return; }
+  if (!confirm("Hapus laporan keuangan ini?")) return;
+  try {
+    const { error } = await sb.from("laporan_keuangan").delete().eq("id", id);
+    if (error) throw error;
+    await loadLapKeu();
+    toast("Laporan dihapus.", "success");
+    renderPage("input");
+  } catch(err){ toast("Gagal hapus: "+(err.message||err), "error"); }
+}
+
+/* --- Evaluasi Laporan Keuangan --- */
+function renderEvaluasi(){
+  const rows = lapKeuRows().slice().sort((a,b)=>a.tahun-b.tahun);
+  if (!rows.length) return "<p>Belum ada laporan keuangan tahunan.</p>";
+  const growth = (cur, prev) => (prev ? (cur-prev)/prev*100 : null);
+  const ratio = (a,b) => (b ? a/b : null);
+  return `
+  <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Evaluasi &amp; analisis laporan keuangan tahunan (Neraca + SHU) — tren &amp; rasio antar tahun.</p>
+  <div class="table-wrap"><table class="table-fin">
+    <thead><tr><th>Tahun</th><th class="num">Total Aktiva</th><th class="num">Δ%</th><th class="num">Kewajiban</th><th class="num">Ekuitas</th><th class="num">DER</th><th class="num">Pendapatan</th><th class="num">Beban</th><th class="num">SHU Bersih</th><th class="num">Margin SHU</th></tr></thead>
+    <tbody>
+    ${rows.map((r,i) => {
+      const prev = rows[i-1];
+      const dAktiva = growth(r.total_aktiva, prev?prev.total_aktiva:null);
+      const der = ratio(r.kewajiban, r.ekuitas);
+      const margin = ratio(r.shu_bersih, r.pendapatan);
+      return `<tr>
+        <td><strong>${r.tahun}</strong></td>
+        <td class="num">${fmtIDR(r.total_aktiva||0)}</td>
+        <td class="num ${dAktiva==null?'':(dAktiva>=0?'text-success':'text-danger')}">${dAktiva==null?'—':(dAktiva>=0?'+':'')+dAktiva.toFixed(1)+'%'}</td>
+        <td class="num">${fmtIDR(r.kewajiban||0)}</td>
+        <td class="num">${fmtIDR(r.ekuitas||0)}</td>
+        <td class="num">${der==null?'—':der.toFixed(2)+'×'}</td>
+        <td class="num">${fmtIDR(r.pendapatan||0)}</td>
+        <td class="num">${fmtIDR(r.beban||0)}</td>
+        <td class="num"><strong>${fmtIDR(r.shu_bersih||0)}</strong></td>
+        <td class="num">${margin==null?'—':(margin*100).toFixed(1)+'%'}</td>
+      </tr>`;
+    }).join("")}
+    </tbody>
+  </table></div>
+  <div class="grid-2" style="margin-top:16px">
+    <div class="card"><h3>Tren SHU Bersih (Rp)</h3><div class="chart-wrap"><canvas id="chartEvalSHU" height="200"></canvas></div></div>
+    <div class="card"><h3>Aktiva vs Kewajiban vs Ekuitas</h3><div class="chart-wrap"><canvas id="chartEvalNeraca" height="200"></canvas></div></div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <h3>Analisis Ringkas</h3>
+    ${evaluasiNarasi(rows)}
+  </div>`;
+}
+function evaluasiNarasi(rows){
+  if (rows.length < 2) return "<p>Butuh minimal 2 tahun data untuk analisis tren.</p>";
+  const first = rows[0], last = rows[rows.length-1];
+  const dAktiva = (last.total_aktiva-first.total_aktiva)/first.total_aktiva*100;
+  const dSHU = (last.shu_bersih-first.shu_bersih)/first.shu_bersih*100;
+  const derLast = last.kewajiban/last.ekuitas;
+  const marginLast = last.shu_bersih/last.pendapatan*100;
+  const derKet = derLast < 0.35 ? "(sangat sehat — kewajiban kecil)" : (derLast < 0.6 ? "(cukup sehat)" : "(perlu diwaspadai)");
+  return `<p style="font-size:14px;line-height:1.7">
+    Selama <strong>${first.tahun}–${last.tahun}</strong>, total aktiva <strong>${dAktiva>=0?'naik':'menurun'}</strong> sebesar <strong>${Math.abs(dAktiva).toFixed(1)}%</strong> (dari ${fmtIDR(first.total_aktiva)} menjadi ${fmtIDR(last.total_aktiva)}), sementara SHU bersih <strong>${dSHU>=0?'naik':'menurun'} ${Math.abs(dSHU).toFixed(1)}%</strong> (dari ${fmtIDR(first.shu_bersih)} menjadi ${fmtIDR(last.shu_bersih)}).
+    Rasio DER (debt-to-equity) tahun ${last.tahun} sebesar <strong>${derLast.toFixed(2)}×</strong> ${derKet}, dan margin SHU terhadap pendapatan <strong>${marginLast.toFixed(1)}%</strong>.
+    ${dSHU < 0 ? '<br>⚠️ SHU menurun — evaluasi efisiensi biaya operasional (gaji, jasa pengurus) dan optimalisasi pendapatan jasa pinjaman &amp; PPOB. Pertimbangkan menekan beban non-usaha yang naik.' : '<br>✅ SHU tetap positif &amp; relatif stabil — pertahankan disiplin biaya dan likuiditas simpanan anggota.'}
+  </p>`;
+}
+
 async function syncFromSupabase(){
   if (!IS_LIVE || !sb) return;
   const fetchTable = async (name) => {
@@ -2143,10 +2641,10 @@ async function syncFromSupabase(){
       return data;
     } catch(e){ return null; }
   };
-  const [anggota, kegiatan, shuItems, neracaItems, pinjaman, settings, bukuBesar, pengurus] = await Promise.all([
+  const [anggota, kegiatan, shuItems, neracaItems, pinjaman, settings, bukuBesar, pengurus, lapKeu] = await Promise.all([
     fetchTable("anggota"), fetchTable("kegiatan"), fetchTable("shu_items"),
     fetchTable("neraca_items"), fetchTable("pinjaman"), fetchTable("settings"),
-    fetchTable("buku_besar"), fetchTable("pengurus")
+    fetchTable("buku_besar"), fetchTable("pengurus"), fetchTable("laporan_keuangan")
   ]);
   let changed = false;
   // ANGGOTA
@@ -2240,6 +2738,11 @@ async function syncFromSupabase(){
       id:p.id, nama:p.nama, jabatan:p.jabatan, unit:p.unit||"Pengurus",
       foto:p.foto||"", urutan:p.urutan||0, periode:p.periode||""
     }));
+    changed = true;
+  }
+  // LAPORAN KEUANGAN → liveLapKeu
+  if (lapKeu && lapKeu.length){
+    liveLapKeu = lapKeu.map(r => ({ ...r }));
     changed = true;
   }
   liveSynced = true;
