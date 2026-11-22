@@ -296,10 +296,18 @@ footer a:hover{color:var(--accent)}
           <input type="file" id="loginFoto" accept="image/png,image/jpeg" onchange="previewFoto(this,'loginFotoPreview')">
           <img id="loginFotoPreview" style="display:none;margin-top:8px;width:64px;height:64px;border-radius:8px;object-fit:cover">
         </div>
+        <div class="form-group">
+          <label>Tanda Tangan (opsional) — gambar langsung di kolom</label>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <img id="loginSigPreview" style="display:none;width:120px;height:50px;object-fit:contain;border:1px solid var(--border);border-radius:6px;background:#fff">
+            <button type="button" class="btn btn-ghost btn-sm" onclick="openSigPad(function(d){ signupSigData=d; const i=$('loginSigPreview'); if(d){i.src=d;i.style.display='block';}else{i.style.display='none';} })">✍️ Gambar Tanda Tangan</button>
+          </div>
+          <p style="font-size:11px;color:var(--muted);margin-top:4px">Tersimpan ke profil &amp; dipakai otomatis di form Permohonan Pinjaman.</p>
+        </div>
       </div>
       <div class="form-group">
-        <label>Email</label>
-        <input type="email" id="loginEmail" placeholder="email@koperasi.id" value="">
+        <label>Email atau No. HP</label>
+        <input type="text" id="loginEmail" placeholder="email@koperasi.id atau 0812xxxxxxx" value="">
       </div>
       <div class="form-group">
         <label>Kata Sandi</label>
@@ -319,6 +327,23 @@ footer a:hover{color:var(--accent)}
         Pengawas: pengawas@demo.id · Bendahara: bendahara@demo.id<br>
         Admin: admin@demo.id<br>
         <em>Sandi semua akun demo: <code>koperasi123</code></em>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Signature Pad Modal (Zoho-style) -->
+<div class="modal-overlay" id="sigPadModal">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header"><h3>✍️ Tanda Tangan</h3><button class="modal-close" onclick="closeSigPad()">&times;</button></div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Gambar tanda tangan Anda di area di bawah (mouse atau sentuh layar).</p>
+      <div style="border:2px dashed var(--border);border-radius:10px;background:#fff;padding:8px;display:flex;justify-content:center">
+        <canvas id="sigCanvas" width="460" height="200" style="touch-action:none;cursor:crosshair;max-width:100%;height:auto"></canvas>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button class="btn btn-ghost" onclick="clearSigPad()">🗑 Hapus</button>
+        <button class="btn btn-primary" style="flex:1" onclick="saveSigPad()">Simpan Tanda Tangan</button>
       </div>
     </div>
   </div>
@@ -798,7 +823,7 @@ function toggleSignupMode(signup){
   $("demoBox").style.display = isSignup ? "none" : "";
   const lp = $("lupaPassLink"); if (lp) lp.style.display = isSignup ? "none" : "";
   $("loginError").textContent = "";
-  if (!isSignup){ signupFotoData = null; const pv = $("loginFotoPreview"); if (pv){ pv.style.display="none"; pv.src=""; } const fi = $("loginFoto"); if (fi) fi.value=""; }
+  if (!isSignup){ signupFotoData = null; signupSigData = null; const pv = $("loginFotoPreview"); if (pv){ pv.style.display="none"; pv.src=""; } const fi = $("loginFoto"); if (fi) fi.value=""; const sp = $("loginSigPreview"); if (sp){ sp.style.display="none"; sp.src=""; } }
 }
 
 function profToUser(prof, fb){
@@ -816,7 +841,8 @@ function profToUser(prof, fb){
     tgl_lahir: prof?.tgl_lahir || "",
     pekerjaan: prof?.pekerjaan || "",
     anggota_id: prof?.anggota_id || "",
-    status: prof?.status || "aktif"
+    status: prof?.status || "aktif",
+    tanda_tangan: prof?.tanda_tangan || ""
   };
 }
 async function signup(){
@@ -844,10 +870,11 @@ async function signup(){
     const { data, error } = await sb.auth.signUp({
       email, password: pass,
       options: { data: { nama: nama, role: "anggota", alamat: alamat, no_hp: no_hp, foto: signupFotoData,
-                         ktp: ktp, tempat_lahir: tempatLahir, tgl_lahir: tglLahir, pekerjaan: pekerjaan } }
+                         ktp: ktp, tempat_lahir: tempatLahir, tgl_lahir: tglLahir, pekerjaan: pekerjaan,
+                         tanda_tangan: signupSigData || null } }
     });
     if (error) throw error;
-    const usedFoto = signupFotoData; signupFotoData = null;
+    const usedFoto = signupFotoData; signupFotoData = null; signupSigData = null;
     if (data.user && !data.session){
       $("loginError").style.color = "var(--success)";
       $("loginError").textContent = "Pendaftaran berhasil! Cek email Anda untuk verifikasi, lalu masuk. Setelah masuk, minta admin menetapkan peran Anda.";
@@ -864,13 +891,21 @@ async function signup(){
 }
 
 async function login(){
-  const email = $("loginEmail").value.trim().toLowerCase();
+  const ident = $("loginEmail").value.trim();
   const pass = $("loginPass").value;
   $("loginError").textContent = "";
-  if (!email || !pass){ $("loginError").textContent = "Email dan kata sandi wajib diisi."; return; }
+  if (!ident || !pass){ $("loginError").textContent = "Email/No. HP dan kata sandi wajib diisi."; return; }
+  const isPhone = /^[+]?[0-9][0-9\s\-]{6,}$/.test(ident);
+  let email = ident.toLowerCase();
 
   if (IS_LIVE && sb){
     try {
+      if (isPhone){
+        const { data: rd, error: re } = await sb.rpc("email_by_phone", { p_input: ident });
+        if (re) throw re;
+        if (!rd){ $("loginError").textContent = "No. HP tidak terdaftar."; return; }
+        email = String(rd).toLowerCase();
+      }
       const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
       if (error) throw error;
       // fetch profile
@@ -886,13 +921,17 @@ async function login(){
       $("loginError").textContent = "Gagal masuk: " + (err.message || "kesalahan tidak diketahui");
     }
   } else {
-    // Demo mode
-    const u = DEMO_USERS[email];
+    // Demo mode: email atau no_hp
+    let u = null, demoEmail = email;
+    if (isPhone){
+      const found = Object.entries(DEMO_USERS).find(([k,v]) => v.no_hp && v.no_hp.replace(/[^0-9]/g,'') === ident.replace(/[^0-9]/g,''));
+      if (found){ demoEmail = found[0]; u = found[1]; }
+    } else { u = DEMO_USERS[email]; }
     if (!u || u.password !== pass){
-      $("loginError").textContent = "Email atau kata sandi salah (mode demo). Lihat akun demo di bawah.";
+      $("loginError").textContent = "Email/No. HP atau kata sandi salah (mode demo). Lihat akun demo di bawah.";
       return;
     }
-    currentUser = { id: u.id, email, role: u.role, nama: u.nama, alamat: u.alamat||"", no_hp: u.no_hp||"", ktp: u.ktp||"", tempat_lahir: u.tempat_lahir||"", tgl_lahir: u.tgl_lahir||"", pekerjaan: u.pekerjaan||"", anggota_id: u.anggota_id||"", status: u.status||"aktif" };
+    currentUser = { id: u.id, email: demoEmail, role: u.role, nama: u.nama, alamat: u.alamat||"", no_hp: u.no_hp||"", ktp: u.ktp||"", tempat_lahir: u.tempat_lahir||"", tgl_lahir: u.tgl_lahir||"", pekerjaan: u.pekerjaan||"", anggota_id: u.anggota_id||"", status: u.status||"aktif", tanda_tangan: u.tanda_tangan||"" };
     postLogin();
   }
 }
@@ -1830,6 +1869,96 @@ async function verifikasiOtpWa(){
   }
 }
 
+/* ===== V3.7: Tanda Tangan (signature pad) + Login No. HP ===== */
+let editTtdData = null;
+let signupSigData = null;
+let blankoSertakanTtd = true;
+
+/* --- Signature pad (Zoho-style) --- */
+let sigPadCtx=null, sigPadDrawing=false, sigPadCb=function(){}, sigPadEmpty=true;
+function openSigPad(cb){
+  sigPadCb = cb || function(){};
+  const m=$("sigPadModal"); if(m) m.classList.add("show");
+  setTimeout(initSigPad, 30);
+}
+function closeSigPad(){ const m=$("sigPadModal"); if(m) m.classList.remove("show"); }
+function initSigPad(){
+  const cv=$("sigCanvas"); if(!cv) return;
+  const ratio=Math.max(window.devicePixelRatio||1,1), W=460, H=200;
+  cv.width=W*ratio; cv.height=H*ratio; cv.style.width=W+"px"; cv.style.height=H+"px";
+  const ctx=cv.getContext("2d"); ctx.scale(ratio,ratio);
+  ctx.fillStyle="#ffffff"; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle="#1e293b"; ctx.lineWidth=2.4; ctx.lineCap="round"; ctx.lineJoin="round";
+  sigPadCtx=ctx; sigPadDrawing=false; sigPadEmpty=true;
+  const pos=(e)=>{ const r=cv.getBoundingClientRect(); const cx=(e.touches?e.touches[0].clientX:e.clientX)-r.left; const cy=(e.touches?e.touches[0].clientY:e.clientY)-r.top; return { x:cx*(W/r.width), y:cy*(H/r.height) }; };
+  const start=(e)=>{ e.preventDefault(); sigPadDrawing=true; sigPadEmpty=false; const p=pos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); };
+  const move=(e)=>{ if(!sigPadDrawing) return; e.preventDefault(); const p=pos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); };
+  const end=(e)=>{ if(sigPadDrawing){ e.preventDefault(); sigPadDrawing=false; } };
+  cv.onmousedown=start; cv.onmousemove=move; cv.onmouseup=end; cv.onmouseleave=end;
+  cv.ontouchstart=start; cv.ontouchmove=move; cv.ontouchend=end;
+}
+function clearSigPad(){
+  const cv=$("sigCanvas"); if(!cv||!sigPadCtx) return;
+  sigPadCtx.fillStyle="#ffffff"; sigPadCtx.fillRect(0,0,460,200); sigPadEmpty=true;
+}
+async function saveSigPad(){
+  const cv=$("sigCanvas"); if(!cv) return;
+  if(sigPadEmpty){ toast("Tanda tangan masih kosong. Gambar dulu.","error"); return; }
+  let data=cv.toDataURL("image/png");
+  data=await cropSigData(data);
+  sigPadCb(data); closeSigPad();
+}
+function cropSigData(dataUrl){
+  return new Promise((resolve)=>{
+    const img=new Image();
+    img.onload=()=>{
+      const c=document.createElement("canvas"); c.width=img.width; c.height=img.height;
+      const cx=c.getContext("2d"); cx.drawImage(img,0,0);
+      let d; try { d=cx.getImageData(0,0,c.width,c.height); } catch(e){ resolve(dataUrl); return; }
+      let minX=c.width,minY=c.height,maxX=0,maxY=0,found=false;
+      for(let y=0;y<c.height;y++) for(let x=0;x<c.width;x++){
+        const i=(y*c.width+x)*4, a=d.data[i+3], v=d.data[i];
+        if(a>10 && v<250){ found=true; if(x<minX)minX=x; if(x>maxX)maxX=x; if(y<minY)minY=y; if(y>maxY)maxY=y; }
+      }
+      if(!found){ resolve(dataUrl); return; }
+      const pad=8;
+      minX=Math.max(0,minX-pad); minY=Math.max(0,minY-pad);
+      maxX=Math.min(c.width,maxX+pad); maxY=Math.min(c.height,maxY+pad);
+      const w=maxX-minX, h=maxY-minY;
+      const o=document.createElement("canvas"); o.width=w; o.height=h;
+      const ox=o.getContext("2d"); ox.fillStyle="#fff"; ox.fillRect(0,0,w,h);
+      ox.drawImage(c,minX,minY,w,h,0,0,w,h);
+      resolve(o.toDataURL("image/png"));
+    };
+    img.onerror=()=>resolve(dataUrl);
+    img.src=dataUrl;
+  });
+}
+
+/* --- Sisip ttd ke form Permohonan Pinjaman (bisa dihapus/dipertahankan) --- */
+function bkTtdHtml(){
+  if(!currentUser || !currentUser.tanda_tangan){
+    return '<div id="bkTtdWrap" style="height:54px;margin:6px 0;display:flex;align-items:center;justify-content:center"><button type="button" class="btn btn-ghost btn-sm" style="font-size:11px" onclick="bkBuatTtd()">✍️ Buat Tanda Tangan</button></div>';
+  }
+  return '<div id="bkTtdWrap" style="margin:6px 0;text-align:center">'+
+    '<img id="bkTtdImg" src="'+currentUser.tanda_tangan+'" style="display:'+(blankoSertakanTtd?'inline':'none')+';width:150px;height:54px;object-fit:contain">'+
+    '<div style="margin-top:4px"><label style="font-size:11px;font-weight:400;cursor:pointer"><input type="checkbox" id="bkSertakanTtd" '+(blankoSertakanTtd?'checked':'')+' onchange="bkTtdToggle()"> Sertakan tanda tangan saya</label></div>'+
+    '</div>';
+}
+function bkTtdToggle(){
+  const c=$("bkSertakanTtd");
+  blankoSertakanTtd = c ? c.checked : !blankoSertakanTtd;
+  const img=$("bkTtdImg"); if(img) img.style.display = blankoSertakanTtd ? "inline" : "none";
+}
+function bkBuatTtd(){
+  openSigPad(function(d){
+    if(!d) return;
+    currentUser.tanda_tangan = d; blankoSertakanTtd = true;
+    if(IS_LIVE && sb && currentUser.id){ sb.from("profiles").update({ tanda_tangan: d }).eq("id", currentUser.id).then(()=>toast("Tanda tangan disimpan ke profil.","success")).catch(()=>{}); }
+    const w=$("bkTtdWrap"); if(w){ const tmp=document.createElement("div"); tmp.innerHTML=bkTtdHtml(); w.replaceWith(tmp.firstChild); }
+  });
+}
+
 /* ---------- Page: Kegiatan ---------- */
 function pageKegiatan(){
   const extra = JSON.parse(localStorage.getItem("demo_kegiatan") || "[]");
@@ -2526,6 +2655,18 @@ function pageProfilSaya(){
         </div>
       </div>
       <div class="card" style="max-width:640px;margin-top:16px">
+        <h3>✍️ Tanda Tangan</h3>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Tanda tangan ini dipakai otomatis di <strong>form Permohonan Pinjaman</strong>. Gambar langsung di kolom (mouse/sentuh), lalu klik <strong>Simpan Perubahan</strong>.</p>
+        <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+          <img id="psTtdImg" src="${currentUser.tanda_tangan||''}" style="${currentUser.tanda_tangan?'':'display:none'};width:200px;height:80px;object-fit:contain;border:1px solid var(--border);border-radius:8px;background:#fff">
+          ${currentUser.tanda_tangan?'':'<div style="width:200px;height:80px;border:1px dashed var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px">Belum ada tanda tangan</div>'}
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <button class="btn btn-primary btn-sm" onclick="openSigPad(function(d){ if(!d)return; editTtdData=d; const i=$('psTtdImg'); i.src=d; i.style.display='block'; })">${currentUser.tanda_tangan?'✍️ Gambar Ulang':'✍️ Buat Tanda Tangan'}</button>
+            ${currentUser.tanda_tangan?'<button class="btn btn-ghost btn-sm" onclick="hapusTtdProfil()">🗑 Hapus Tanda Tangan</button>':''}
+          </div>
+        </div>
+      </div>
+      <div class="card" style="max-width:640px;margin-top:16px">
         <h3>🔑 Ganti Kata Sandi</h3>
         <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Sandi baru minimal 6 karakter. Berlaku untuk login berikutnya.</p>
         <div class="form-grid">
@@ -2550,21 +2691,30 @@ async function saveProfilSaya(){
   if (IS_LIVE && sb){
     const upd = { nama, ktp, tempat_lahir, tgl_lahir, pekerjaan, alamat, no_hp };
     if (editFotoData) upd.foto = editFotoData;
+    if (editTtdData !== null) upd.tanda_tangan = editTtdData || null;
     try {
       const { error } = await sb.from("profiles").update(upd).eq("id", currentUser.id);
       if (error) throw error;
       currentUser = { ...currentUser, ...upd };
-      editFotoData = null;
+      editFotoData = null; editTtdData = null;
       updateUserUI();
       toast("Profil tersimpan.","success");
       renderPage("profilsaya");
     } catch(err){ toast("Gagal simpan: "+(err.message||err),"error"); }
   } else {
-    currentUser = { ...currentUser, nama, ktp, tempat_lahir, tgl_lahir, pekerjaan, alamat, no_hp };
+    const upd = { nama, ktp, tempat_lahir, tgl_lahir, pekerjaan, alamat, no_hp };
+    if (editTtdData !== null) upd.tanda_tangan = editTtdData || null;
+    currentUser = { ...currentUser, ...upd };
+    editTtdData = null;
     toast("(Demo) Profil disimpan di browser.","info");
     updateUserUI();
     renderPage("profilsaya");
   }
+}
+function hapusTtdProfil(){
+  editTtdData = "";
+  const i=$("psTtdImg"); if(i){ i.style.display="none"; i.src=""; }
+  toast("Klik Simpan Perubahan untuk menghapus tanda tangan.","info");
 }
 
 /* --- CRUD Anggota (admin/bendahara) --- */
@@ -2892,7 +3042,7 @@ function pageBlanko(){
           </div>
           <div class="grid-3" style="margin-top:14px;text-align:center">
             <div><strong>Pihak Pertama</strong><br>Ketua ${NAMA_KOPERASI}<br><br><br>(${ketua.nama})</div>
-            <div><strong>Pihak Kedua</strong><br>Pemohon<br><br><br>(${aNama || '. . . . . . . . . . . . . . . .'})</div>
+            <div><strong>Pihak Kedua</strong><br>Pemohon<br>${bkTtdHtml()}<br>(${aNama || '. . . . . . . . . . . . . . . .'})</div>
             <div><strong>Mengetahui</strong><br>Bendahara ${NAMA_KOPERASI}<br><br><br>(${bend.nama})</div>
           </div>
           <div id="bkStatus" style="margin-top:14px;display:none;background:var(--light);border-left:4px solid var(--success);padding:10px 12px;border-radius:6px;font-size:13px"></div>
@@ -3050,7 +3200,7 @@ function cetakBlanko(){
   <tr><td class="lbl">Tanggal</td><td>: ${tglTxt}</td></tr></table>
   <table style="margin-top:22px"><tr>
   <td class="tt"><b>Pihak Pertama</b><br>Ketua ${NAMA_KOPERASI}<div class="nm">(${ketua.nama})</div></td>
-  <td class="tt"><b>Pihak Kedua</b><br>Pemohon<div class="nm">(${v("bk_nama") || '. . . . . . . . . . . .'})</div></td>
+  <td class="tt"><b>Pihak Kedua</b><br>Pemohon${(blankoSertakanTtd && currentUser && currentUser.tanda_tangan) ? '<div style="text-align:center;margin:4px 0"><img src="'+currentUser.tanda_tangan+'" style="width:150px;height:60px;object-fit:contain"></div>' : ''}<div class="nm">(${v("bk_nama") || '. . . . . . . . . . . .'})</div></td>
   <td class="tt"><b>Mengetahui</b><br>Bendahara ${NAMA_KOPERASI}<div class="nm">(${bend.nama})</div></td>
   </tr></table>
   <p class="noprint" style="text-align:center;margin-top:24px"><button onclick="window.print()" style="padding:8px 24px;font-size:14px;cursor:pointer">🖨 Cetak / Save as PDF</button></p>
