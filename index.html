@@ -200,8 +200,16 @@ footer a:hover{color:var(--accent)}
 <div class="topbar">
   <div class="container">
     <span>📍 Jl. Nusantara No. 01, Kampung Melayu, Banyuwangi, Jawa Timur</span>
-    <span>NIK: 3510180040001 · Badan Hukum: 7418/BH/II/1992</span>
+    <div style="display:flex;align-items:center;gap:14px">
+      <span>NIK: 3510180040001 · Badan Hukum: 7418/BH/II/1992</span>
+      <button id="themeBtn" onclick="toggleThemePopover(event)" title="Ganti tema warna" style="background:transparent;border:1px solid #cbd5e1;color:#e0e7ff;padding:2px 10px;border-radius:6px;cursor:pointer;font-size:12px">🎨 Tema</button>
+    </div>
   </div>
+</div>
+<div id="themePopover" style="display:none;position:fixed;top:40px;right:12px;z-index:250;background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:14px;width:240px">
+  <div style="font-weight:700;margin-bottom:10px;font-size:14px">🎨 Tema Warna</div>
+  <div id="themeSwatches" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"></div>
+  <button onclick="toggleThemePopover(event)" class="btn btn-ghost btn-sm" style="width:100%;margin-top:12px">Tutup</button>
 </div>
 
 <!-- Header -->
@@ -303,7 +311,7 @@ footer a:hover{color:var(--accent)}
         Belum punya akun? <a href="#" onclick="toggleSignupMode(true);return false" style="font-weight:600">Daftar baru</a>
       </div>
       <div style="margin-top:8px;text-align:center;font-size:13px" id="lupaPassLink">
-        <a href="#" onclick="lupaPassword();return false" style="font-weight:600">Lupa kata sandi?</a>
+        <a href="#" onclick="openLupaSandi();return false" style="font-weight:600">Lupa kata sandi?</a>
       </div>
       <div id="demoBox" style="margin-top:16px;padding:12px;background:var(--light);border-radius:8px;font-size:12px;color:var(--muted)">
         <strong>Akun Demo (mode offline):</strong><br>
@@ -364,6 +372,36 @@ footer a:hover{color:var(--accent)}
     </div>
   </div>
 </div>
+
+<!-- Lupa Sandi Modal (Email / OTP WhatsApp) -->
+<div class="modal-overlay" id="lupaSandiModal">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header"><h3>🔑 Lupa Kata Sandi</h3><button class="modal-close" onclick="closeLupaSandi()">&times;</button></div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Pilih metode reset kata sandi:</p>
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <button class="btn btn-primary btn-sm" style="flex:1" onclick="lupaSandiMethod('email')">📧 Via Email</button>
+        <button class="btn btn-ghost btn-sm" style="flex:1" onclick="lupaSandiMethod('wa')">📱 Via WhatsApp</button>
+      </div>
+      <div id="lsEmailBox">
+        <div class="form-group"><label>Email akun Anda</label><input type="email" id="lsEmail" placeholder="email@contoh.com"></div>
+        <button class="btn btn-primary" style="width:100%" onclick="kirimEmailReset()">Kirim Tautan Reset</button>
+      </div>
+      <div id="lsWaBox" style="display:none">
+        <div class="form-group"><label>Nomor WhatsApp terdaftar</label><input type="tel" id="lsPhone" placeholder="contoh: 0812xxxxxxx"></div>
+        <button class="btn btn-primary" style="width:100%" onclick="kirimOtpWa()">Kirim Kode OTP</button>
+        <div id="lsOtpBox" style="display:none;margin-top:10px">
+          <div class="form-group"><label>Kode OTP (6 digit)</label><input type="text" id="lsOtp" placeholder="123456" maxlength="6" inputmode="numeric"></div>
+          <button class="btn btn-success" style="width:100%" onclick="verifikasiOtpWa()">Verifikasi &amp; Kirim Tautan Reset</button>
+        </div>
+      </div>
+      <div id="lsError" style="margin-top:10px;font-size:13px"></div>
+      <p style="font-size:11px;color:var(--muted);margin-top:10px">OTP WhatsApp memerlukan Edge Function <code>send-wa-otp</code> + gateway WA (mis. Fonnte). Jika belum aktif, gunakan <strong>Via Email</strong>.</p>
+    </div>
+  </div>
+</div>
+<!-- Lightbox foto kegiatan -->
+<div id="lightbox" onclick="closeLightbox()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:300;align-items:center;justify-content:center;cursor:zoom-out"><img id="lightboxImg" style="max-width:92%;max-height:92%;border-radius:8px"></div>
 
 <!-- Anggota Modal (Admin/Bendahara CRUD) -->
 <div class="modal-overlay" id="anggotaModal">
@@ -1405,6 +1443,11 @@ function pageInput(){
       </div>
 
       <div class="tab-panel" id="in-pinjaman">
+        <div class="card" style="margin-bottom:14px;border-left:4px solid var(--warning)">
+          <h3>📋 Antrian Pengajuan Pinjaman (perlu approve Bendahara/Admin)</h3>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Pengajuan dari anggota via <strong>Blanko Pinjaman</strong>. Pilih <strong>bulan pencairan</strong> lalu <strong>Setujui</strong> agar otomatis masuk data Pinjaman sesuai bulan terpilih, atau <strong>Tolak</strong> (dengan catatan).</p>
+          ${renderAntrianPengajuan()}
+        </div>
         <div class="card">
           <h3>Form Input Pinjaman Anggota</h3>
           <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Data tersimpan ke tabel <code>pinjaman</code>.</p>
@@ -1428,6 +1471,16 @@ function pageInput(){
             <div class="form-group"><label>Tanggal</label><input type="date" name="tanggal" required></div>
             <div class="form-group"><label>Judul</label><input type="text" name="judul" placeholder="contoh: RAT Tahunan 2026" required></div>
             <div class="form-group"><label>Deskripsi</label><textarea name="desc" rows="3" placeholder="Ringkasan kegiatan..." required></textarea></div>
+            <div class="form-group" style="grid-column:1/-1"><label>Foto Kegiatan (maks. 3)</label>
+              <div style="display:flex;gap:12px;flex-wrap:wrap">
+                ${[1,2,3].map(i=>`<div style="text-align:center">
+                  <img id="kgFotoImg${i}" style="display:none;width:84px;height:84px;border-radius:8px;object-fit:cover;border:1px solid var(--border)">
+                  <div style="width:84px;height:84px;border-radius:8px;background:var(--light);display:flex;align-items:center;justify-content:center;font-size:26px;color:var(--muted)">🖼</div>
+                  <input type="file" accept="image/png,image/jpeg" onchange="previewKegiatanFoto(this,${i})" style="font-size:11px;margin-top:4px;width:92px">
+                </div>`).join("")}
+              </div>
+              <p style="font-size:11px;color:var(--muted);margin-top:6px">JPG/PNG, otomatis dikecilkan ke 400px. Opsional.</p>
+            </div>
             <button class="btn btn-primary" type="submit">Simpan</button>
           </form>
         </div>
@@ -1515,9 +1568,12 @@ async function submitPinjaman(e){
 async function submitKegiatan(e){
   e.preventDefault();
   const f = e.target;
-  const data = { tanggal:f.tanggal.value, judul:f.judul.value, desc:f.desc.value };
+  const data = { tanggal:f.tanggal.value, judul:f.judul.value, desc:f.desc.value,
+    foto1: kegiatanFotos[0]||null, foto2: kegiatanFotos[1]||null, foto3: kegiatanFotos[2]||null };
   await saveRecord("kegiatan", data, "Kegiatan");
   f.reset();
+  kegiatanFotos = [null,null,null];
+  ["kgFotoImg1","kgFotoImg2","kgFotoImg3"].forEach(id=>{ const e2=$(id); if(e2){ e2.style.display="none"; e2.src=""; } });
 }
 async function saveRecord(table, data, label){
   if (IS_LIVE && sb){
@@ -1536,6 +1592,244 @@ async function saveRecord(table, data, label){
   }
 }
 
+/* ===== V3.6: Pengajuan Pinjaman + Foto Kegiatan + Theme + OTP WA ===== */
+let livePengajuan = [];
+let kegiatanFotos = [null,null,null];
+let blankoSavedId = null;
+
+/* --- #1 Simpan Pengajuan dari Blanko --- */
+function simpanPengajuanPinjaman(){
+  if (!currentUser){ toast("Anda belum login.","error"); return; }
+  blankoHitung();
+  const v = id => ($(id) ? $(id).value : "");
+  const reg = Number(v("bk_reguler"))||0, khu = Number(v("bk_khusus"))||0, bar = Number(v("bk_barang"))||0;
+  const pokok = reg + khu + bar;
+  if (pokok <= 0){ toast("Isi nominal pinjaman (Reguler/Khusus/Barang) sebelum simpan.","error"); return; }
+  const jenis = [reg>0&&"Reguler", khu>0&&"Khusus", bar>0&&"Barang"].filter(Boolean).join(", ");
+  const pencairan = (document.querySelector('input[name="bk_pencairan"]:checked')||{}).value || "cash";
+  const data = {
+    anggota_id: currentUser.anggota_id||null, user_id: currentUser.id, email: currentUser.email,
+    nama: v("bk_nama"), ktp: v("bk_ktp"), pekerjaan: v("bk_pekerjaan"), alamat: v("bk_alamat"),
+    no_hp: v("bk_hp"), nip: v("bk_nip"),
+    jenis, reguler: reg, khusus: khu, barang: bar, ket_barang: v("bk_ket_barang"), pokok,
+    pencairan, bank: v("bk_bank"), rekening: v("bk_rekening"), an: v("bk_an"),
+    jasa_reg: Number(v("bk_jasa_reg"))||0, jasa_khusus: Number(v("bk_jasa_khusus"))||0,
+    tenor: Number(v("bk_tenor"))||0, angsuran_kali: Number(v("bk_angsuran_kali"))||0,
+    tgl_potong: Number(v("bk_tgl_potong"))||null, bulan_lunas: Number(v("bk_bulan_lunas"))||null,
+    tahun_lunas: Number(v("bk_tahun_lunas"))||null,
+    angsuran_bln: Number(v("bk_angsuran_bln"))||0, pelunasan_khusus: Number(v("bk_pelunasan_khusus"))||0,
+    jaminan: Math.round(reg*0.01), tanggal: v("bk_tanggal"), tempat: v("bk_tempat"),
+    status: "diajukan", created_by: currentUser.id
+  };
+  const done = (id) => {
+    blankoSavedId = id;
+    const st = $("bkStatus"); if (st){ st.style.display="block"; st.innerHTML = "✅ Pengajuan <strong>#"+id+"</strong> tersimpan — menunggu <strong>persetujuan Bendahara/Admin</strong>. Setelah disetujui, data otomatis masuk Pinjaman sesuai bulan pencairan yang dipilih Bendahara."; }
+    const cb = $("bkCetakBtn"); if (cb) cb.style.display = "inline-block";
+    toast("Pengajuan pinjaman tersimpan. Menunggu approve Bendahara/Admin.","success");
+  };
+  if (IS_LIVE && sb){
+    sb.from("pengajuan_pinjaman").insert(data).then(({ data: r, error }) => {
+      if (error){ toast("Gagal simpan pengajuan: "+error.message,"error"); return; }
+      done(r && r[0] && r[0].id ? r[0].id : "tersimpan");
+      syncFromSupabase();
+    });
+  } else {
+    const arr = JSON.parse(localStorage.getItem("demo_pengajuan_pinjaman")||"[]");
+    const id = Date.now(); arr.push({ ...data, id, created_at: new Date().toISOString() });
+    localStorage.setItem("demo_pengajuan_pinjaman", JSON.stringify(arr));
+    done(id);
+  }
+}
+
+/* --- #2 Antrian approve -> Pinjaman --- */
+function renderAntrianPengajuan(){
+  const list = (IS_LIVE && livePengajuan.length) ? livePengajuan
+    : JSON.parse(localStorage.getItem("demo_pengajuan_pinjaman")||"[]");
+  const now = new Date(); const mNow = now.getMonth()+1, yNow = now.getFullYear();
+  const optB = BULAN_ID.map((b,i)=>'<option value="'+(i+1)+'" '+(i+1===mNow?'selected':'')+'>'+b+'</option>').join("");
+  const optT = Array.from({length:5},(_,i)=>yNow-2+i).map(y=>'<option value="'+y+'" '+(y===yNow?'selected':'')+'>'+y+'</option>').join("");
+  if (!list.length) return '<p style="color:var(--muted);font-size:13px">Belum ada pengajuan pinjaman.</p>';
+  const rows = list.slice().sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
+  return '<div class="table-wrap"><table style="font-size:12px">'+
+    '<thead><tr><th>#</th><th>Pemohon</th><th>Jenis</th><th>Pokok</th><th>Tenor</th><th>Angsuran/Bln</th><th>Status</th><th>Bulan Pencairan</th><th>Aksi</th></tr></thead><tbody>'+
+    rows.map(p=>{
+      const st = p.status||'diajukan';
+      const badge = st==='diajukan'?'<span class="badge" style="background:#f59e0b;color:#fff">Menunggu</span>'
+        : st==='disetujui'?'<span class="badge badge-success">Disetujui</span>'
+        : '<span class="badge" style="background:var(--danger);color:#fff">Ditolak</span>';
+      let aksi;
+      if (st==='diajukan'){
+        aksi = '<select id="apg_bulan_'+p.id+'" style="font-size:11px;padding:2px">'+optB+'</select> <select id="apg_tahun_'+p.id+'" style="font-size:11px;padding:2px">'+optT+'</select>'+
+          '<div style="margin-top:4px"><button class="btn btn-success btn-sm" onclick="approvePengajuan('+p.id+')">Setujui</button> <button class="btn btn-danger btn-sm" onclick="rejectPengajuan('+p.id+')">Tolak</button></div>';
+      } else if (st==='disetujui'){
+        aksi = 'Pencairan: '+BULAN_ID[(p.bulan_disburse||1)-1]+' '+(p.tahun_disburse||'');
+      } else {
+        aksi = (p.catatan?('Catatan: '+p.catatan):'-');
+      }
+      return '<tr><td>'+p.id+'</td><td>'+(p.nama||'')+'<br><span style="color:var(--muted)">'+(p.anggota_id||'')+'</span></td>'+
+        '<td>'+(p.jenis||'')+'</td><td>'+fmtIDR(Number(p.pokok)||0)+'</td><td>'+(p.tenor||0)+' bln</td>'+
+        '<td>'+fmtIDR(Number(p.angsuran_bln)||0)+'</td><td>'+badge+'</td><td>'+aksi+'</td></tr>';
+    }).join("")+'</tbody></table></div>';
+}
+async function approvePengajuan(id){
+  const bulan = Number(($("apg_bulan_"+id)||{}).value)||1;
+  const tahun = Number(($("apg_tahun_"+id)||{}).value)||new Date().getFullYear();
+  const src = (IS_LIVE&&livePengajuan.length) ? livePengajuan : JSON.parse(localStorage.getItem("demo_pengajuan_pinjaman")||"[]");
+  const p = src.find(x=>String(x.id)===String(id));
+  if (!p){ toast("Pengajuan tidak ditemukan.","error"); return; }
+  const kategori = (p.pekerjaan==='TAD') ? 'TAD' : (Number(p.khusus)>0 ? 'Khusus' : 'Anggota');
+  if (IS_LIVE && sb){
+    try {
+      const { error: e1 } = await sb.from("pengajuan_pinjaman").update({ status:"disetujui", bulan_disburse:bulan, tahun_disburse:tahun, approved_by:currentUser.id, approved_at:new Date().toISOString() }).eq("id", id);
+      if (e1) throw e1;
+      const { error: e2 } = await sb.from("pinjaman").insert({ bulan:BULAN_ID[bulan-1], tahun, kategori, nilai:Number(p.pokok)||0, created_by:currentUser.id });
+      if (e2) throw e2;
+      toast("Pengajuan disetujui — masuk data pinjaman "+BULAN_ID[bulan-1]+" "+tahun+".","success");
+      await syncFromSupabase(); renderPage("input");
+    } catch(err){ toast("Gagal approve: "+(err.message||err),"error"); }
+  } else {
+    const arr = JSON.parse(localStorage.getItem("demo_pengajuan_pinjaman")||"[]");
+    const it = arr.find(x=>String(x.id)===String(id)); if (it){ it.status="disetujui"; it.bulan_disburse=bulan; it.tahun_disburse=tahun; }
+    localStorage.setItem("demo_pengajuan_pinjaman", JSON.stringify(arr));
+    const pa = JSON.parse(localStorage.getItem("demo_pinjaman")||"[]");
+    pa.push({ id:Date.now(), bulan:BULAN_ID[bulan-1], tahun, kategori, nilai:Number(p.pokok)||0 });
+    localStorage.setItem("demo_pinjaman", JSON.stringify(pa));
+    toast("(Demo) Pengajuan disetujui — masuk pinjaman "+BULAN_ID[bulan-1]+" "+tahun+".","success");
+    renderPage("input");
+  }
+}
+async function rejectPengajuan(id){
+  const catatan = prompt("Alasan penolakan (opsional):")||"";
+  if (IS_LIVE && sb){
+    try {
+      const { error } = await sb.from("pengajuan_pinjaman").update({ status:"ditolak", catatan, approved_by:currentUser.id, approved_at:new Date().toISOString() }).eq("id", id);
+      if (error) throw error;
+      toast("Pengajuan ditolak.","info"); await syncFromSupabase(); renderPage("input");
+    } catch(err){ toast("Gagal: "+(err.message||err),"error"); }
+  } else {
+    const arr = JSON.parse(localStorage.getItem("demo_pengajuan_pinjaman")||"[]");
+    const it = arr.find(x=>String(x.id)===String(id)); if (it){ it.status="ditolak"; it.catatan=catatan; }
+    localStorage.setItem("demo_pengajuan_pinjaman", JSON.stringify(arr));
+    toast("(Demo) Pengajuan ditolak.","info"); renderPage("input");
+  }
+}
+
+/* --- #4 Foto kegiatan (max 3) --- */
+function previewKegiatanFoto(input, idx){
+  const file = input.files && input.files[0]; if (!file) return;
+  if (!file.type.startsWith("image/")){ toast("File harus gambar (JPG/PNG).","error"); input.value=""; return; }
+  const img = $("kgFotoImg"+idx);
+  const r = new FileReader();
+  r.onload = e => { const t = new Image(); t.onload = ()=>{ const mw=400, s=Math.min(1,mw/t.width); const c=document.createElement("canvas"); c.width=Math.round(t.width*s); c.height=Math.round(t.height*s); c.getContext("2d").drawImage(t,0,0,c.width,c.height); const d=c.toDataURL("image/jpeg",0.85); kegiatanFotos[idx-1]=d; img.src=d; img.style.display="block"; toast("Foto "+idx+" siap.","success"); }; t.src=e.target.result; };
+  r.readAsDataURL(file);
+}
+function openLightbox(src){ const o=$("lightbox"); const i=$("lightboxImg"); if(o&&i){ i.src=src; o.style.display="flex"; } }
+function closeLightbox(){ const o=$("lightbox"); if(o) o.style.display="none"; }
+
+/* --- #6 Theme changer --- */
+const THEMES = {
+  biru:  { name:"Biru PLN", vars:{"--primary":"#1e3a8a","--primary-dark":"#172554","--primary-light":"#2563eb","--accent":"#facc15","--accent-dark":"#ca8a04","--bg":"#f1f5f9","--card":"#ffffff","--border":"#e2e8f0","--text":"#1e293b","--muted":"#64748b","--light":"#f8fafc"} },
+  hijau: { name:"Hijau",    vars:{"--primary":"#065f46","--primary-dark":"#064e3b","--primary-light":"#10b981","--accent":"#fbbf24","--accent-dark":"#d97706","--bg":"#ecfdf5","--card":"#ffffff","--border":"#d1fae5","--text":"#064e3b","--muted":"#047857","--light":"#f0fdf4"} },
+  merah: { name:"Merah",    vars:{"--primary":"#991b1b","--primary-dark":"#7f1d1d","--primary-light":"#dc2626","--accent":"#fde68a","--accent-dark":"#f59e0b","--bg":"#fef2f2","--card":"#ffffff","--border":"#fecaca","--text":"#7f1d1d","--muted":"#b91c1c","--light":"#fff1f2"} },
+  ungu:  { name:"Ungu",     vars:{"--primary":"#5b21b6","--primary-dark":"#4c1d95","--primary-light":"#7c3aed","--accent":"#fcd34d","--accent-dark":"#f59e0b","--bg":"#f5f3ff","--card":"#ffffff","--border":"#ddd6fe","--text":"#4c1d95","--muted":"#6d28d9","--light":"#ede9fe"} },
+  emas:  { name:"Emas",     vars:{"--primary":"#a16207","--primary-dark":"#854d0e","--primary-light":"#ca8a04","--accent":"#1e3a8a","--accent-dark":"#172554","--bg":"#fffbeb","--card":"#ffffff","--border":"#fde68a","--text":"#78350f","--muted":"#a16207","--light":"#fefce8"} },
+  gelap: { name:"Gelap",    vars:{"--primary":"#334155","--primary-dark":"#0f172a","--primary-light":"#475569","--accent":"#facc15","--accent-dark":"#ca8a04","--bg":"#1e293b","--card":"#334155","--border":"#475569","--text":"#e2e8f0","--muted":"#94a3b8","--light":"#0f172a"} }
+};
+function applyTheme(){
+  const name = localStorage.getItem("kp_theme")||"biru";
+  setTheme(name, false);
+}
+function setTheme(name, save){
+  const t = THEMES[name]; if (!t) return;
+  const root = document.documentElement.style;
+  Object.entries(t.vars).forEach(([k,v])=> root.setProperty(k, v));
+  if (save !== false) localStorage.setItem("kp_theme", name);
+  document.querySelectorAll(".theme-swatch").forEach(s=> s.classList.toggle("active", s.dataset.theme===name));
+}
+function toggleThemePopover(e){
+  if (e) e.stopPropagation();
+  const p = $("themePopover"); if (!p) return;
+  const open = p.style.display === "block";
+  p.style.display = open ? "none" : "block";
+  if (!open){
+    const sw = $("themeSwatches");
+    if (sw && !sw.children.length){
+      sw.innerHTML = Object.entries(THEMES).map(([k,t])=>{
+        const c = t.vars["--primary"], a = t.vars["--accent"];
+        return '<button class="theme-swatch" data-theme="'+k+'" onclick="setTheme(\''+k+'\')" title="'+t.name+'" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px;border:1px solid var(--border);border-radius:8px;background:var(--card);cursor:pointer">'+
+          '<span style="width:34px;height:34px;border-radius:50%;background:'+c+';border:3px solid '+a+'"></span>'+
+          '<span style="font-size:10px;color:var(--text)">'+t.name+'</span></button>';
+      }).join("");
+      applyTheme();
+    }
+  }
+}
+document.addEventListener("click", (e)=>{
+  const p=$("themePopover");
+  if(p && p.style.display==="block" && !p.contains(e.target) && e.target && e.target.id!=="themeBtn") p.style.display="none";
+});
+
+/* --- #3 Lupa Sandi: Email vs OTP WhatsApp --- */
+function openLupaSandi(){ const m=$("lupaSandiModal"); if(m) m.classList.add("show"); lupaSandiMethod("email"); }
+function closeLupaSandi(){ const m=$("lupaSandiModal"); if(m) m.classList.remove("show"); }
+function lupaSandiMethod(m){
+  ["lsEmailBox","lsWaBox"].forEach(id=>{ const e=$(id); if(e) e.style.display="none"; });
+  const box=$(m==="wa"?"lsWaBox":"lsEmailBox"); if(box) box.style.display="block";
+  const err=$("lsError"); if(err){ err.textContent=""; err.style.color="var(--muted)"; }
+  const btnE=$("lsBtnEmail"), btnW=$("lsBtnWa");
+}
+async function kirimEmailReset(){
+  let email = (($("lsEmail")||{}).value||($("loginEmail")||{}).value||"").trim().toLowerCase();
+  if (!email){ toast("Isi email.","error"); return; }
+  if (!IS_LIVE||!sb){ toast("Reset hanya di mode LIVE.","info"); return; }
+  const err=$("lsError");
+  try {
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.href });
+    if (error) throw error;
+    if (err){ err.style.color="var(--success)"; err.textContent="Tautan reset terkirim ke "+email+". Cek email (termasuk folder spam)."; }
+    toast("Email reset terkirim.","success");
+  } catch(e){ if (err){ err.style.color="var(--danger)"; err.textContent="Gagal: "+(e.message||e); } }
+}
+async function kirimOtpWa(){
+  let phone = (($("lsPhone")||{}).value||"").trim();
+  if (!phone){ toast("Isi nomor WhatsApp.","error"); return; }
+  if (!IS_LIVE||!sb){ toast("OTP WA hanya di mode LIVE (butuh Edge Function).","info"); return; }
+  const err=$("lsError");
+  if (err){ err.style.color="var(--muted)"; err.textContent="Mengirim OTP..."; }
+  try {
+    const { data, error } = await sb.functions.invoke("send-wa-otp", { body: { phone } });
+    if (error) throw error;
+    if (err){ err.style.color="var(--success)"; err.textContent="OTP dikirim ke "+phone+". Berlaku 5 menit."; }
+    const box=$("lsOtpBox"); if(box) box.style.display="block";
+    toast("OTP WhatsApp terkirim.","success");
+  } catch(e){
+    if (err){ err.style.color="var(--danger)"; err.textContent="OTP WA belum aktif ("+(e.message||e)+"). Gunakan Via Email."; }
+    toast("OTP WA belum aktif (Edge Function belum di-deploy).","error");
+  }
+}
+async function verifikasiOtpWa(){
+  const phone = (($("lsPhone")||{}).value||"");
+  const otp = (($("lsOtp")||{}).value||"").trim();
+  if (!otp){ toast("Masukkan OTP.","error"); return; }
+  const err=$("lsError");
+  if (err){ err.style.color="var(--muted)"; err.textContent="Memverifikasi..."; }
+  try {
+    const { data, error } = await sb.functions.invoke("verify-wa-otp", { body: { phone, otp } });
+    if (error) throw error;
+    const email = (data && data.email) || "";
+    if (email){
+      await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.href });
+      if (err){ err.style.color="var(--success)"; err.innerHTML="Verifikasi berhasil. Tautan reset kata sandi dikirim ke email Anda ("+email+"). Cek email."; }
+      toast("Verifikasi OK — tautan reset dikirim ke email.","success");
+      setTimeout(closeLupaSandi, 4000);
+    } else {
+      if (err){ err.style.color="var(--danger)"; err.textContent="Verifikasi OK tapi email tidak ditemukan. Hubungi admin."; }
+    }
+  } catch(e){
+    if (err){ err.style.color="var(--danger)"; err.textContent="Gagal verifikasi: "+(e.message||e); }
+  }
+}
+
 /* ---------- Page: Kegiatan ---------- */
 function pageKegiatan(){
   const extra = JSON.parse(localStorage.getItem("demo_kegiatan") || "[]");
@@ -1550,11 +1844,13 @@ function pageKegiatan(){
       <div class="card">
         ${all.map(k => {
           const dt = fmtDateID(k.tanggal);
+          const fotos = [k.foto1,k.foto2,k.foto3].filter(Boolean);
           return `<div class="activity-item">
             <div class="activity-date"><div class="d">${dt.d}</div><div class="m">${dt.m}</div></div>
             <div class="activity-body">
               <h4>${k.judul}</h4>
               <p>${k.desc}</p>
+              ${fotos.length?`<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">${fotos.map(f=>`<img src="${f}" style="width:92px;height:92px;border-radius:8px;object-fit:cover;border:1px solid var(--border);cursor:pointer" onclick="openLightbox(this.src)">`).join("")}</div>`:""}
               <p style="font-size:11px;color:var(--muted);margin-top:4px">${dt.full}</p>
             </div>
           </div>`;
@@ -2515,7 +2811,7 @@ function pageBlanko(){
       <h2 class="section-title">Blanko Pinjaman Online</h2>
       <p class="section-sub">Perjanjian Pinjaman — ${NAMA_KOPERASI}. Pengurus &amp; tanda tangan otomatis; jasa terkunci (ubah di Admin).</p>
       <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-        <button class="btn btn-ghost" onclick="renderPage('blanko')">↺ Reset Form</button>
+        <button class="btn btn-ghost" onclick="blankoSavedId=null;renderPage('blanko')">↺ Reset Form</button>
       </div>
       <div class="card">
         <form id="blankoForm" onsubmit="return false">
@@ -2599,9 +2895,12 @@ function pageBlanko(){
             <div><strong>Pihak Kedua</strong><br>Pemohon<br><br><br>(${aNama || '. . . . . . . . . . . . . . . .'})</div>
             <div><strong>Mengetahui</strong><br>Bendahara ${NAMA_KOPERASI}<br><br><br>(${bend.nama})</div>
           </div>
-          <div style="display:flex;justify-content:flex-end;margin-top:18px">
-            <button class="btn btn-primary" onclick="cetakBlanko()">🖨 Cetak / Simpan PDF</button>
+          <div id="bkStatus" style="margin-top:14px;display:none;background:var(--light);border-left:4px solid var(--success);padding:10px 12px;border-radius:6px;font-size:13px"></div>
+          <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px;flex-wrap:wrap">
+            <button class="btn btn-success" onclick="simpanPengajuanPinjaman()">💾 Simpan Pengajuan</button>
+            <button class="btn btn-primary" id="bkCetakBtn" style="display:none" onclick="cetakBlanko()">🖨 Cetak / Simpan PDF</button>
           </div>
+          <p style="font-size:11px;color:var(--muted);margin-top:8px">Pengajuan wajib <strong>disimpan</strong> dulu sebelum bisa dicetak. Setelah disimpan, menunggu <strong>persetujuan Bendahara/Admin</strong> untuk masuk data Pinjaman.</p>
         </form>
       </div>
     </div>
@@ -3007,10 +3306,11 @@ async function syncFromSupabase(){
       return data;
     } catch(e){ return null; }
   };
-  const [anggota, kegiatan, shuItems, neracaItems, pinjaman, settings, bukuBesar, pengurus, lapKeu] = await Promise.all([
+  const [anggota, kegiatan, shuItems, neracaItems, pinjaman, settings, bukuBesar, pengurus, lapKeu, pengajuan] = await Promise.all([
     fetchTable("anggota"), fetchTable("kegiatan"), fetchTable("shu_items"),
     fetchTable("neraca_items"), fetchTable("pinjaman"), fetchTable("settings"),
-    fetchTable("buku_besar"), fetchTable("pengurus"), fetchTable("laporan_keuangan")
+    fetchTable("buku_besar"), fetchTable("pengurus"), fetchTable("laporan_keuangan"),
+    fetchTable("pengajuan_pinjaman")
   ]);
   let changed = false;
   // ANGGOTA
@@ -3025,11 +3325,13 @@ async function syncFromSupabase(){
   // KEGIATAN (merge with demo so demo items still show)
   if (kegiatan && kegiatan.length){
     const demoTitles = new Set(DEMO.kegiatan.map(k=>k.judul));
-    const live = kegiatan.map(k => ({ tanggal:k.tanggal, judul:k.judul, desc:k.deskripsi||k.desc||"" }))
+    const live = kegiatan.map(k => ({ tanggal:k.tanggal, judul:k.judul, desc:k.deskripsi||k.desc||"", foto1:k.foto1||"", foto2:k.foto2||"", foto3:k.foto3||"" }))
       .filter(k => !demoTitles.has(k.judul));
     DEMO.kegiatan = [...live, ...DEMO.kegiatan].sort((a,b)=>new Date(b.tanggal)-new Date(a.tanggal));
     changed = true;
   }
+  // PENGAJUAN PINJAMAN (antrian approve bendahara/admin)
+  if (pengajuan){ livePengajuan = pengajuan; if (pengajuan.length) changed = true; }
   // SHU ITEMS
   if (shuItems && shuItems.length){
     const pend = shuItems.filter(s=>s.tipe==="pendapatan");
@@ -3122,6 +3424,7 @@ async function syncFromSupabase(){
 }
 
 window.addEventListener("DOMContentLoaded", () => {
+  applyTheme();
   updateUserUI();
   nav("beranda");
   // Close modal on overlay click
