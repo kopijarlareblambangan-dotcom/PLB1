@@ -523,6 +523,26 @@ const DEMO_USERS = {
   "admin@demo.id":{password:"koperasi123", role:"admin", nama:"Administrator", id:"ADM"}
 };
 
+/* Chart of Accounts (Kode Perkiraan) standar nasional koperasi.
+   Berdasarkan buku besar 2023 + standar akuntansi koperasi Indonesia. */
+const CHART_OF_ACCOUNTS = {
+  "1950":   { nama:"Kas/Bank Mandiri",                      kel:"Aktiva Lancar" },
+  "10270":  { nama:"Tabungan BSI",                          kel:"Aktiva Lancar" },
+  "10230":  { nama:"Persediaan ATK/HVS",                    kel:"Aktiva Lancar" },
+  "10241":  { nama:"Piutang Pinjaman Anggota",              kel:"Aktiva Lancar" },
+  "102602": { nama:"Piutang Pinjaman Dinas KSA",            kel:"Aktiva Lancar" },
+  "15102":  { nama:"Simpanan Pokok",                        kel:"Ekuitas Anggota" },
+  "15103":  { nama:"Simpanan Wajib (SIMJIB)",               kel:"Ekuitas Anggota" },
+  "15104":  { nama:"Simpanan Lain",                         kel:"Ekuitas Anggota" },
+  "15106":  { nama:"Tabungan Hari Raya",                    kel:"Ekuitas Anggota" },
+  "1553":   { nama:"Titipan Pot (PIP/IKPLN/Toko/Kurban)",   kel:"Kewajiban Lain" },
+  "70015":  { nama:"Pendapatan Bunga Bank",                 kel:"Pendapatan" },
+  "70017":  { nama:"Pendapatan Jasa Angsuran Pinjaman",     kel:"Pendapatan" },
+  "102511": { nama:"Pendapatan Fee PPOB",                   kel:"Pendapatan" },
+  "55015":  { nama:"Beban Admin Bank",                      kel:"Beban" },
+  "64101":  { nama:"Beban Materai",                         kel:"Beban" }
+};
+let liveBukuBesar = [];
 let currentUser = null;
 </script>
 
@@ -1175,13 +1195,46 @@ function pageInput(){
       <h2 class="section-title">Input Laporan Keuangan</h2>
       <p class="section-sub">Formulir input data oleh Bendahara — periode baru, transaksi, &amp; aktivitas</p>
       <div class="tabs">
-        <button class="tab active" onclick="switchTab(event,'in-shu')">Input SHU</button>
+        <button class="tab active" onclick="switchTab(event,'in-bb')">Input Buku Besar</button>
+        <button class="tab" onclick="switchTab(event,'in-shu')">Input SHU</button>
         <button class="tab" onclick="switchTab(event,'in-neraca')">Input Neraca</button>
         <button class="tab" onclick="switchTab(event,'in-pinjaman')">Input Pinjaman</button>
         <button class="tab" onclick="switchTab(event,'in-kegiatan')">Input Kegiatan</button>
       </div>
 
-      <div class="tab-panel active" id="in-shu">
+      <div class="tab-panel active" id="in-bb">
+        <div class="card">
+          <h3>Form Input Buku Besar (Standar Nasional)</h3>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Input transaksi <strong>double-entry</strong> sesuai format buku besar koperasi nasional: <code>KU · KB · TGL · NB · URAIAN · KP · SUB · D · K</code>. Data tersimpan ke tabel <code>buku_besar</code> Supabase.</p>
+          <form onsubmit="submitBukuBesar(event)">
+            <div class="form-grid">
+              <div class="form-group"><label>Kode Unit (KU)</label><input type="text" name="ku" value="104" required style="max-width:90px"></div>
+              <div class="form-group"><label>Kode Buku (KB)</label><select name="kb" required><option value="01">01 — Kas</option><option value="08">08 — Bank</option></select></div>
+              <div class="form-group"><label>Tanggal (TGL)</label><input type="date" name="tanggal" required></div>
+              <div class="form-group"><label>Nomor Bukti (NB)</label><input type="text" name="no_bukti" placeholder="contoh: D001 / K001" required></div>
+              <div class="form-group" style="grid-column:1/-1"><label>Uraian</label><input type="text" name="uraian" placeholder="contoh: SETORAN DARI KAS / PINJ AN ... / SIMJIB B/ JAN 23" required></div>
+              <div class="form-group" style="grid-column:1/-1"><label>Kode Perkiraan (KP)</label><select name="kp" required>${Object.entries(CHART_OF_ACCOUNTS).map(([k,v])=>`<option value="${k}">${k} — ${v.nama}</option>`).join("")}</select></div>
+              <div class="form-group"><label>Sub Akun (SUB)</label><input type="text" name="sub" placeholder="opsional: kode sub-akun"></div>
+              <div class="form-group"><label>Debet / D (Rp)</label><input type="number" name="debet" placeholder="0" min="0" step="0.01"></div>
+              <div class="form-group"><label>Kredit / K (Rp)</label><input type="number" name="kredit" placeholder="0" min="0" step="0.01"></div>
+            </div>
+            <button class="btn btn-primary" type="submit">Simpan Transaksi</button>
+          </form>
+          <details style="margin-top:14px">
+            <summary style="cursor:pointer;font-size:13px;color:var(--muted)">📋 Daftar Kode Perkiraan (Chart of Accounts)</summary>
+            <div class="table-wrap" style="margin-top:8px">
+              <table style="font-size:12px">
+                <thead><tr><th>KP</th><th>Nama Akun</th><th>Kelompok</th></tr></thead>
+                <tbody>
+                  ${Object.entries(CHART_OF_ACCOUNTS).map(([k,v])=>`<tr><td><code>${k}</code></td><td>${v.nama}</td><td>${v.kel}</td></tr>`).join("")}
+                </tbody>
+              </table>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="in-shu">
         <div class="card">
           <h3>Form Input Pendapatan / Beban SHU</h3>
           <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Data tersimpan ke tabel <code>shu_items</code> Supabase.</p>
@@ -1247,6 +1300,29 @@ function pageInput(){
 }
 
 /* ---------- Form submission ---------- */
+async function submitBukuBesar(e){
+  e.preventDefault();
+  const f = e.target;
+  const debet  = Number(f.debet.value || 0);
+  const kredit = Number(f.kredit.value || 0);
+  if (debet > 0 && kredit > 0){ toast("Isi hanya salah satu: Debet ATAU Kredit (tidak keduanya).", "error"); return; }
+  if (debet === 0 && kredit === 0){ toast("Debet atau Kredit harus lebih dari 0.", "error"); return; }
+  const kp = f.kp.value;
+  const data = {
+    ku: f.ku.value.trim(),
+    kb: f.kb.value,
+    tanggal: f.tanggal.value,
+    no_bukti: f.no_bukti.value.trim(),
+    uraian: f.uraian.value.trim(),
+    kp,
+    sub: f.sub.value.trim() || null,
+    akun: (CHART_OF_ACCOUNTS[kp] && CHART_OF_ACCOUNTS[kp].nama) || kp,
+    debet, kredit
+  };
+  await saveRecord("buku_besar", data, "Buku Besar");
+  f.reset();
+}
+
 async function submitSHU(e){
   e.preventDefault();
   const f = e.target;
@@ -1550,9 +1626,10 @@ async function syncFromSupabase(){
       return data;
     } catch(e){ return null; }
   };
-  const [anggota, kegiatan, shuItems, neracaItems, pinjaman, settings] = await Promise.all([
+  const [anggota, kegiatan, shuItems, neracaItems, pinjaman, settings, bukuBesar] = await Promise.all([
     fetchTable("anggota"), fetchTable("kegiatan"), fetchTable("shu_items"),
-    fetchTable("neraca_items"), fetchTable("pinjaman"), fetchTable("settings")
+    fetchTable("neraca_items"), fetchTable("pinjaman"), fetchTable("settings"),
+    fetchTable("buku_besar")
   ]);
   let changed = false;
   // ANGGOTA
@@ -1617,6 +1694,16 @@ async function syncFromSupabase(){
     if (map.nama_koperasi) DEMO.profile.nama = map.nama_koperasi;
     if (map.jumlah_anggota) DEMO.profile.jumlah_anggota = Number(map.jumlah_anggota);
     if (map.periode_pengurus) DEMO.profile.periode_pengurus = map.periode_pengurus;
+    changed = true;
+  }
+  // BUKU BESAR (transaksi double-entry standar nasional)
+  if (bukuBesar && bukuBesar.length){
+    liveBukuBesar = bukuBesar.map(b => ({
+      id:b.id, ku:b.ku||"104", kb:b.kb||"", tanggal:b.tanggal,
+      no_bukti:b.no_bukti||"", uraian:b.uraian||"",
+      kp:b.kp||"", sub:b.sub||"", akun:b.akun||"",
+      debet:Number(b.debet)||0, kredit:Number(b.kredit)||0
+    }));
     changed = true;
   }
   liveSynced = true;
