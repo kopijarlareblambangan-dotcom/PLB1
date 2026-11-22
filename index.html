@@ -53,6 +53,59 @@ nav.main a.active{background:var(--accent);color:var(--primary-dark)}
 #lightbox.show #lightboxImg{transform:scale(1);opacity:1}
 .pengurus-foto{cursor:zoom-in;transition:transform .2s ease,box-shadow .2s ease}
 .pengurus-foto:hover{transform:scale(1.1);box-shadow:0 6px 16px rgba(0,0,0,.25)}
+/* V3.13: foto hover popover */
+.foto-hover{position:fixed;z-index:400;pointer-events:none;opacity:0;transform:scale(.8) translateY(8px);transition:opacity .18s,transform .18s;background:#fff;border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.25);padding:10px;text-align:center;display:none;max-width:220px}
+.foto-hover.show{opacity:1;transform:scale(1) translateY(0)}
+.foto-hover img{width:180px;height:180px;border-radius:8px;object-fit:cover;display:block;margin:0 auto 8px;background:var(--light)}
+.foto-hover .fh-nama{font-weight:700;font-size:14px;color:var(--text)}
+.foto-hover .fh-jabatan{font-size:12px;color:var(--primary);margin-top:2px}
+/* V3.13: floating live chat widget */
+.chat-fab{position:fixed;bottom:22px;right:22px;width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;border:none;cursor:pointer;box-shadow:0 6px 20px rgba(30,58,138,.4);z-index:250;display:flex;align-items:center;justify-content:center;font-size:26px;transition:transform .2s,box-shadow .2s}
+.chat-fab:hover{transform:scale(1.08);box-shadow:0 8px 28px rgba(30,58,138,.5)}
+.chat-fab .fab-dot{position:absolute;top:6px;right:6px;width:14px;height:14px;border-radius:50%;background:#22c55e;border:2px solid #fff}
+.chat-fab.offline .fab-dot{background:#94a3b8}
+.chat-fab.pulse::after{content:"";position:absolute;inset:0;border-radius:50%;border:3px solid #22c55e;animation:chatPulse 2s ease-out infinite}
+@keyframes chatPulse{0%{transform:scale(1);opacity:.7}100%{transform:scale(1.8);opacity:0}}
+.chat-badge{position:absolute;top:-4px;left:-4px;background:#dc2626;color:#fff;font-size:10px;font-weight:700;border-radius:10px;padding:1px 6px;border:2px solid #fff}
+.chat-panel{position:fixed;bottom:92px;right:22px;width:360px;max-width:calc(100vw - 32px);height:520px;max-height:calc(100vh - 130px);background:#fff;border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.25);z-index:251;display:none;flex-direction:column;overflow:hidden;transform:translateY(20px) scale(.95);opacity:0;transition:transform .25s cubic-bezier(.2,.8,.2,1),opacity .2s}
+.chat-panel.open{display:flex;transform:translateY(0) scale(1);opacity:1}
+.chat-head{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;padding:12px 14px;display:flex;align-items:center;gap:10px}
+.chat-head img{width:40px;height:40px;border-radius:50%;border:2px solid rgba(255,255,255,.4);object-fit:cover;background:#fff}
+.chat-head .ch-info{flex:1;min-width:0}
+.chat-head .ch-name{font-weight:700;font-size:14px}
+.chat-head .ch-status{font-size:11px;opacity:.95;display:flex;align-items:center;gap:4px;margin-top:2px}
+.chat-head .ch-status .dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
+.chat-head .ch-status.online .dot{background:#22c55e}
+.chat-head .ch-status.offline .dot{background:#fbbf24}
+.chat-head .ch-close{background:rgba(255,255,255,.2);border:none;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:18px;flex-shrink:0}
+.chat-head .ch-close:hover{background:rgba(255,255,255,.35)}
+.chat-body{flex:1;overflow-y:auto;padding:12px;background:var(--light);display:flex;flex-direction:column;gap:8px}
+.chat-msg{max-width:82%;padding:8px 12px;border-radius:12px;font-size:13px;line-height:1.45;word-wrap:break-word;animation:msgIn .2s ease}
+@keyframes msgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.chat-msg.bot{background:#fff;color:var(--text);border:1px solid var(--border);border-bottom-left-radius:4px;align-self:flex-start}
+.chat-msg.user{background:var(--primary);color:#fff;border-bottom-right-radius:4px;align-self:flex-end;margin-left:auto}
+.chat-msg .ts{display:block;font-size:9px;opacity:.6;margin-top:3px;text-align:right}
+.chat-msg.bot .ts{text-align:left}
+.chat-wa-btn{display:inline-block;background:#25d366;color:#fff!important;font-weight:600;padding:8px 14px;border-radius:20px;text-decoration:none;font-size:12px;margin-top:4px}
+.chat-wa-btn:hover{background:#1da851}
+.chat-typing{align-self:flex-start;background:#fff;border:1px solid var(--border);border-radius:12px;padding:10px 14px;display:flex;gap:4px}
+.chat-typing span{width:7px;height:7px;border-radius:50%;background:var(--muted);animation:typingBounce 1.2s infinite}
+.chat-typing span:nth-child(2){animation-delay:.2s}
+.chat-typing span:nth-child(3){animation-delay:.4s}
+@keyframes typingBounce{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-5px);opacity:1}}
+.chat-quick{display:flex;gap:6px;flex-wrap:wrap;padding:8px 12px;background:#fff;border-top:1px solid var(--border)}
+.chat-quick button{font-size:11px;padding:5px 10px;border:1px solid var(--primary);color:var(--primary);background:#fff;border-radius:14px;cursor:pointer;white-space:nowrap;font-family:inherit}
+.chat-quick button:hover{background:var(--primary);color:#fff}
+.chat-input{display:flex;gap:6px;padding:10px;background:#fff;border-top:1px solid var(--border)}
+.chat-input input{flex:1;border:1px solid var(--border);border-radius:20px;padding:8px 14px;font-size:13px;outline:none;font-family:inherit}
+.chat-input input:focus{border-color:var(--primary)}
+.chat-input button{width:38px;height:38px;border-radius:50%;background:var(--primary);color:#fff;border:none;cursor:pointer;font-size:16px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.chat-input button:hover{background:var(--primary-dark)}
+.chat-wa-foot{padding:8px 12px;background:#fff;border-top:1px solid var(--border);text-align:center}
+.chat-wa-foot a{display:inline-flex;align-items:center;gap:6px;background:#25d366;color:#fff;text-decoration:none;font-size:12px;font-weight:600;padding:6px 14px;border-radius:20px}
+.chat-wa-foot a:hover{background:#1da851}
+@media (max-width:480px){.chat-panel{right:8px;bottom:80px;height:calc(100vh - 110px);width:calc(100vw - 16px);max-width:calc(100vw - 16px)}.chat-fab{bottom:16px;right:16px}}
+
 .btn-success{background:var(--success);color:#fff}
 .btn-sm{padding:6px 10px;font-size:13px}
 .btn:disabled{opacity:.5;cursor:not-allowed}
@@ -226,7 +279,7 @@ footer a:hover{color:var(--accent)}
 <header class="main">
   <div class="container">
     <div class="brand">
-      <img src="data:image/jpeg;base64,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" alt="Logo Koperasi PIJAR LARE BLAMBANGAN" style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid var(--accent);flex-shrink:0;background:#fff">
+      <img src="data:image/jpeg;base64,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" id="brandLogo" alt="Logo Koperasi PIJAR LARE BLAMBANGAN" style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid var(--accent);flex-shrink:0;background:#fff">
       <div class="brand-text">
         <h1>Koperasi PIJAR LARE BLAMBANGAN</h1>
         <p>Portal Digital Koperasi · Banyuwangi (eks. KOPERLIN)</p>
@@ -332,13 +385,6 @@ footer a:hover{color:var(--accent)}
       </div>
       <div style="margin-top:8px;text-align:center;font-size:13px" id="lupaPassLink">
         <a href="#" onclick="openLupaSandi();return false" style="font-weight:600">Lupa kata sandi?</a>
-      </div>
-      <div id="demoBox" style="margin-top:16px;padding:12px;background:var(--light);border-radius:8px;font-size:12px;color:var(--muted)">
-        <strong>Akun Demo (mode offline):</strong><br>
-        Anggota: anggota@demo.id · Pengurus: pengurus@demo.id<br>
-        Pengawas: pengawas@demo.id · Bendahara: bendahara@demo.id<br>
-        Admin: admin@demo.id<br>
-        <em>Sandi semua akun demo: <code>koperasi123</code></em>
       </div>
     </div>
   </div>
@@ -543,6 +589,35 @@ footer a:hover{color:var(--accent)}
     </div>
   </div>
 </footer>
+<!-- V3.13: foto hover popover -->
+<div id="fotoHover" class="foto-hover"><img id="fotoHoverImg" alt=""><div class="fh-nama"></div><div class="fh-jabatan"></div></div>
+<!-- V3.13: floating live chat widget + bot ahli koperasi -->
+<button class="chat-fab pulse" id="chatFab" onclick="toggleChat()" title="Chat dengan Bendahara/Admin" aria-label="Chat langsung">
+  &#128172;<span class="fab-dot"></span><span class="chat-badge" id="chatBadge">1</span>
+</button>
+<div class="chat-panel" id="chatPanel" role="dialog" aria-label="Live Chat Koperasi">
+  <div class="chat-head">
+    <img id="chatAvatar" alt="Avatar Koperasi">
+    <div class="ch-info">
+      <div class="ch-name">Bendahara Koperasi</div>
+      <div class="ch-status online" id="chatStatus"><span class="dot"></span><span id="chatStatusText">Online &middot; balas cepat</span></div>
+    </div>
+    <button class="ch-close" onclick="toggleChat()" aria-label="Tutup">&times;</button>
+  </div>
+  <div class="chat-body" id="chatBody"></div>
+  <div class="chat-quick">
+    <button onclick="chatQuick('jam kerja')">&#128336; Jam Kerja</button>
+    <button onclick="chatQuick('simpanan')">&#128176; Simpanan</button>
+    <button onclick="chatQuick('pinjaman')">&#128179; Pinjaman</button>
+    <button onclick="chatQuick('usaha')">&#127978; Usaha</button>
+    <button onclick="chatQuick('kontak')">&#128205; Kontak</button>
+  </div>
+  <div class="chat-input">
+    <input type="text" id="chatInput" placeholder="Tulis pesan..." onkeydown="if(event.key==='Enter')chatSend()" aria-label="Pesan">
+    <button onclick="chatSend()" aria-label="Kirim">&#10148;</button>
+  </div>
+  <div class="chat-wa-foot"><a href="https://wa.me/6282141508946?text=Halo%20Bendahara%20Koperasi%20PIJAR%20LARE%20BLAMBANGAN" target="_blank" rel="noopener">&#128172; WhatsApp +62 821-4150-8946</a></div>
+</div>
 
 <!-- Supabase + Chart.js + SheetJS CDN -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -837,7 +912,7 @@ function toggleSignupMode(signup){
   $("toggleSignup").innerHTML = isSignup
     ? 'Sudah punya akun? <a href="#" onclick="toggleSignupMode(false);return false" style="font-weight:600">Masuk</a>'
     : 'Belum punya akun? <a href="#" onclick="toggleSignupMode(true);return false" style="font-weight:600">Daftar baru</a>';
-  $("demoBox").style.display = isSignup ? "none" : "";
+  const db=$("demoBox"); if(db) db.style.display = isSignup ? "none" : "";
   const lp = $("lupaPassLink"); if (lp) lp.style.display = isSignup ? "none" : "";
   $("loginError").textContent = "";
   if (!isSignup){ signupFotoData = null; signupSigData = null; const pv = $("loginFotoPreview"); if (pv){ pv.style.display="none"; pv.src=""; } const fi = $("loginFoto"); if (fi) fi.value=""; const sp = $("loginSigPreview"); if (sp){ sp.style.display="none"; sp.src=""; } }
@@ -1158,7 +1233,7 @@ function pageStruktur(){
   const pengawas = all.filter(p => p.unit==="Pengawas");
   const canManage = currentUser && ["admin","pengurus"].includes(currentUser.role);
   const fotoHtml = (p) => pengurusFoto(p)
-    ? `<img src="${pengurusFoto(p)}" class="pengurus-foto" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:3px solid var(--primary)" onclick="openLightbox(this.src)" title="Klik untuk perbesar">`
+    ? `<img src="${pengurusFoto(p)}" class="pengurus-foto" data-nama="${p.nama}" data-jabatan="${p.jabatan}" onmouseenter="showFotoHover(this)" onmouseleave="hideFotoHover()" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:3px solid var(--primary)" onclick="openLightbox(this.src)" title="Klik untuk perbesar">`
     : `<div style="width:72px;height:72px;border-radius:50%;background:var(--light);display:flex;align-items:center;justify-content:center;font-size:32px;color:var(--muted)">👤</div>`;
   return `
   <section class="page active">
@@ -1202,7 +1277,7 @@ function pageStruktur(){
               <thead><tr><th>Foto</th><th>Nama</th><th>Jabatan</th><th>Unit</th><th>Urutan</th><th>Aksi</th></tr></thead>
               <tbody>
                 ${all.map((p,i) => `<tr>
-                  <td>${pengurusFoto(p)?`<img src="${pengurusFoto(p)}" class="pengurus-foto" style="width:32px;height:32px;border-radius:6px;object-fit:cover" onclick="openLightbox(this.src)" title="Klik untuk perbesar">`:'<span style="color:var(--muted)">👤</span>'}</td>
+                  <td>${pengurusFoto(p)?`<img src="${pengurusFoto(p)}" class="pengurus-foto" data-nama="${p.nama}" data-jabatan="${p.jabatan}" onmouseenter="showFotoHover(this)" onmouseleave="hideFotoHover()" style="width:32px;height:32px;border-radius:6px;object-fit:cover" onclick="openLightbox(this.src)" title="Klik untuk perbesar">`:'<span style="color:var(--muted)">👤</span>'}</td>
                   <td>${p.nama}</td><td>${p.jabatan}</td><td>${p.unit||'Pengurus'}</td><td>${p.urutan||''}</td>
                   <td style="white-space:nowrap">
                     <button class="btn btn-blue btn-sm" onclick="editPengurus(${i})">Edit</button>
@@ -1225,7 +1300,7 @@ function pageUsaha(){
     {...DEMO.usaha[0], detail:"Simpanan Pokok Rp 250.000 (sekali) + Simpanan Wajib (bulanan). Total Simpanan Wajib per Jun 2026: Rp 555.293.000."},
     {...DEMO.usaha[1], detail:"Pinjaman dengan 3 kategori: Anggota (karyawan aktif), TAD (tenaga tidak langsung), Khusus. Total penyaluran Jan–Jun 2024: Rp 871.125.000."},
     {...DEMO.usaha[2], detail:"Pembayaran tagihan PLN, PDAM, BPJS, internet + penjualan pulsa. Pendapatan PPOB Jan–Jun 2026: Rp 20.667.657."},
-    {...DEMO.usaha[3], detail:"Penyediaan kebutuhan pokok dengan harga koperasi. Pendapatan Sembako Jan–Jun 2026: Rp 2.380.300."},
+    {...DEMO.usaha[3], link:"https://setoko.co/koperlin", detail:"Penyediaan kebutuhan pokok dengan harga koperasi (swalayan online). Pendapatan Sembako Jan–Jun 2026: Rp 2.380.300."},
     {...DEMO.usaha[4], detail:"Pengadaan barang untuk anggota &amp; dinas PLN. Pendapatan Pengadaan Jan–Jun 2026: Rp 2.738.680."},
     {...DEMO.usaha[5], detail:"Penempatan dana di saham untuk perolehan keuntungan. Pendapatan Keuntungan Saham Jan–Jun 2026: Rp 18.000.000."}
   ];
@@ -1241,6 +1316,7 @@ function pageUsaha(){
             <h3 style="margin-top:10px">${u.nama}</h3>
             <p style="font-size:14px;color:var(--text);margin-top:6px">${u.desc}</p>
             <p style="font-size:13px;color:var(--muted);margin-top:8px;padding-top:8px;border-top:1px dashed var(--border)">${u.detail}</p>
+            ${u.link?`<a href="${u.link}" target="_blank" rel="noopener" class="btn btn-primary btn-sm" style="margin-top:10px;display:inline-block;text-decoration:none">🛒 Kunjungi Toko Online &rarr;</a>`:""}
           </div>`).join("")}
       </div>
       <div class="card" style="margin-top:16px">
@@ -2725,6 +2801,150 @@ function getDistribusiUsaha(tahun){
 }
 function ubahUsahaTahun(t){ usahaTahunSel = Number(t); renderCharts(); }
 
+/* ===== V3.13: Floating Live Chat + Bot Ahli Koperasi + Hover Foto Profil/Pengurus ===== */
+const CHAT_WA = "6282141508946";
+const CHAT_WA_LABEL = "+62 821-4150-8946";
+let chatStarted = false;
+let chatHumanTimer = null;
+
+function chatWIB(){
+  const now = new Date();
+  const wib = new Date(now.getTime() + 7*60*60*1000); /* UTC+7 -> WIB */
+  return { dow: wib.getUTCDay(), h: wib.getUTCHours(), m: wib.getUTCMinutes() };
+}
+function isWorkHour(){
+  const w = chatWIB();
+  if (w.dow < 1 || w.dow > 5) return false; /* Senin=1 .. Jumat=5 */
+  const mins = w.h*60 + w.m;
+  return mins >= 8*60 && mins < 16*60; /* 08.00 - 16.00 WIB */
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])); }
+
+/* --- #2 Hover foto profil & pengurus: zoom + nama + jabatan tanpa klik --- */
+function showFotoHover(el){
+  const h=$("fotoHover"), im=$("fotoHoverImg");
+  if(!h||!im||!el||!el.src) return;
+  im.src = el.src;
+  h.querySelector(".fh-nama").textContent = el.dataset.nama||"";
+  h.querySelector(".fh-jabatan").textContent = el.dataset.jabatan||"";
+  h.style.display="block";
+  const r = el.getBoundingClientRect();
+  const hw = h.offsetWidth, hh = h.offsetHeight;
+  let left = r.left + r.width/2 - hw/2;
+  let top = r.top - hh - 12;
+  if (top < 8) top = r.bottom + 12;
+  left = Math.max(8, Math.min(left, window.innerWidth - hw - 8));
+  h.style.left = left+"px"; h.style.top = top+"px";
+  requestAnimationFrame(()=>h.classList.add("show"));
+}
+function hideFotoHover(){ const h=$("fotoHover"); if(!h) return; h.classList.remove("show"); setTimeout(()=>{ h.style.display="none"; },180); }
+
+/* --- #5 Bot ahli koperasi & pelayanan: knowledge base --- */
+const CHAT_KB = [
+  {kw:["jam kerja","jam buka","jam operasional","buka","tutup","kapan","libur"], a:"&#128336; <b>Jam kerja koperasi: Senin&ndash;Jumat, 08.00&ndash;16.00 WIB.</b> Sabtu, Minggu &amp; hari libur tutup. Untuk urusan mendesak di luar jam kerja, silakan chat WhatsApp "+CHAT_WA_LABEL+"."},
+  {kw:["simpanan pokok","pokok"], a:"&#128176; <b>Simpanan Pokok Rp 250.000</b> &mdash; dibayar sekali saat menjadi anggota. Modal dasar keanggotaan yang tidak dapat dicairkan selama menjadi anggota."},
+  {kw:["simpanan wajib","wajib","simjib","iuran"], a:"&#128176; <b>Simpanan Wajib (SIMJIB)</b> dibayar bulanan oleh anggota aktif. Total Simpanan Wajib per Jun 2026 mencapai <b>Rp 555.293.000</b>. Besaran iuran mengikuti ketentuan AD/ART."},
+  {kw:["pinjaman","kredit","meminjam","utang","anjungan","pinjam"], a:"&#128179; Pinjaman 3 kategori: <b>Anggota</b> (karyawan aktif), <b>TAD</b> (tenaga tidak langsung), <b>Khusus</b>. Pengajuan via menu <b>Blanko Pinjaman</b>. Total penyaluran Jan&ndash;Jun 2024: Rp 871.125.000. Persyaratan: anggota aktif, simpanan lancar, slip gaji/anjungan."},
+  {kw:["ppob","pln","pdam","bpjs","pulsa","tagihan","token"], a:"&#9889; Unit PPOB: pembayaran tagihan <b>PLN, PDAM, BPJS, internet</b> + penjualan pulsa &amp; token listrik. Pendapatan PPOB Jan&ndash;Jun 2026: Rp 20.667.657. Datang langsung ke kantor pada jam kerja."},
+  {kw:["sembako","swalayan","toko","belanja","setoko","kebutuhan pokok"], a:"&#128722; Toko Sembako/Swalayan: kebutuhan pokok harga koperasi. Belanja online via <a href='https://setoko.co/koperlin' target='_blank' rel='noopener' style='color:var(--primary);font-weight:600'>setoko.co/koperlin</a>. Pendapatan Sembako Jan&ndash;Jun 2026: Rp 2.380.300."},
+  {kw:["pengadaan","barang dinas","pengada"], a:"&#128230; Unit Pengadaan: pengadaan barang untuk anggota &amp; dinas PLN. Pendapatan Pengadaan Jan&ndash;Jun 2026: Rp 2.738.680."},
+  {kw:["saham","investasi","keuntungan saham","penempatan dana"], a:"&#128200; Penempatan dana di saham untuk perolehan keuntungan. Pendapatan Keuntungan Saham Jan&ndash;Jun 2026: Rp 18.000.000."},
+  {kw:["shu","sisa hasil","lab","rugi","hasil usaha","bagian","pembagian"], a:"&#128202; <b>SHU (Sisa Hasil Usaha)</b> dihitung otomatis dari transaksi Buku Besar (standar akuntansi koperasi: jurnal = sumber, laporan = turunan). SHU dibagikan ke anggota sesuai AD/ART, besarnya tergantung peran modal &amp; transaksi anggota. Lihat detail di menu <b>Laporan</b>."},
+  {kw:["alamat","lokasi","kantor","dimana","tempat"], a:"&#128205; Kantor: <b>Jl. Nusantara No. 01, Kel. Kampung Melayu, Kec. Banyuwangi, Kab. Banyuwangi, Jawa Timur</b> (eks. KOPERLIN / APJ Banyuwangi)."},
+  {kw:["kontak","wa","whatsapp","telepon","hp","hubungi","nomor","telp"], a:"&#128222; Chat WhatsApp Bendahara/Admin: <a href='https://wa.me/"+CHAT_WA+"?text=Halo%20Koperasi%20PIJAR%20LARE%20BLAMBANGAN' target='_blank' rel='noopener' style='color:#25d366;font-weight:600'>"+CHAT_WA_LABEL+"</a>. Jam kerja Senin&ndash;Jumat 08.00&ndash;16.00 WIB."},
+  {kw:["daftar","anggota baru","gabung","mendaftar","jadi anggota","pendaftaran"], a:"&#128221; Untuk jadi anggota: klik <b>Masuk &rarr; Daftar Anggota Baru</b>, lengkapi nama, alamat, no. HP, KTP, foto, &amp; tanda tangan. Simpanan Pokok Rp 250.000 dibayar saat pengesahan. Peran awal: Anggota (admin dapat menaikkan peran kemudian)."},
+  {kw:["usaha","jasa","layanan","produk","unit"], a:"&#127978; Unit Usaha Koperasi: 1) Simpanan (Pokok+Wajib), 2) Pinjaman, 3) PPOB (PLN/PDAM/BPJS/pulsa), 4) Toko Sembako/Swalayan, 5) Pengadaan Barang, 6) Penempatan Saham. Detail tiap unit ada di menu <b>Usaha</b>."},
+  {kw:["salam","halo","hai","assalam","selamat pagi","selamat siang","selamat sore"], a:"Halo! &#128075; Saya <b>Asisten Digital Koperasi PIJAR LARE BLAMBANGAN</b>, ahli koperasi &amp; pelayanan. Saya bisa bantu pertanyaan soal: jam kerja, simpanan, pinjaman, SHU, usaha, &amp; kontak. Silakan tanya &#128522;"},
+  {kw:["terima kasih","makasih","thanks","suwun"], a:"Sama-sama! &#128522; Senang bisa membantu. Jika butuh bantuan lebih lanjut, chat WhatsApp Bendahara "+CHAT_WA_LABEL+". Sukses selalu!"},
+];
+function chatBotReply(text){
+  const t = String(text).toLowerCase();
+  for (const item of CHAT_KB){ if (item.kw.some(k=>t.includes(k))) return item.a; }
+  return null;
+}
+
+/* --- #4 Live chat UI + flow --- */
+function toggleChat(){
+  const p=$("chatPanel"), f=$("chatFab"); if(!p) return;
+  const open = p.classList.toggle("open");
+  if (open){
+    if(f) f.classList.remove("pulse");
+    const b=$("chatBadge"); if(b) b.style.display="none";
+    if(!chatStarted){ chatStarted=true; chatGreet(); }
+    setTimeout(()=>{ const bb=$("chatBody"); if(bb) bb.scrollTop=bb.scrollHeight; const i=$("chatInput"); if(i) i.focus(); },250);
+  }
+}
+function chatPush(who, html){
+  const b=$("chatBody"); if(!b) return;
+  const d=document.createElement("div");
+  d.className="chat-msg "+who;
+  const ts=new Date().toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"});
+  d.innerHTML=html+'<span class="ts">'+ts+'</span>';
+  b.appendChild(d); b.scrollTop=b.scrollHeight;
+}
+function chatTyping(show){
+  const b=$("chatBody"); if(!b) return;
+  let t=$("chatTypingInd");
+  if(show){ if(!t){ t=document.createElement("div"); t.id="chatTypingInd"; t.className="chat-typing"; t.innerHTML="<span></span><span></span><span></span>"; b.appendChild(t);} b.scrollTop=b.scrollHeight; }
+  else if(t){ t.remove(); }
+}
+function chatGreet(){
+  const work=isWorkHour();
+  const st=$("chatStatus"), stt=$("chatStatusText"), f=$("chatFab");
+  if(work){
+    if(st) st.className="ch-status online";
+    if(stt) stt.innerHTML="Online &middot; Senin&ndash;Jumat 08.00&ndash;16.00 WIB";
+    if(f){ f.classList.add("pulse"); f.classList.remove("offline"); }
+    chatPush("bot","Halo! &#128075; Saya <b>Asisten Digital Koperasi PIJAR LARE BLAMBANGAN</b> &mdash; ahli koperasi &amp; pelayanan. Bendahara/Admin sedang <b>online</b> di jam kerja.<br><br>Saya bisa jawab: jam kerja, simpanan, pinjaman, SHU, usaha, &amp; kontak. Ketik pertanyaan atau pilih topik di bawah &#128071;");
+  } else {
+    if(st) st.className="ch-status offline";
+    if(stt) stt.innerHTML="Di luar jam kerja &middot; WA "+CHAT_WA_LABEL;
+    if(f){ f.classList.remove("pulse"); f.classList.add("offline"); }
+    chatPush("bot","Halo! &#128075; Saat ini <b>di luar jam kerja</b> (Senin&ndash;Jumat 08.00&ndash;16.00 WIB). Bendahara/Admin belum online.<br><br>Saya tetap bisa bantu pertanyaan umum soal koperasi. Untuk urusan mendesak, silakan chat WhatsApp:<br><br><a href='https://wa.me/"+CHAT_WA+"?text=Halo%20Koperasi%20PIJAR%20LARE%20BLAMBANGAN%2C%20saya%20ingin%20bertanya' target='_blank' rel='noopener' class='chat-wa-btn'>&#128172; Chat WA "+CHAT_WA_LABEL+"</a>");
+  }
+}
+function chatSend(){
+  const inp=$("chatInput"); if(!inp) return;
+  const txt=inp.value.trim(); if(!txt) return;
+  chatPush("user", escapeHtml(txt));
+  inp.value=""; chatHandle(txt);
+}
+function chatQuick(topic){ chatPush("user", topic.charAt(0).toUpperCase()+topic.slice(1)); chatHandle(topic); }
+function chatHandle(text){
+  chatTyping(true);
+  const reply=chatBotReply(text);
+  const delay=600+Math.random()*500;
+  setTimeout(()=>{
+    chatTyping(false);
+    if(reply){ chatPush("bot", reply); }
+    else {
+      const work=isWorkHour();
+      if(work){
+        chatPush("bot","Pertanyaan Anda saya teruskan ke <b>Bendahara/Admin</b>. Mohon tunggu, kami akan menjawab segera &#9203;");
+        if(chatHumanTimer) clearTimeout(chatHumanTimer);
+        chatHumanTimer=setTimeout(()=>{
+          chatPush("bot","Mohon maaf, Bendahara belum sempat menjawab dalam 2 menit. Untuk respons cepat, silakan chat WhatsApp:<br><br><a href='https://wa.me/"+CHAT_WA+"?text="+encodeURIComponent("Halo Koperasi, saya ingin bertanya: "+text)+"' target='_blank' rel='noopener' class='chat-wa-btn'>&#128172; Chat WA "+CHAT_WA_LABEL+"</a>");
+        },120000);
+      } else {
+        chatPush("bot","Untuk pertanyaan ini, silakan chat WhatsApp Bendahara/Admin (jam kerja Senin&ndash;Jumat 08.00&ndash;16.00 WIB):<br><br><a href='https://wa.me/"+CHAT_WA+"?text="+encodeURIComponent("Halo Koperasi, saya ingin bertanya: "+text)+"' target='_blank' rel='noopener' class='chat-wa-btn'>&#128172; Chat WA "+CHAT_WA_LABEL+"</a>");
+      }
+    }
+  },delay);
+}
+function setupChatInit(){
+  const bl=$("brandLogo"), av=$("chatAvatar");
+  if(bl&&av) av.src=bl.src;
+  const f=$("chatFab");
+  if(!isWorkHour()&&f){ f.classList.remove("pulse"); f.classList.add("offline"); }
+  setInterval(()=>{
+    if(!chatStarted) return;
+    const w=isWorkHour(), st=$("chatStatus"), stt=$("chatStatusText");
+    if(w){ if(st)st.className="ch-status online"; if(stt)stt.innerHTML="Online &middot; Senin&ndash;Jumat 08.00&ndash;16.00 WIB"; if(f){f.classList.add("pulse");f.classList.remove("offline");} }
+    else { if(st)st.className="ch-status offline"; if(stt)stt.innerHTML="Di luar jam kerja &middot; WA "+CHAT_WA_LABEL; if(f){f.classList.remove("pulse");f.classList.add("offline");} }
+  },60000);
+}
+setupChatInit();
+
 function renderCharts(){
   destroyCharts();
   if (typeof Chart === "undefined") return;
@@ -3248,7 +3468,7 @@ function pageProfilSaya(){
       <div class="card" style="max-width:640px">
         <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start">
           <div style="text-align:center">
-            <img id="psFotoImg" src="${foto||''}" style="${foto?'':'display:none'};width:120px;height:120px;border-radius:12px;object-fit:cover;border:2px solid var(--border)">
+            <img id="psFotoImg" class="profil-foto" data-nama="${currentUser.nama||''}" data-jabatan="${({admin:"Admin",bendahara:"Bendahara",sekretaris:"Sekretaris",pengurus:"Pengurus",pengawas:"Pengawas",anggota:"Anggota"}[currentUser.role])||"Anggota"}" onmouseenter="showFotoHover(this)" onmouseleave="hideFotoHover()" src="${foto||''}" style="${foto?'':'display:none'};width:120px;height:120px;border-radius:12px;object-fit:cover;border:2px solid var(--border)">
             ${foto?'':'<div style="width:120px;height:120px;border-radius:12px;background:var(--light);display:flex;align-items:center;justify-content:center;font-size:40px;color:var(--muted)">👤</div>'}
             <div style="margin-top:8px">
               <input type="file" id="psFoto" accept="image/png,image/jpeg" onchange="previewFotoEdit(this,'psFotoImg')" style="font-size:12px">
