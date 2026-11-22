@@ -835,6 +835,7 @@ function renderPage(page){
   // post-render hooks
   if (page === "laporan") renderCharts();
   if (page === "beranda") renderCharts();
+  if (page === "blanko") blankoHitung();
 }
 
 /* ---------- Page: Beranda ---------- */
@@ -1560,17 +1561,9 @@ async function saveJasaPinjaman(){
   if (isNaN(reg) || isNaN(khu)){ toast("Nilai jasa tidak valid.","error"); return; }
   if (IS_LIVE && sb){
     try {
-      const { data: exist, error: e0 } = await sb.from("settings").select("id,key,value");
-      if (e0) throw e0;
       for (const [key,val] of [["jasa_pinjaman_reguler", String(reg)], ["jasa_pinjaman_khusus", String(khu)]]){
-        const row = (exist||[]).find(s => s.key === key);
-        if (row){
-          const { error } = await sb.from("settings").update({ value: val }).eq("id", row.id);
-          if (error) throw error;
-        } else {
-          const { error } = await sb.from("settings").insert({ key, value: val });
-          if (error) throw error;
-        }
+        const { error } = await sb.from("settings").upsert({ key, value: val }, { onConflict: "key" });
+        if (error) throw error;
       }
       JASA_REG = reg; JASA_KHUSUS = khu;
       toast("Pengaturan jasa disimpan (Reguler "+reg+"%, Khusus "+khu+"%).","success");
@@ -2273,16 +2266,13 @@ function pageBlanko(){
   if (!currentUser) return pageGate("Blanko Pinjaman", "Silakan masuk untuk mengisi &amp; mencetak blanko pinjaman.");
   const ketua = blankoPengurus("ketua");
   const bend = blankoPengurus("bendahara");
-  const aRows = anggotaRows();
-  let selAnggota = null;
-  if (currentUser.role === "anggota"){
-    selAnggota = aRows.find(a => a.id === currentUser.id || a.id === currentUser.anggota_id) || null;
-  }
-  const optAnggota = ['<option value="">— Pilih Anggota Peminjam —</option>']
-    .concat(aRows.map(a => `<option value="${a.id}" ${selAnggota && selAnggota.id===a.id?'selected':''}>${a.nama} — ${a.unit||a.jabatan||'Anggota'}</option>`));
-  const aNama = selAnggota ? selAnggota.nama : (currentUser.nama||'');
-  const aAlamat = selAnggota ? (selAnggota.alamat||'') : (currentUser.alamat||'');
-  const aHp = selAnggota ? (selAnggota.no_hp||'') : (currentUser.no_hp||'');
+  const aNama = currentUser.nama || '';
+  const aAlamat = currentUser.alamat || '';
+  const aHp = currentUser.no_hp || '';
+  const yNow = new Date().getFullYear();
+  const mNow = new Date().getMonth()+1;
+  const optBulan = BULAN_ID.map((b,i)=>`<option value="${i+1}" ${i+1===mNow?'selected':''}>${b}</option>`).join("");
+  const optTahun = Array.from({length:7},(_,i)=>yNow+i).map(y=>`<option value="${y}" ${y===yNow?'selected':''}>${y}</option>`).join("");
   return `
   <section class="page active">
     <div class="container">
@@ -2310,10 +2300,7 @@ function pageBlanko(){
           </div>
           <p style="font-weight:700;margin-top:10px">PIHAK KEDUA (Peminjam):</p>
           <div class="form-grid">
-            <div class="form-group" style="grid-column:1/-1"><label>Anggota Peminjam</label>
-              <select id="bk_anggota_sel" onchange="blankoPilihAnggota(this.value)" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px">${optAnggota.join("")}</select>
-            </div>
-            <div class="form-group"><label>Nama Pemohon (otomatis)</label><input id="bk_nama" value="${aNama}" readonly style="background:var(--light)"></div>
+            <div class="form-group"><label>Nama Pemohon (otomatis — akun login)</label><input id="bk_nama" value="${aNama}" readonly style="background:var(--light)"></div>
             <div class="form-group"><label>Nomor Anggota</label><input id="bk_noanggota" placeholder="isi nomor anggota"></div>
             <div class="form-group"><label>Nomor KTP</label><input id="bk_ktp"></div>
             <div class="form-group"><label>Tempat/Tgl. Lahir</label><input id="bk_lahir"></div>
@@ -2353,7 +2340,12 @@ function pageBlanko(){
             <div class="form-group"><label>Jumlah Angsuran (kali)</label><input type="number" id="bk_angsuran_kali" value="12" oninput="blankoHitung()"></div>
             <div class="form-group"><label>Tgl. Potong Gaji</label><input type="number" id="bk_tgl_potong" value="25"></div>
             <div class="form-group"><label>Jasa Khusus (%) — 🔒 terkunci</label><input type="number" id="bk_jasa_khusus" value="${JASA_KHUSUS}" step="0.1" readonly style="background:var(--light)" title="Diubah hanya Admin via Panel Admin"></div>
-            <div class="form-group"><label>Pelunasan Khusus (bulan)</label><input id="bk_lunas_khusus" placeholder="contoh: Maret 2027"></div>
+            <div class="form-group"><label>Bulan Pelunasan Khusus</label><select id="bk_bulan_lunas" onchange="blankoHitung()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px">${optBulan}</select></div>
+            <div class="form-group"><label>Tahun Pelunasan Khusus</label><select id="bk_tahun_lunas" onchange="blankoHitung()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px">${optTahun}</select></div>
+            <div class="form-group"><label>Lama Bulan (N+1 s/d Pelunasan)</label><input id="bk_lama_bulan" readonly style="background:var(--light)"></div>
+            <div class="form-group"><label>Jasa Khusus (Rp) — otomatis</label><input id="bk_jasa_khusus_rp" readonly style="background:var(--light)"></div>
+            <div class="form-group"><label>Uang Pelunasan Khusus (Rp) — otomatis</label><input id="bk_pelunasan_khusus" readonly style="background:var(--light);font-weight:700"></div>
+            <div class="form-group"><label>Terbilang Pelunasan Khusus</label><input id="bk_pelunasan_khusus_terbilang" readonly style="background:var(--light)"></div>
             <div class="form-group"><label>Angsuran/Bulan (Rp) — otomatis</label><input id="bk_angsuran_bln" readonly style="background:var(--light);font-weight:700"></div>
             <div class="form-group"><label>Terbilang Angsuran/Bln</label><input id="bk_angsuran_bln_terbilang" readonly style="background:var(--light)"></div>
           </div>
@@ -2365,24 +2357,17 @@ function pageBlanko(){
           <h4 style="margin-top:14px;background:var(--light);padding:6px 10px">PENUTUP &amp; TANDA TANGAN</h4>
           <div class="form-grid">
             <div class="form-group"><label>Dibuat di</label><input id="bk_tempat" value="Banyuwangi"></div>
-            <div class="form-group"><label>Tanggal</label><input type="date" id="bk_tanggal" value="${new Date().toISOString().slice(0,10)}"></div>
+            <div class="form-group"><label>Tanggal</label><input type="date" id="bk_tanggal" value="${new Date().toISOString().slice(0,10)}" onchange="blankoHitung()"></div>
           </div>
           <div class="grid-3" style="margin-top:14px;text-align:center">
             <div><strong>Pihak Pertama</strong><br>Ketua ${NAMA_KOPERASI}<br><br><br>(${ketua.nama})</div>
-            <div><strong>Pihak Kedua</strong><br>Pemohon<br><br><br>(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</div>
+            <div><strong>Pihak Kedua</strong><br>Pemohon<br><br><br>(${aNama || '. . . . . . . . . . . . . . . .'})</div>
             <div><strong>Mengetahui</strong><br>Bendahara ${NAMA_KOPERASI}<br><br><br>(${bend.nama})</div>
           </div>
         </form>
       </div>
     </div>
   </section>`;
-}
-function blankoPilihAnggota(id){
-  const a = anggotaRows().find(x => String(x.id) === String(id));
-  if (!a){ $("bk_nama").value=""; $("bk_alamat").value=""; $("bk_hp").value=""; return; }
-  $("bk_nama").value = a.nama || "";
-  $("bk_alamat").value = a.alamat || "";
-  $("bk_hp").value = a.no_hp || "";
 }
 function blankoPencairan(){
   const sel = document.querySelector('input[name="bk_pencairan"]:checked');
@@ -2408,6 +2393,25 @@ function blankoHitung(){
   const angsBln = (kali > 0) ? Math.round((pokok + jasaTotal) / kali) : 0;
   if ($("bk_angsuran_bln")) $("bk_angsuran_bln").value = angsBln;
   if ($("bk_angsuran_bln_terbilang")) $("bk_angsuran_bln_terbilang").value = angsBln>0 ? terbilang(angsBln) : "";
+  // Pelunasan Pinjaman Khusus: lama bulan N+1 s/d bulan pelunasan
+  const khu = Number($("bk_khusus") ? $("bk_khusus").value : 0)||0;
+  const jasaKhu = Number($("bk_jasa_khusus") ? $("bk_jasa_khusus").value : 0)||0;
+  const tgl = $("bk_tanggal") ? $("bk_tanggal").value : "";
+  const blnLunas = Number($("bk_bulan_lunas") ? $("bk_bulan_lunas").value : 0)||0;
+  const thnLunas = Number($("bk_tahun_lunas") ? $("bk_tahun_lunas").value : 0)||0;
+  let lamaBulan = 0;
+  if (tgl && blnLunas && thnLunas){
+    const d0 = new Date(tgl);
+    const m0 = d0.getMonth()+1, y0 = d0.getFullYear();
+    lamaBulan = (thnLunas - y0)*12 + (blnLunas - m0);
+    if (lamaBulan < 0) lamaBulan = 0;
+  }
+  const jasaKhususRp = Math.round(khu * (jasaKhu/100) * lamaBulan/12);
+  const pelunasanKhusus = khu + jasaKhususRp;
+  if ($("bk_lama_bulan")) $("bk_lama_bulan").value = lamaBulan + " bulan";
+  if ($("bk_jasa_khusus_rp")) $("bk_jasa_khusus_rp").value = jasaKhususRp;
+  if ($("bk_pelunasan_khusus")) $("bk_pelunasan_khusus").value = pelunasanKhusus;
+  if ($("bk_pelunasan_khusus_terbilang")) $("bk_pelunasan_khusus_terbilang").value = pelunasanKhusus>0 ? terbilang(pelunasanKhusus) : "";
 }
 function cetakBlanko(){
   const v = id => ($(id) ? $(id).value : "");
@@ -2424,6 +2428,18 @@ function cetakBlanko(){
     ? "Transfer ke Rek. " + (v("bk_bank")||"...") + " No. " + (v("bk_rekening")||"...") + " a/n " + (v("bk_an")||"...")
     : "Cash";
   const angsBln = Number(v("bk_angsuran_bln"))||0;
+  const jasaKhu = Number(v("bk_jasa_khusus"))||0;
+  const blnLunas = Number(v("bk_bulan_lunas"))||0;
+  const thnLunas = Number(v("bk_tahun_lunas"))||0;
+  let lamaBulan = 0, jasaKhususRp = 0, pelunasanKhusus = 0;
+  if (tgl && blnLunas && thnLunas && khu > 0){
+    const d0 = new Date(tgl); const m0 = d0.getMonth()+1, y0 = d0.getFullYear();
+    lamaBulan = (thnLunas - y0)*12 + (blnLunas - m0);
+    if (lamaBulan < 0) lamaBulan = 0;
+    jasaKhususRp = Math.round(khu * (jasaKhu/100) * lamaBulan/12);
+    pelunasanKhusus = khu + jasaKhususRp;
+  }
+  const blnLunasNama = blnLunas ? BULAN_ID[blnLunas-1] : "...";
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>Perjanjian Pinjaman — ${v("bk_nama")||"Pemohon"}</title>
   <style>
   @page{size:A4;margin:1.6cm} body{font-family:'Times New Roman',serif;font-size:12px;color:#000;line-height:1.55}
@@ -2477,7 +2493,7 @@ function cetakBlanko(){
   <p>1) Pihak Kedua setuju membayar jasa pinjaman sebesar <b>${v("bk_jasa_reg")||"..."}%</b> (tetap untuk pinjaman reguler &amp; barang).<br>
   2) Pokok + jasa dilunasi dalam <b>${v("bk_tenor")||"..."}</b> bulan / <b>${v("bk_angsuran_kali")||"..."}</b> kali angsuran, sanggup dipotong gaji tanggal <b>${v("bk_tgl_potong")||"..."}</b> setiap bulan.<br>
   3) Besarnya angsuran pokok &amp; jasa setiap bulan sebesar <b>Rp ${rp(angsBln)}</b> (${tb(angsBln)}).<br>
-  4) Pinjaman khusus jasa <b>${v("bk_jasa_khusus")||"..."}%</b> sesuai jatuh tempo; pelunasan maksimal 6 bulan, dilunasi pada <b>${v("bk_lunas_khusus")||"..."}</b>.</p>
+  4) Pinjaman khusus jasa <b>${v("bk_jasa_khusus")||"..."}%</b> sesuai jatuh tempo; dilunasi pada <b>${blnLunasNama} ${thnLunas||"..."}</b> (lama <b>${lamaBulan}</b> bulan). Jasa khusus = <b>Rp ${rp(jasaKhususRp)}</b>; uang pelunasan khusus = <b>Rp ${rp(pelunasanKhusus)}</b> (${tb(pelunasanKhusus)}).</p>
   <p class="pasal">Pasal 3 — Biaya Jaminan Pinjaman</p>
   <p>1) Biaya Jaminan 1% dari pinjaman pokok reguler = <b>Rp ${fmtIDR(jaminan)}</b>, dikelola ${NAMA_KOPERASI}.<br>
   2) Jika angsuran &gt;70% lalu peminjam meninggal dunia, sisa pinjaman tanggung jawab Koperasi; jika &lt;70% menjadi tanggung jawab ahli waris.<br>
@@ -2493,7 +2509,7 @@ function cetakBlanko(){
   <tr><td class="lbl">Tanggal</td><td>: ${tglTxt}</td></tr></table>
   <table style="margin-top:22px"><tr>
   <td class="tt"><b>Pihak Pertama</b><br>Ketua ${NAMA_KOPERASI}<div class="nm">(${ketua.nama})</div></td>
-  <td class="tt"><b>Pihak Kedua</b><br>Pemohon<div class="nm">(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</div></td>
+  <td class="tt"><b>Pihak Kedua</b><br>Pemohon<div class="nm">(${v("bk_nama") || '. . . . . . . . . . . .'})</div></td>
   <td class="tt"><b>Mengetahui</b><br>Bendahara ${NAMA_KOPERASI}<div class="nm">(${bend.nama})</div></td>
   </tr></table>
   <p class="noprint" style="text-align:center;margin-top:24px"><button onclick="window.print()" style="padding:8px 24px;font-size:14px;cursor:pointer">🖨 Cetak / Save as PDF</button></p>
