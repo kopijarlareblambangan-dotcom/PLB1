@@ -404,6 +404,7 @@ footer a:hover{color:var(--accent)}
           <div class="form-group"><label>Unit</label><select id="pengurusUnit"><option value="Pengurus">Pengurus</option><option value="Pengawas">Pengawas</option></select></div>
           <div class="form-group"><label>Urutan</label><input type="number" id="pengurusUrutan"></div>
           <div class="form-group"><label>Periode</label><input type="text" id="pengurusPeriode"></div>
+          <div class="form-group"><label>Link ke Anggota Sistem (foto otomatis)</label><select id="pengurusProfileId" onchange="onPengurusLinkChange(this.value)" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px"><option value="">— tidak terhubung —</option></select></div>
           <input type="hidden" id="pengurusIdx">
         </div>
       </div>
@@ -696,6 +697,16 @@ function nav(page){
       return;
     }
   }
+  // approval gate: anggota belum/tidak disetujui admin
+  if (currentUser && (currentUser.status === "tunggu" || currentUser.status === "ditolak")){
+    const msg = currentUser.status === "tunggu"
+      ? "Akun Anda sedang <b>menunggu persetujuan Admin</b>. Anda dapat mengakses sistem penuh setelah Admin menyetujui pendaftaran Anda."
+      : "Pendaftaran Anda <b>ditolak</b> oleh Admin. Hubungi pengurus koperasi untuk informasi lebih lanjut.";
+    $("pages").innerHTML = pageGate("Menunggu Persetujuan Admin", msg);
+    document.querySelectorAll("nav.main a").forEach(a => a.classList.remove("active"));
+    window.scrollTo(0,0);
+    return;
+  }
   renderPage(page);
   window.scrollTo(0,0);
 }
@@ -743,7 +754,8 @@ function profToUser(prof, fb){
     tempat_lahir: prof?.tempat_lahir || "",
     tgl_lahir: prof?.tgl_lahir || "",
     pekerjaan: prof?.pekerjaan || "",
-    anggota_id: prof?.anggota_id || ""
+    anggota_id: prof?.anggota_id || "",
+    status: prof?.status || "aktif"
   };
 }
 async function signup(){
@@ -814,7 +826,7 @@ async function login(){
       $("loginError").textContent = "Email atau kata sandi salah (mode demo). Lihat akun demo di bawah.";
       return;
     }
-    currentUser = { id: u.id, email, role: u.role, nama: u.nama, alamat: u.alamat||"", no_hp: u.no_hp||"", ktp: u.ktp||"", tempat_lahir: u.tempat_lahir||"", tgl_lahir: u.tgl_lahir||"", pekerjaan: u.pekerjaan||"", anggota_id: u.anggota_id||"" };
+    currentUser = { id: u.id, email, role: u.role, nama: u.nama, alamat: u.alamat||"", no_hp: u.no_hp||"", ktp: u.ktp||"", tempat_lahir: u.tempat_lahir||"", tgl_lahir: u.tgl_lahir||"", pekerjaan: u.pekerjaan||"", anggota_id: u.anggota_id||"", status: u.status||"aktif" };
     postLogin();
   }
 }
@@ -1018,8 +1030,8 @@ function pageStruktur(){
   const pengurus = all.filter(p => (p.unit||"Pengurus")==="Pengurus");
   const pengawas = all.filter(p => p.unit==="Pengawas");
   const canManage = currentUser && ["admin","pengurus"].includes(currentUser.role);
-  const fotoHtml = (p) => p.foto
-    ? `<img src="${p.foto}" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:3px solid var(--primary)">`
+  const fotoHtml = (p) => pengurusFoto(p)
+    ? `<img src="${pengurusFoto(p)}" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:3px solid var(--primary)">`
     : `<div style="width:72px;height:72px;border-radius:50%;background:var(--light);display:flex;align-items:center;justify-content:center;font-size:32px;color:var(--muted)">👤</div>`;
   return `
   <section class="page active">
@@ -1063,7 +1075,7 @@ function pageStruktur(){
               <thead><tr><th>Foto</th><th>Nama</th><th>Jabatan</th><th>Unit</th><th>Urutan</th><th>Aksi</th></tr></thead>
               <tbody>
                 ${all.map((p,i) => `<tr>
-                  <td>${p.foto?`<img src="${p.foto}" style="width:32px;height:32px;border-radius:6px;object-fit:cover">`:'<span style="color:var(--muted)">👤</span>'}</td>
+                  <td>${pengurusFoto(p)?`<img src="${pengurusFoto(p)}" style="width:32px;height:32px;border-radius:6px;object-fit:cover">`:'<span style="color:var(--muted)">👤</span>'}</td>
                   <td>${p.nama}</td><td>${p.jabatan}</td><td>${p.unit||'Pengurus'}</td><td>${p.urutan||''}</td>
                   <td style="white-space:nowrap">
                     <button class="btn btn-blue btn-sm" onclick="editPengurus(${i})">Edit</button>
@@ -1532,7 +1544,7 @@ function pageAdmin(){
   // Sumber data pengguna: live dari Supabase bila tersedia, fallback DEMO
   const useLive = IS_LIVE && sb && liveUsers.length > 0;
   const userList = useLive
-    ? liveUsers.map(u => ({ id:u.id, email:u.email, role:u.role, nama:u.nama }))
+    ? liveUsers.map(u => ({ id:u.id, email:u.email, role:u.role, nama:u.nama, status:u.status||'aktif', anggota_id:u.anggota_id||'' }))
     : Object.entries(DEMO_USERS).map(([email,u]) => ({ id:u.id||email, email, role:u.role, nama:u.nama }));
   // Prefetch profile dari Supabase jika admin buka tapi data belum ada
   if (IS_LIVE && sb && currentUser.role === "admin" && liveUsers.length === 0){
@@ -1553,14 +1565,25 @@ function pageAdmin(){
         <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Dikelola melalui tabel <code>profiles</code> di Supabase. Admin dapat menambah/mengubah peran pengguna.</p>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Nama</th><th>Email</th><th>Peran</th><th>Aksi</th></tr></thead>
+            <thead><tr><th>Nama</th><th>Email</th><th>ID Anggota</th><th>Peran</th><th>Status</th><th>Aksi</th></tr></thead>
             <tbody>
-              ${userList.length ? userList.map(u => `<tr>
-                <td>${u.nama || '-'}</td>
-                <td>${u.email}</td>
-                <td><span class="badge badge-${u.role}">${u.role}</span></td>
-                <td><button class="btn btn-blue btn-sm" onclick="editUser('${u.id}')">Edit</button></td>
-              </tr>`).join("") : `<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px">Memuat data pengguna dari Supabase…</td></tr>`}
+              ${userList.length ? userList.map(u => {
+                const st = u.status||'aktif';
+                const stBadge = st==='tunggu' ? '<span class="badge" style="background:#f59e0b;color:#fff">Menunggu</span>'
+                  : st==='ditolak' ? '<span class="badge" style="background:var(--danger);color:#fff">Ditolak</span>'
+                  : '<span class="badge badge-success">Aktif</span>';
+                const ap = (IS_LIVE && st==='tunggu')
+                  ? `<button class="btn btn-success btn-sm" onclick="approveUser('${u.id}')">Setujui</button> <button class="btn btn-danger btn-sm" onclick="rejectUser('${u.id}')">Tolak</button> `
+                  : '';
+                return `<tr>
+                  <td>${u.nama || '-'}</td>
+                  <td>${u.email}</td>
+                  <td>${u.anggota_id||'<span style="color:var(--muted)">-</span>'}</td>
+                  <td><span class="badge badge-${u.role}">${u.role}</span></td>
+                  <td>${stBadge}</td>
+                  <td style="white-space:nowrap">${ap}<button class="btn btn-blue btn-sm" onclick="editUser('${u.id}')">Edit</button></td>
+                </tr>`;
+              }).join("") : `<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">Memuat data pengguna dari Supabase…</td></tr>`}
             </tbody>
           </table>
         </div>
@@ -1743,8 +1766,8 @@ async function loadUsers(){
   if (!IS_LIVE || !sb) return;
   try {
     const { data, error } = await sb.from("profiles")
-      .select("id,email,nama,role")
-      .order("nama", { ascending: true });
+      .select("id,email,nama,role,status,anggota_id,ktp,tempat_lahir,tgl_lahir,pekerjaan,alamat,no_hp,foto")
+      .order("created_at", { ascending: false });
     if (error) throw error;
     liveUsers = data || [];
   } catch(e){
@@ -1796,6 +1819,36 @@ async function saveUser(){
     toast("(Mode demo) Perubahan tidak disimpan ke server","info");
   }
   closeEditUser();
+}
+
+async function approveUser(id){
+  if (!IS_LIVE || !sb){ toast("Approval hanya tersedia di mode LIVE.","error"); return; }
+  const u = liveUsers.find(x => x.id === id);
+  if (!u){ toast("Pengguna tidak ditemukan.","error"); return; }
+  try {
+    const { error: e1 } = await sb.from("profiles").update({ status: "aktif" }).eq("id", id);
+    if (e1) throw e1;
+    if (u.anggota_id){
+      const { error: e2 } = await sb.from("anggota").upsert({
+        id: u.anggota_id, nama: u.nama || "", unit: u.pekerjaan || "PLN UP3 Banyuwangi",
+        jabatan: "Anggota", alamat: u.alamat || "", no_hp: u.no_hp || "", foto: u.foto || "",
+        ktp: u.ktp || "", tempat_lahir: u.tempat_lahir || "", tgl_lahir: u.tgl_lahir || "",
+        pekerjaan: u.pekerjaan || "", status: "Aktif", tanggal_gabung: new Date().toISOString().slice(0,10)
+      }, { onConflict: "id" });
+      if (e2) throw e2;
+    }
+    toast("Anggota disetujui & ditambahkan ke keanggotaan koperasi.","success");
+    await loadUsers(); await loadAnggota(); renderPage("admin");
+  } catch(err){ toast("Gagal setujui: "+(err.message||err),"error"); }
+}
+async function rejectUser(id){
+  if (!IS_LIVE || !sb){ toast("Aksi hanya tersedia di mode LIVE.","error"); return; }
+  try {
+    const { error } = await sb.from("profiles").update({ status: "ditolak" }).eq("id", id);
+    if (error) throw error;
+    toast("Pendaftaran ditolak.","info");
+    await loadUsers(); renderPage("admin");
+  } catch(err){ toast("Gagal tolak: "+(err.message||err),"error"); }
 }
 
 /* ===== V2: Foto, Load data, Compute laporan, Cetak, CRUD anggota/pengurus, Profil Saya ===== */
@@ -1858,7 +1911,7 @@ async function loadAnggota(){
 async function loadPengurus(){
   if (!IS_LIVE || !sb) return;
   try {
-    const { data, error } = await sb.from("pengurus").select("*").order("urutan", { ascending: true });
+    const { data, error } = await sb.from("pengurus").select("*,profile:profiles!profile_id(foto,nama,email)").order("urutan", { ascending: true });
     if (error) throw error;
     livePengurus = data || [];
   } catch(e){ console.warn("loadPengurus:", e.message||e); livePengurus = []; }
@@ -2209,6 +2262,7 @@ async function toggleStatusAnggota(id){
 
 /* --- CRUD Pengurus (admin/pengurus) --- */
 function pengurusRows(){ return (IS_LIVE && livePengurus.length) ? livePengurus : [...DEMO.pengurus.map(p=>({...p,unit:"Pengurus"})), ...DEMO.pengawas.map(p=>({...p,unit:"Pengawas"}))]; }
+function pengurusFoto(p){ if (!p) return ""; return (p.profile && p.profile.foto) ? p.profile.foto : (p.foto || ""); }
 function addPengurus(){ editFotoData = null; openPengurusModal(null); }
 function editPengurus(idx){ editFotoData = null; openPengurusModal(idx); }
 function openPengurusModal(idx){
@@ -2221,24 +2275,41 @@ function openPengurusModal(idx){
   $("pengurusUnit").value = p?.unit || "Pengurus";
   $("pengurusUrutan").value = p?.urutan || (rows.length+1);
   $("pengurusPeriode").value = p?.periode || DEMO.profile.periode_pengurus;
+  const sel = $("pengurusProfileId");
+  if (sel){
+    const opts = ['<option value="">— tidak terhubung —</option>']
+      .concat((IS_LIVE ? liveUsers : []).filter(u => (u.status||'aktif')==='aktif')
+        .map(u => `<option value="${u.id}" ${p && p.profile_id===u.id?'selected':''}>${u.nama||u.email} ${u.anggota_id?'('+u.anggota_id+')':''}</option>`));
+    sel.innerHTML = opts.join("");
+    sel.value = (p && p.profile_id) ? p.profile_id : "";
+  }
   const img = $("pengurusFotoImg");
-  if (p?.foto){ img.src = p.foto; img.style.display = "block"; } else { img.style.display = "none"; img.src = ""; }
+  const fFoto = pengurusFoto(p);
+  if (fFoto){ img.src = fFoto; img.style.display = "block"; } else { img.style.display = "none"; img.src = ""; }
   $("pengurusFoto").value = "";
   $("pengurusModal").classList.add("show");
 }
 function closePengurusModal(){ $("pengurusModal").classList.remove("show"); editFotoData = null; }
+function onPengurusLinkChange(profileId){
+  const img = $("pengurusFotoImg");
+  if (profileId){ const u = liveUsers.find(x => x.id === profileId); if (u && u.foto){ img.src = u.foto; img.style.display = "block"; } else { img.style.display = "none"; img.src = ""; } }
+  else { img.style.display = "none"; img.src = ""; }
+}
 async function savePengurus(){
   const nama = $("pengurusNama").value.trim();
   const jabatan = $("pengurusJabatan").value.trim();
   if (!nama || !jabatan){ toast("Nama dan Jabatan wajib diisi.","error"); return; }
   const idx = $("pengurusIdx").value;
+  const profileId = $("pengurusProfileId") ? $("pengurusProfileId").value : "";
   const data = {
     nama, jabatan,
     unit: $("pengurusUnit").value,
     urutan: Number($("pengurusUrutan").value)||0,
-    periode: $("pengurusPeriode").value
+    periode: $("pengurusPeriode").value,
+    profile_id: profileId || null
   };
   if (editFotoData) data.foto = editFotoData;
+  else if (profileId){ const lu = liveUsers.find(x => x.id === profileId); if (lu && lu.foto) data.foto = lu.foto; }
   if (IS_LIVE && sb){
     try {
       if (idx === ""){
