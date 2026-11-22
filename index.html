@@ -236,6 +236,7 @@ footer a:hover{color:var(--accent)}
       <a href="#" data-page="profilsaya" data-role="anggota,pengurus,pengawas,bendahara,sekretaris,admin">Profil Saya</a>
       <a href="#" data-page="laporan" data-role="anggota,pengurus,pengawas,bendahara,sekretaris,admin">Laporan</a>
       <a href="#" data-page="input" data-role="bendahara,sekretaris,admin">Input Laporan</a>
+      <a href="#" data-page="uploadbukubesar" data-role="bendahara,admin">Upload Buku Besar</a>
       <a href="#" data-page="blanko" data-role="anggota,pengurus,pengawas,bendahara,sekretaris,admin">Blanko Pinjaman</a>
       <a href="#" data-page="sisaangsuran" data-role="anggota,pengurus,pengawas,bendahara,sekretaris,admin">Sisa Angsuran</a>
       <a href="#" data-page="kegiatan">Kegiatan</a>
@@ -995,6 +996,7 @@ function renderPage(page){
     case "anggota": html = pageAnggota(); break;
     case "laporan": html = pageLaporan(); break;
     case "input": html = pageInput(); break;
+    case "uploadbukubesar": html = pageUploadBukuBesar(); break;
     case "sisaangsuran": html = pageSisaAngsuran(); break;
     case "kegiatan": html = pageKegiatan(); break;
     case "admin": html = pageAdmin(); break;
@@ -2300,6 +2302,200 @@ async function deleteKegiatan(id){
     arr = arr.filter(x=>String(x.id)!==String(id));
     localStorage.setItem("demo_kegiatan", JSON.stringify(arr));
     toast("(Demo) Kegiatan dihapus.","success"); renderPage("kegiatan");
+  }
+}
+
+/* ===== V3.11: Upload Buku Besar per Tahun (parse Excel -> bulk insert buku_besar) ===== */
+let ubbParsedRows = [];
+let ubbParsedTahun = null;
+function convTglBuku(v, tahun){
+  let dd="", mm="";
+  if (v == null || v === "") return "";
+  if (v instanceof Date && !isNaN(v)){ dd=String(v.getDate()).padStart(2,"0"); mm=String(v.getMonth()+1).padStart(2,"0"); }
+  else if (typeof v === "number"){ const d=new Date(Math.round((v-25569)*86400*1000)); if(!isNaN(d)){ dd=String(d.getUTCDate()).padStart(2,"0"); mm=String(d.getUTCMonth()+1).padStart(2,"0"); } }
+  else { const s=String(v).trim(); const m=s.match(/(\d{1,2})[-\/](\d{1,2})[-\/](\d{2,4})/); if(m){ dd=m[1].padStart(2,"0"); mm=m[2].padStart(2,"0"); } }
+  if (!dd || !mm) return "";
+  return `${tahun}-${mm}-${dd}`;
+}
+function pageUploadBukuBesar(){
+  if (!currentUser || !["bendahara","admin"].includes(currentUser.role)){
+    return pageGate("Upload Buku Besar", "Halaman ini khusus untuk Bendahara &amp; Admin.");
+  }
+  const optTahun = Array.from({length:11},(_,i)=>2020+i).map(y=>`<option value="${y}"${y===2023?' selected':''}>${y}</option>`).join("");
+  return `
+  <section class="page active">
+    <div class="container">
+      <h2 class="section-title">Upload Buku Besar per Tahun</h2>
+      <p class="section-sub">Impor transaksi buku besar tahunan dari file Excel (.xlsx). Sheet transaksi (kolom KU·KB·TGL·NB·KP·SUB·D·K·UR) di-parse &amp; disimpan ke tabel <code>buku_besar</code>. Hasilnya tampil di menu Laporan → Buku Besar (filter tahun).</p>
+      <div class="card">
+        <h3>📤 Upload File Excel</h3>
+        <div class="form-grid">
+          <div class="form-group"><label>Tahun</label><select id="ubb_tahun" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px">${optTahun}</select></div>
+          <div class="form-group" style="grid-column:1/-1"><label>File Excel (.xlsx)</label><input type="file" id="ubb_file" accept=".xlsx" onchange="parseBukuBesarXlsx(this.files[0])"></div>
+        </div>
+        <div id="ubbPreview" style="display:none;margin-top:14px"></div>
+        <div style="margin-top:14px;display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-primary" id="ubbImportBtn" disabled onclick="importBukuBesar()">📥 Impor ke Buku Besar</button>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:400;cursor:pointer"><input type="checkbox" id="ubb_replace" checked> Ganti (hapus &amp; timpa data tahun ini)</label>
+        </div>
+        <p style="font-size:11px;color:var(--muted);margin-top:8px">Format: sheet dengan baris header <code>KU · KB · TGL · NB · KP · SUB · D · K · UR</code> (TGL: DD-MM-YY). Tahun diatur dari selector di atas (tanggal transaksi dipakai dd-mm, tahun dari selector). Baris dengan D=0 &amp; K=0 dilewati. Maks ~5000 baris/impor.</p>
+      </div>
+      <div class="card" style="margin-top:14px">
+        <h3>📚 Daftar Buku Besar per Tahun</h3>
+        ${renderDaftarBukuBesarTahun()}
+      </div>
+    </div>
+  </section>`;
+}
+function parseBukuBesarXlsx(file){
+  if (!file) return;
+  const tahunEl = $("ubb_tahun");
+  ubbParsedTahun = tahunEl ? tahunEl.value : String(new Date().getFullYear());
+  if (typeof XLSX === "undefined"){ toast("Library Excel (SheetJS) belum termuat. Refresh halaman.","error"); return; }
+  toast("Memparse file Excel... harap tunggu.","info");
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const wb = XLSX.read(new Uint8Array(e.target.result), {type:"array"});
+      let wsName = wb.SheetNames.find(n => {
+        const ws = wb.Sheets[n]; if (!ws || !ws["!ref"]) return false;
+        const hdr = XLSX.utils.sheet_to_json(ws, {header:1})[0] || [];
+        return hdr.some(h => String(h||"").toUpperCase() === "KU");
+      });
+      if (!wsName){ toast("Sheet transaksi (kolom header KU/KB/TGL) tidak ditemukan.","error"); return; }
+      const ws = wb.Sheets[wsName];
+      const rows = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, blankrows:false});
+      const hdrIdx = rows.findIndex(r => Array.isArray(r) && String(r[0]||"").toUpperCase() === "KU");
+      if (hdrIdx < 0){ toast("Baris header (KU) tidak ditemukan.","error"); return; }
+      const cols = (rows[hdrIdx]||[]).map(h => String(h==null?"":h).toUpperCase());
+      const idx = name => cols.indexOf(name);
+      const iKU=idx("KU"), iKB=idx("KB"), iTGL=idx("TGL"), iNB=idx("NB"), iKP=idx("KP"), iSUB=idx("SUB"), iD=idx("D"), iK=idx("K"), iUR=idx("UR");
+      if (iTGL < 0 || iUR < 0){ toast("Kolom TGL/UR tidak ditemukan di header.","error"); return; }
+      const num = v => {
+        if (v==null||v==="") return 0;
+        if (typeof v === "number") return v;
+        return Number(String(v).replace(/\./g,"").replace(/,/g,".")) || 0;
+      };
+      const parsed = [];
+      for (let r=hdrIdx+1; r<rows.length; r++){
+        const row = rows[r];
+        if (!Array.isArray(row) || row.length === 0) continue;
+        const tgl = convTglBuku(iTGL>=0?row[iTGL]:"", ubbParsedTahun);
+        if (!tgl) continue;
+        const debet = num(iD>=0?row[iD]:0);
+        const kredit = num(iK>=0?row[iK]:0);
+        if (debet === 0 && kredit === 0) continue;
+        const kp = String(iKP>=0?(row[iKP]==null?"":row[iKP]):"").trim();
+        const akun = (CHART_OF_ACCOUNTS[kp]?.nama) || (CHART_OF_ACCOUNTS[kp.split(".")[0]]?.nama) || kp || "Lainnya";
+        parsed.push({
+          ku: String(iKU>=0?(row[iKU]==null?"104":row[iKU]):"104").trim() || "104",
+          kb: String(iKB>=0?(row[iKB]==null?"":row[iKB]):"").trim(),
+          tanggal: tgl,
+          no_bukti: String(iNB>=0?(row[iNB]==null?"":row[iNB]):"").trim(),
+          uraian: String(iUR>=0?(row[iUR]==null?"":row[iUR]):"").trim(),
+          kp, sub: String(iSUB>=0?(row[iSUB]==null?"":row[iSUB]):"").trim(),
+          akun, debet, kredit
+        });
+        if (parsed.length >= 5000) break;
+      }
+      ubbParsedRows = parsed;
+      const totD = parsed.reduce((s,x)=>s+x.debet,0);
+      const totK = parsed.reduce((s,x)=>s+x.kredit,0);
+      const prev = $("ubbPreview");
+      if (prev){
+        prev.style.display = "block";
+        prev.innerHTML = `<div style="background:var(--light);border-left:4px solid var(--success);padding:10px 12px;border-radius:6px;font-size:13px">
+          ✅ <strong>${parsed.length}</strong> baris transaksi terbaca untuk tahun <strong>${ubbParsedTahun}</strong>.<br>
+          Total Debet: ${fmtIDR(totD)} · Total Kredit: ${fmtIDR(totK)}.<br>
+          Contoh baris: <code>${parsed[0]?parsed[0].tanggal:""} · ${parsed[0]?(parsed[0].uraian||"").slice(0,40):""} · D ${fmtIDR(parsed[0]?parsed[0].debet:0)}</code>
+        </div>`;
+      }
+      const btn = $("ubbImportBtn"); if (btn) btn.disabled = parsed.length === 0;
+      toast(parsed.length + " baris siap diimpor. Klik 'Impor ke Buku Besar'.", parsed.length ? "success" : "error");
+    } catch(err){
+      toast("Gagal parse Excel: "+(err.message||err), "error");
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+async function importBukuBesar(){
+  if (!ubbParsedRows.length){ toast("Tidak ada data. Upload & parse file dulu.","error"); return; }
+  const tahun = ubbParsedTahun || ($("ubb_tahun")?$("ubb_tahun").value:String(new Date().getFullYear()));
+  const replace = $("ubb_replace") && $("ubb_replace").checked;
+  const btn = $("ubbImportBtn");
+  if (btn){ btn.disabled = true; btn.textContent = "Memproses..."; }
+  try {
+    if (IS_LIVE && sb){
+      if (replace){
+        const { error: eDel } = await sb.from("buku_besar").delete().gte("tanggal", `${tahun}-01-01`).lte("tanggal", `${tahun}-12-31`);
+        if (eDel){ toast("Gagal hapus data lama: "+eDel.message, "error"); return; }
+      }
+      const payload = ubbParsedRows.map(r => ({
+        ku:r.ku, kb:r.kb||null, tanggal:r.tanggal, no_bukti:r.no_bukti||null,
+        uraian:r.uraian||null, kp:r.kp||null, sub:r.sub||null, akun:r.akun,
+        debet:r.debet, kredit:r.kredit, created_by: currentUser.id
+      }));
+      const CHUNK = 500;
+      let inserted = 0;
+      for (let i=0; i<payload.length; i+=CHUNK){
+        const chunk = payload.slice(i, i+CHUNK);
+        const { error } = await sb.from("buku_besar").insert(chunk);
+        if (error){ toast(`Gagal impor (baris ${i+1}-${i+chunk.length}): ${error.message}`, "error"); return; }
+        inserted += chunk.length;
+      }
+      toast(`✅ ${inserted} transaksi tahun ${tahun} berhasil diimpor.`, "success");
+      await syncFromSupabase();
+    } else {
+      let arr = JSON.parse(localStorage.getItem("demo_buku_besar")||"[]");
+      if (replace){ arr = arr.filter(b => (b.tanggal||"").slice(0,4) !== String(tahun)); }
+      const now = new Date().toISOString();
+      ubbParsedRows.forEach((r,i) => arr.push({ ...r, id: Date.now()+i, created_by: currentUser.id, created_at: now }));
+      localStorage.setItem("demo_buku_besar", JSON.stringify(arr));
+      toast(`(Demo) ${ubbParsedRows.length} transaksi tahun ${tahun} diimpor.`, "success");
+    }
+    ubbParsedRows = [];
+    renderPage("uploadbukubesar");
+  } catch(err){
+    toast("Gagal impor: "+(err.message||err), "error");
+  } finally {
+    if (btn){ btn.disabled = false; btn.textContent = "📥 Impor ke Buku Besar"; }
+  }
+}
+function renderDaftarBukuBesarTahun(){
+  const rows = bukuBesarRowsRaw();
+  if (!rows.length) return '<p style="color:var(--muted);font-size:13px">Belum ada data buku besar. Upload file Excel per tahun untuk mulai mengimpor.</p>';
+  const allYears = [...new Set(rows.map(b => (b.tanggal||"").slice(0,4)).filter(Boolean))].sort((a,b)=>b.localeCompare(a));
+  if (!allYears.length) return '<p style="color:var(--muted);font-size:13px">Belum ada transaksi dengan tanggal valid.</p>';
+  return '<div class="table-wrap"><table style="font-size:12px"><thead><tr><th>Tahun</th><th>Jumlah Transaksi</th><th>Total Debet</th><th>Total Kredit</th><th>Aksi</th></tr></thead><tbody>'+
+    allYears.map(t => {
+      const yr = rows.filter(b => (b.tanggal||"").slice(0,4) === t);
+      const td = yr.reduce((s,x)=>s+(Number(x.debet)||0),0);
+      const tk = yr.reduce((s,x)=>s+(Number(x.kredit)||0),0);
+      return `<tr><td><strong>${t}</strong></td><td>${yr.length}</td><td style="text-align:right">${fmtIDR(td)}</td><td style="text-align:right">${fmtIDR(tk)}</td><td><button class="btn btn-ghost btn-sm" onclick="setLaporanTahun('${t}')">📊 Lihat</button> <button class="btn btn-del btn-sm" title="Hapus semua transaksi tahun ${t}" onclick="hapusBukuBesarTahun('${t}')">🗑 Hapus</button></td></tr>`;
+    }).join('')+
+    '</tbody></table></div>';
+}
+function setLaporanTahun(t){
+  laporanTahun = Number(t);
+  nav("laporan");
+  toast("Filter laporan diatur ke tahun "+t+". Buka tab Buku Besar untuk melihat.","info");
+}
+async function hapusBukuBesarTahun(tahun){
+  if (!confirm(`Hapus SEMUA transaksi buku besar tahun ${tahun}?\nTindakan ini permanen dan tidak bisa dibatalkan.`)) return;
+  if (IS_LIVE && sb){
+    try {
+      const { error } = await sb.from("buku_besar").delete().gte("tanggal", `${tahun}-01-01`).lte("tanggal", `${tahun}-12-31`);
+      if (error) throw error;
+      toast(`Data buku besar tahun ${tahun} dihapus.`, "success");
+      await syncFromSupabase();
+      renderPage("uploadbukubesar");
+    } catch(err){ toast("Gagal hapus: "+(err.message||err), "error"); }
+  } else {
+    let arr = JSON.parse(localStorage.getItem("demo_buku_besar")||"[]");
+    arr = arr.filter(b => (b.tanggal||"").slice(0,4) !== String(tahun));
+    localStorage.setItem("demo_buku_besar", JSON.stringify(arr));
+    toast(`(Demo) Data buku besar tahun ${tahun} dihapus.`, "success");
+    renderPage("uploadbukubesar");
   }
 }
 
