@@ -221,6 +221,7 @@ footer a:hover{color:var(--accent)}
       <a href="#" data-page="struktur">Pengurus</a>
       <a href="#" data-page="usaha">Usaha</a>
       <a href="#" data-page="anggota" data-role="anggota,pengurus,pengawas,bendahara,admin">Anggota</a>
+      <a href="#" data-page="profilsaya" data-role="anggota,pengurus,pengawas,bendahara,admin">Profil Saya</a>
       <a href="#" data-page="laporan" data-role="anggota,pengurus,pengawas,bendahara,admin">Laporan</a>
       <a href="#" data-page="input" data-role="bendahara,admin">Input Laporan</a>
       <a href="#" data-page="kegiatan">Kegiatan</a>
@@ -251,6 +252,21 @@ footer a:hover{color:var(--accent)}
       <div class="form-group" id="namaGroup" style="display:none">
         <label>Nama Lengkap</label>
         <input type="text" id="loginNama" placeholder="contoh: Jumadi">
+      </div>
+      <div id="signupFields" style="display:none">
+        <div class="form-group">
+          <label>Alamat</label>
+          <input type="text" id="loginAlamat" placeholder="contoh: Jl. Nusantara No. 01, Banyuwangi">
+        </div>
+        <div class="form-group">
+          <label>No. HP</label>
+          <input type="text" id="loginHp" placeholder="contoh: 0812xxxxxxx">
+        </div>
+        <div class="form-group">
+          <label>Foto (wajib) — JPG/PNG, akan dikecilkan otomatis</label>
+          <input type="file" id="loginFoto" accept="image/png,image/jpeg" onchange="previewFoto(this,'loginFotoPreview')">
+          <img id="loginFotoPreview" style="display:none;margin-top:8px;width:64px;height:64px;border-radius:8px;object-fit:cover">
+        </div>
       </div>
       <div class="form-group">
         <label>Email</label>
@@ -307,6 +323,73 @@ footer a:hover{color:var(--accent)}
         <button class="btn btn-success" style="flex:1" onclick="saveUser()">Simpan Perubahan</button>
       </div>
       <p style="font-size:12px;color:var(--muted);margin-top:12px">Peran menentukan menu &amp; hak akses pengguna. Perubahan langsung tersimpan ke tabel <code>profiles</code> Supabase.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Anggota Modal (Admin/Bendahara CRUD) -->
+<div class="modal-overlay" id="anggotaModal">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <h3 id="anggotaModalTitle">Tambah Anggota</h3>
+      <button class="modal-close" onclick="closeAnggotaModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">
+        <div style="text-align:center">
+          <img id="anggotaFotoImg" style="display:none;width:80px;height:80px;border-radius:8px;object-fit:cover">
+          <div style="width:80px;height:80px;border-radius:8px;background:var(--light);display:flex;align-items:center;justify-content:center;font-size:32px;color:var(--muted)">👤</div>
+          <input type="file" id="anggotaFoto" accept="image/png,image/jpeg" onchange="previewFotoEdit(this,'anggotaFotoImg')" style="font-size:11px;margin-top:6px">
+        </div>
+        <div style="flex:1;min-width:280px">
+          <div class="form-grid">
+            <div class="form-group"><label>ID Anggota</label><input type="text" id="anggotaId"></div>
+            <div class="form-group"><label>Nama</label><input type="text" id="anggotaNama"></div>
+            <div class="form-group"><label>Unit</label><input type="text" id="anggotaUnit"></div>
+            <div class="form-group"><label>Jabatan</label><input type="text" id="anggotaJabatan"></div>
+            <div class="form-group" style="grid-column:1/-1"><label>Alamat</label><input type="text" id="anggotaAlamat"></div>
+            <div class="form-group"><label>No. HP</label><input type="text" id="anggotaHp"></div>
+            <div class="form-group"><label>Simpanan Pokok (Rp)</label><input type="number" id="anggotaPokok"></div>
+            <div class="form-group"><label>Simpanan Wajib (Rp)</label><input type="number" id="anggotaWajib"></div>
+            <div class="form-group"><label>Status</label><select id="anggotaStatus"><option>Aktif</option><option>Nonaktif</option></select></div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button class="btn btn-ghost" style="flex:1" onclick="closeAnggotaModal()">Batal</button>
+        <button class="btn btn-success" style="flex:1" onclick="saveAnggota()">Simpan</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Pengurus Modal (Admin CRUD + foto) -->
+<div class="modal-overlay" id="pengurusModal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <h3 id="pengurusModalTitle">Tambah Pengurus</h3>
+      <button class="modal-close" onclick="closePengurusModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">
+        <div style="text-align:center">
+          <img id="pengurusFotoImg" style="display:none;width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid var(--primary)">
+          <div style="width:80px;height:80px;border-radius:50%;background:var(--light);display:flex;align-items:center;justify-content:center;font-size:32px;color:var(--muted)">👤</div>
+          <input type="file" id="pengurusFoto" accept="image/png,image/jpeg" onchange="previewFotoEdit(this,'pengurusFotoImg')" style="font-size:11px;margin-top:6px">
+        </div>
+        <div style="flex:1;min-width:260px">
+          <div class="form-group"><label>Nama</label><input type="text" id="pengurusNama"></div>
+          <div class="form-group"><label>Jabatan</label><input type="text" id="pengurusJabatan" placeholder="contoh: Ketua / Sekretaris"></div>
+          <div class="form-group"><label>Unit</label><select id="pengurusUnit"><option value="Pengurus">Pengurus</option><option value="Pengawas">Pengawas</option></select></div>
+          <div class="form-group"><label>Urutan</label><input type="number" id="pengurusUrutan"></div>
+          <div class="form-group"><label>Periode</label><input type="text" id="pengurusPeriode"></div>
+          <input type="hidden" id="pengurusIdx">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button class="btn btn-ghost" style="flex:1" onclick="closePengurusModal()">Batal</button>
+        <button class="btn btn-success" style="flex:1" onclick="savePengurus()">Simpan</button>
+      </div>
     </div>
   </div>
 </div>
@@ -524,25 +607,31 @@ const DEMO_USERS = {
 };
 
 /* Chart of Accounts (Kode Perkiraan) standar nasional koperasi.
-   Berdasarkan buku besar 2023 + standar akuntansi koperasi Indonesia. */
+   neraca = pos neraca (aktiva_lancar/ekuitas/kewajiban_jp); shu = pendapatan/beban;
+   normal = sisi saldo normal (D=debet untuk aktiva & beban, K=kredit untuk kewajiban/ekuitas/pendapatan). */
 const CHART_OF_ACCOUNTS = {
-  "1950":   { nama:"Kas/Bank Mandiri",                      kel:"Aktiva Lancar" },
-  "10270":  { nama:"Tabungan BSI",                          kel:"Aktiva Lancar" },
-  "10230":  { nama:"Persediaan ATK/HVS",                    kel:"Aktiva Lancar" },
-  "10241":  { nama:"Piutang Pinjaman Anggota",              kel:"Aktiva Lancar" },
-  "102602": { nama:"Piutang Pinjaman Dinas KSA",            kel:"Aktiva Lancar" },
-  "15102":  { nama:"Simpanan Pokok",                        kel:"Ekuitas Anggota" },
-  "15103":  { nama:"Simpanan Wajib (SIMJIB)",               kel:"Ekuitas Anggota" },
-  "15104":  { nama:"Simpanan Lain",                         kel:"Ekuitas Anggota" },
-  "15106":  { nama:"Tabungan Hari Raya",                    kel:"Ekuitas Anggota" },
-  "1553":   { nama:"Titipan Pot (PIP/IKPLN/Toko/Kurban)",   kel:"Kewajiban Lain" },
-  "70015":  { nama:"Pendapatan Bunga Bank",                 kel:"Pendapatan" },
-  "70017":  { nama:"Pendapatan Jasa Angsuran Pinjaman",     kel:"Pendapatan" },
-  "102511": { nama:"Pendapatan Fee PPOB",                   kel:"Pendapatan" },
-  "55015":  { nama:"Beban Admin Bank",                      kel:"Beban" },
-  "64101":  { nama:"Beban Materai",                         kel:"Beban" }
+  "1950":   { nama:"Kas/Bank Mandiri",                      kel:"Aktiva Lancar",   neraca:"aktiva_lancar", shu:null,         normal:"D" },
+  "10270":  { nama:"Tabungan BSI",                          kel:"Aktiva Lancar",   neraca:"aktiva_lancar", shu:null,         normal:"D" },
+  "10230":  { nama:"Persediaan ATK/HVS",                    kel:"Aktiva Lancar",   neraca:"aktiva_lancar", shu:null,         normal:"D" },
+  "10241":  { nama:"Piutang Pinjaman Anggota",              kel:"Aktiva Lancar",   neraca:"aktiva_lancar", shu:null,         normal:"D" },
+  "102602": { nama:"Piutang Pinjaman Dinas KSA",            kel:"Aktiva Lancar",   neraca:"aktiva_lancar", shu:null,         normal:"D" },
+  "15102":  { nama:"Simpanan Pokok",                        kel:"Ekuitas Anggota", neraca:"ekuitas",       shu:null,         normal:"K" },
+  "15103":  { nama:"Simpanan Wajib (SIMJIB)",               kel:"Ekuitas Anggota", neraca:"ekuitas",       shu:null,         normal:"K" },
+  "15104":  { nama:"Simpanan Lain",                         kel:"Ekuitas Anggota", neraca:"ekuitas",       shu:null,         normal:"K" },
+  "15106":  { nama:"Tabungan Hari Raya",                    kel:"Ekuitas Anggota", neraca:"ekuitas",       shu:null,         normal:"K" },
+  "1553":   { nama:"Titipan Pot (PIP/IKPLN/Toko/Kurban)",   kel:"Kewajiban Lain",  neraca:"kewajiban_jp",  shu:null,         normal:"K" },
+  "70015":  { nama:"Pendapatan Bunga Bank",                 kel:"Pendapatan",      neraca:null,            shu:"pendapatan", normal:"K" },
+  "70017":  { nama:"Pendapatan Jasa Angsuran Pinjaman",     kel:"Pendapatan",      neraca:null,            shu:"pendapatan", normal:"K" },
+  "102511": { nama:"Pendapatan Fee PPOB",                   kel:"Pendapatan",      neraca:null,            shu:"pendapatan", normal:"K" },
+  "55015":  { nama:"Beban Admin Bank",                      kel:"Beban",           neraca:null,            shu:"beban",      normal:"D" },
+  "64101":  { nama:"Beban Materai",                         kel:"Beban",           neraca:null,            shu:"beban",      normal:"D" }
 };
+const BULAN_ID = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
 let liveBukuBesar = [];
+let liveAnggota = [];
+let livePengurus = [];
+let laporanBulan = "";                       // "" = semua bulan
+let laporanTahun = new Date().getFullYear();
 let currentUser = null;
 </script>
 
@@ -603,9 +692,10 @@ function toggleSignupMode(signup){
   const isSignup = signup;
   $("loginModalTitle").textContent = isSignup ? "Daftar Akun Baru" : "Masuk Portal Koperasi";
   $("loginHint").textContent = isSignup
-    ? "Daftarkan email Anda. Peran default: Anggota (admin dapat menaikkan peran kemudian)."
+    ? "Lengkapi nama, alamat, no. HP, dan foto. Peran default: Anggota (admin dapat menaikkan peran kemudian)."
     : "Gunakan email & kata sandi yang terdaftar. Akun demo tersedia di bawah untuk uji coba.";
   $("namaGroup").style.display = isSignup ? "" : "none";
+  $("signupFields").style.display = isSignup ? "" : "none";
   $("loginBtn").textContent = isSignup ? "Daftar" : "Masuk";
   $("loginBtn").setAttribute("onclick", isSignup ? "signup()" : "login()");
   $("toggleSignup").innerHTML = isSignup
@@ -613,15 +703,19 @@ function toggleSignupMode(signup){
     : 'Belum punya akun? <a href="#" onclick="toggleSignupMode(true);return false" style="font-weight:600">Daftar baru</a>';
   $("demoBox").style.display = isSignup ? "none" : "";
   $("loginError").textContent = "";
+  if (!isSignup){ signupFotoData = null; const pv = $("loginFotoPreview"); if (pv){ pv.style.display="none"; pv.src=""; } const fi = $("loginFoto"); if (fi) fi.value=""; }
 }
 
 async function signup(){
   const email = $("loginEmail").value.trim().toLowerCase();
   const pass = $("loginPass").value;
   const nama = $("loginNama").value.trim();
+  const alamat = $("loginAlamat").value.trim();
+  const no_hp = $("loginHp").value.trim();
   $("loginError").textContent = "";
   if (!email || !pass || !nama){ $("loginError").textContent = "Nama, email, dan kata sandi wajib diisi."; return; }
   if (pass.length < 6){ $("loginError").textContent = "Kata sandi minimal 6 karakter."; return; }
+  if (!signupFotoData){ $("loginError").textContent = "Foto wajib diunggah saat pendaftaran."; return; }
   if (!IS_LIVE || !sb){
     $("loginError").textContent = "Pendaftaran hanya tersedia saat website terhubung ke Supabase (mode LIVE).";
     return;
@@ -629,20 +723,20 @@ async function signup(){
   try {
     const { data, error } = await sb.auth.signUp({
       email, password: pass,
-      options: { data: { nama: nama, role: "anggota" } }
+      options: { data: { nama: nama, role: "anggota", alamat: alamat, no_hp: no_hp, foto: signupFotoData } }
     });
     if (error) throw error;
+    const usedFoto = signupFotoData; signupFotoData = null;
     if (data.user && !data.session){
-      // Email confirmation required
       $("loginError").style.color = "var(--success)";
       $("loginError").textContent = "Pendaftaran berhasil! Cek email Anda untuk verifikasi, lalu masuk. Setelah masuk, minta admin menetapkan peran Anda.";
       toast("Cek email untuk verifikasi akun.", "success");
     } else if (data.session){
-      // Auto-logged in (email confirmation disabled)
       const { data: prof } = await sb.from("profiles").select("*").eq("id", data.user.id).single();
-      currentUser = { id: data.user.id, email, role: prof?.role || "anggota", nama: prof?.nama || nama };
+      currentUser = { id: data.user.id, email, role: prof?.role || "anggota", nama: prof?.nama || nama,
+                      alamat: prof?.alamat || alamat, no_hp: prof?.no_hp || no_hp, foto: prof?.foto || usedFoto };
       postLogin();
-      toast("Pendaftaran berhasil! Peran Anda: Anggota. Minta admin menaikkan peran jika perlu.", "success");
+      toast("Pendaftaran berhasil! Peran Anda: Anggota.", "success");
     }
   } catch (err) {
     $("loginError").textContent = "Gagal daftar: " + (err.message || "kesalahan tidak diketahui");
@@ -682,7 +776,11 @@ function postLogin(){
   closeLogin();
   updateUserUI();
   toast("Selamat datang, " + currentUser.nama + "!", "success");
-  if (IS_LIVE && sb && currentUser.role === "admin") loadUsers().catch(()=>{});
+  if (IS_LIVE && sb){
+    loadUsers().catch(()=>{});
+    loadAnggota().catch(()=>{});
+    loadPengurus().catch(()=>{});
+  }
   nav("beranda");
 }
 
@@ -724,6 +822,7 @@ function renderPage(page){
     case "input": html = pageInput(); break;
     case "kegiatan": html = pageKegiatan(); break;
     case "admin": html = pageAdmin(); break;
+    case "profilsaya": html = pageProfilSaya(); break;
     case "gate": html = pageGate(); break;
     default: html = pageBeranda();
   }
@@ -865,67 +964,68 @@ function pageVisi(){
 
 /* ---------- Page: Struktur Pengurus ---------- */
 function pageStruktur(){
+  const all = pengurusRows();
+  const pengurus = all.filter(p => (p.unit||"Pengurus")==="Pengurus");
+  const pengawas = all.filter(p => p.unit==="Pengawas");
+  const canManage = currentUser && ["admin","pengurus"].includes(currentUser.role);
+  const fotoHtml = (p) => p.foto
+    ? `<img src="${p.foto}" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:3px solid var(--primary)">`
+    : `<div style="width:72px;height:72px;border-radius:50%;background:var(--light);display:flex;align-items:center;justify-content:center;font-size:32px;color:var(--muted)">👤</div>`;
   return `
   <section class="page active">
     <div class="container">
       <h2 class="section-title">Struktur Pengurus &amp; Pengawas</h2>
-      <p class="section-sub">Periode ${DEMO.profile.periode_pengurus} — hasil Rapat Anggota Tahunan 3 November 2026</p>
-      <div class="card">
-        <div class="org-tree">
-          <div class="org-node">
-            <div class="role">Rapat Anggota Tahunan</div>
-            <div class="name">Pemegang Kekuasaan Tertinggi</div>
-            <div class="badge-pos">98 Anggota</div>
-          </div>
-          <div class="org-connector"></div>
-          <div class="org-row">
-            <div class="org-node">
-              <div class="role">Pengurus — Ketua</div>
-              <div class="name">Jumadi</div>
-            </div>
-          </div>
-          <div class="org-connector"></div>
-          <div class="org-row">
-            <div class="org-node">
-              <div class="role">Sekretaris</div>
-              <div class="name">Satriyo Handoyo</div>
-            </div>
-            <div class="org-node">
-              <div class="role">Bendahara</div>
-              <div class="name">Heny Amiyati</div>
-            </div>
-          </div>
-          <div class="org-connector"></div>
-          <div class="org-row">
-            <div class="org-node" style="border-color:var(--success)">
-              <div class="role" style="color:var(--success)">Badan Pengawas — Koordinator</div>
-              <div class="name">Abdul Halim</div>
-            </div>
-            <div class="org-node" style="border-color:var(--success)">
-              <div class="role" style="color:var(--success)">Badan Pengawas — Anggota</div>
-              <div class="name">Dwi Marti Susanto</div>
-            </div>
-          </div>
-        </div>
+      <p class="section-sub">Periode ${DEMO.profile.periode_pengurus} — hasil Rapat Anggota Tahunan</p>
+      <div class="card-grid">
+        ${pengurus.map(p => `
+          <div class="card" style="text-align:center">
+            ${fotoHtml(p)}
+            <h3 style="margin-top:12px">${p.nama}</h3>
+            <span class="badge badge-pengurus">${p.jabatan}</span>
+            <div style="font-size:12px;color:var(--muted);margin-top:6px">Badan Pengurus</div>
+          </div>`).join("")}
+        ${pengawas.map(p => `
+          <div class="card" style="text-align:center;border-color:var(--success)">
+            ${fotoHtml(p)}
+            <h3 style="margin-top:12px">${p.nama}</h3>
+            <span class="badge badge-pengawas" style="background:var(--success)">${p.jabatan}</span>
+            <div style="font-size:12px;color:var(--muted);margin-top:6px">Badan Pengawas</div>
+          </div>`).join("")}
       </div>
       <div class="grid-2" style="margin-top:16px">
         <div class="card">
           <h3>Badan Pengurus</h3>
           <p style="font-size:14px;line-height:1.6">Mengelola koperasi sehari-hari: kebijakan operasional, keputusan usaha, dan pelaksanaan program kerja. Bertanggung jawab kepada Rapat Anggota.</p>
-          <table style="margin-top:12px">
-            <thead><tr><th>Jabatan</th><th>Nama</th></tr></thead>
-            <tbody>${DEMO.pengurus.map(p=>`<tr><td><span class="badge badge-pengurus">${p.jabatan}</span></td><td>${p.nama}</td></tr>`).join("")}</tbody>
-          </table>
         </div>
         <div class="card">
           <h3>Badan Pengawas</h3>
           <p style="font-size:14px;line-height:1.6">Mengawasi pelaksanaan kebijakan &amp; pengelolaan koperasi, memberi penilaian atas tata kelola, dan mengawasi kepatuhan terhadap AD/ART.</p>
-          <table style="margin-top:12px">
-            <thead><tr><th>Jabatan</th><th>Nama</th></tr></thead>
-            <tbody>${DEMO.pengawas.map(p=>`<tr><td><span class="badge badge-pengawas">${p.jabatan}</span></td><td>${p.nama}</td></tr>`).join("")}</tbody>
-          </table>
         </div>
       </div>
+      ${canManage ? `
+        <div class="card" style="margin-top:20px">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            <h3 style="margin:0">Kelola Struktur Pengurus</h3>
+            <button class="btn btn-success btn-sm" onclick="addPengurus()">+ Tambah Pengurus</button>
+          </div>
+          <div class="table-wrap" style="margin-top:12px">
+            <table>
+              <thead><tr><th>Foto</th><th>Nama</th><th>Jabatan</th><th>Unit</th><th>Urutan</th><th>Aksi</th></tr></thead>
+              <tbody>
+                ${all.map((p,i) => `<tr>
+                  <td>${p.foto?`<img src="${p.foto}" style="width:32px;height:32px;border-radius:6px;object-fit:cover">`:'<span style="color:var(--muted)">👤</span>'}</td>
+                  <td>${p.nama}</td><td>${p.jabatan}</td><td>${p.unit||'Pengurus'}</td><td>${p.urutan||''}</td>
+                  <td style="white-space:nowrap">
+                    <button class="btn btn-blue btn-sm" onclick="editPengurus(${i})">Edit</button>
+                    <button class="btn btn-danger btn-sm" onclick="deletePengurus(${i})">Hapus</button>
+                  </td>
+                </tr>`).join("")}
+              </tbody>
+            </table>
+          </div>
+          <p style="font-size:12px;color:var(--muted);margin-top:8px">Klik <strong>Edit</strong> untuk mengunggah foto pengurus (JPG/PNG, otomatis dikecilkan ke 400px).</p>
+        </div>
+      ` : ""}
     </div>
   </section>`;
 }
@@ -965,16 +1065,13 @@ function pageUsaha(){
 /* ---------- Page: Anggota ---------- */
 function pageAnggota(){
   const canSeeAll = currentUser && ["pengurus","pengawas","bendahara","admin"].includes(currentUser.role);
+  const canManage = currentUser && ["bendahara","admin"].includes(currentUser.role);
   let rows;
-  if (canSeeAll){
-    rows = DEMO.anggota;
-  } else if (currentUser && currentUser.role === "anggota"){
-    rows = DEMO.anggota.filter(a => a.id === currentUser.id);
-  } else {
-    rows = [];
-  }
-  const totalPokok = rows.reduce((s,a)=>s+a.simpanan_pokok,0);
-  const totalWajib = rows.reduce((s,a)=>s+a.simpanan_wajib,0);
+  if (canSeeAll) rows = anggotaRows();
+  else if (currentUser && currentUser.role === "anggota") rows = anggotaRows().filter(a => a.id === currentUser.id || a.id === currentUser.anggota_id);
+  else rows = [];
+  const totalPokok = rows.reduce((s,a)=>s+(a.simpanan_pokok||0),0);
+  const totalWajib = rows.reduce((s,a)=>s+(a.simpanan_wajib||0),0);
   return `
   <section class="page active">
     <div class="container">
@@ -992,20 +1089,26 @@ function pageAnggota(){
           <div class="stat-card"><div class="stat-icon green">💵</div><div><div class="val">${fmtIDR(totalPokok)}</div><div class="lbl">Total Simpanan Pokok</div></div></div>
           <div class="stat-card"><div class="stat-icon yellow">💰</div><div><div class="val">${fmtIDR(totalWajib)}</div><div class="lbl">Total Simpanan Wajib</div></div></div>
         </div>
+        ${canManage ? `<div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-success btn-sm" onclick="addAnggota()">+ Tambah Anggota</button></div>` : ""}
         <div class="table-wrap">
           <table>
-            <thead><tr><th>ID</th><th>Nama</th><th>Unit</th><th>Jabatan</th><th class="num">Simpanan Pokok</th><th class="num">Simpanan Wajib</th><th>Status</th></tr></thead>
+            <thead><tr><th>Foto</th><th>ID</th><th>Nama</th><th>Unit</th><th>Jabatan</th><th>Alamat</th><th>No. HP</th><th class="num">Sim. Pokok</th><th class="num">Sim. Wajib</th><th>Status</th>${canManage?'<th>Aksi</th>':''}</tr></thead>
             <tbody>
-              ${rows.length ? rows.map(a => `
-                <tr>
-                  <td>${a.id}</td>
-                  <td>${a.nama}</td>
-                  <td>${a.unit}</td>
-                  <td>${a.jabatan}</td>
-                  <td class="num">${fmtIDR(a.simpanan_pokok)}</td>
-                  <td class="num">${fmtIDR(a.simpanan_wajib)}</td>
-                  <td><span class="badge badge-anggota">${a.status}</span></td>
-                </tr>`).join("") : `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">Belum ada data anggota.</td></tr>`}
+              ${rows.length ? rows.map(a => {
+                const aktif = (a.status||'Aktif') !== 'Nonaktif';
+                return `<tr>
+                  <td>${a.foto?`<img src="${a.foto}" style="width:36px;height:36px;border-radius:6px;object-fit:cover">`:`<div style="width:36px;height:36px;border-radius:6px;background:var(--light);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--muted)">👤</div>`}</td>
+                  <td>${a.id}</td><td>${a.nama}</td><td>${a.unit||''}</td><td>${a.jabatan||''}</td>
+                  <td style="font-size:12px">${a.alamat||'-'}</td><td>${a.no_hp||'-'}</td>
+                  <td class="num">${fmtIDR(a.simpanan_pokok||0)}</td><td class="num">${fmtIDR(a.simpanan_wajib||0)}</td>
+                  <td><span class="badge ${aktif?'badge-anggota':'badge-pengawas'}">${a.status||'Aktif'}</span></td>
+                  ${canManage?`<td style="white-space:nowrap">
+                    <button class="btn btn-blue btn-sm" onclick="editAnggota('${a.id}')">Edit</button>
+                    <button class="btn btn-ghost btn-sm" onclick="toggleStatusAnggota('${a.id}')">${aktif?'Nonaktifkan':'Aktifkan'}</button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteAnggota('${a.id}')">Hapus</button>
+                  </td>`:''}
+                </tr>`;
+              }).join("") : `<tr><td colspan="${canManage?11:10}" style="text-align:center;padding:24px;color:var(--muted)">Belum ada data anggota. ${canManage?'Klik "+ Tambah Anggota" untuk menambah.':''}</td></tr>`}
             </tbody>
           </table>
         </div>
@@ -1016,159 +1119,128 @@ function pageAnggota(){
 
 /* ---------- Page: Laporan ---------- */
 function pageLaporan(){
+  const useLive = IS_LIVE && liveBukuBesar.length > 0;
   const shu = DEMO.shu, nrc = DEMO.neraca, pj = DEMO.pinjaman;
-  const pj2024 = pj.filter(p=>p.tahun===2024);
-  const pj2023 = pj.filter(p=>p.tahun===2023);
-  const sumBy = (arr, kat) => arr.filter(p=>p.kategori===kat).reduce((s,p)=>s+p.nilai,0);
+  const pjCur = pj.filter(p=>p.tahun===laporanTahun);
+  const pjPrev = pj.filter(p=>p.tahun===(laporanTahun-1));
+  const shuLive = useLive ? computeSHUFromBB(laporanBulan, laporanTahun) : null;
+  const nrcLive = useLive ? computeNeracaFromBB(laporanBulan, laporanTahun) : null;
+  const bbRows = (useLive ? liveBukuBesar : []).filter(b => {
+    if (!b.tanggal) return false;
+    const d = new Date(b.tanggal);
+    if (d.getFullYear() !== laporanTahun) return false;
+    if (laporanBulan && BULAN_ID[d.getMonth()] !== laporanBulan) return false;
+    return true;
+  }).sort((a,b)=> new Date(a.tanggal)-new Date(b.tanggal));
+  const periodeLabel = (laporanBulan ? laporanBulan + " " : "Januari–Desember ") + laporanTahun;
   return `
   <section class="page active">
     <div class="container">
       <h2 class="section-title">Laporan Keuangan</h2>
-      <p class="section-sub">Periode ${shu.periode} — transparansi penuh untuk seluruh anggota</p>
+      <p class="section-sub">Filter periode untuk lihat data bulanan/tahunan — ${useLive ? "dihitung otomatis dari Buku Besar" : "menampilkan data demo (input transaksi di Buku Besar untuk laporan otomatis)"}</p>
+      <div class="card" style="margin-bottom:16px;display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+        <div class="form-group" style="margin:0;min-width:160px">
+          <label>Bulan</label>
+          <select id="filterBulan" onchange="setPeriode()">
+            <option value="" ${laporanBulan===""?"selected":""}>Semua Bulan</option>
+            ${BULAN_ID.map(b=>`<option value="${b}" ${b===laporanBulan?"selected":""}>${b}</option>`).join("")}
+          </select>
+        </div>
+        <div class="form-group" style="margin:0">
+          <label>Tahun</label>
+          <input type="number" id="filterTahun" value="${laporanTahun}" style="width:110px">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label>&nbsp;</label>
+          <button class="btn btn-primary btn-sm" onclick="setPeriode()">Terapkan Periode</button>
+        </div>
+      </div>
       <div class="tabs">
-        <button class="tab active" onclick="switchTab(event,'tab-shu')">Laporan SHU</button>
+        <button class="tab active" onclick="switchTab(event,'tab-shu')">SHU</button>
         <button class="tab" onclick="switchTab(event,'tab-neraca')">Neraca</button>
-        <button class="tab" onclick="switchTab(event,'tab-pinjaman')">Pinjaman Anggota</button>
-        <button class="tab" onclick="switchTab(event,'tab-grafik')">Grafik &amp; Analisis</button>
+        <button class="tab" onclick="switchTab(event,'tab-bb')">Buku Besar</button>
+        <button class="tab" onclick="switchTab(event,'tab-pinjaman')">Pinjaman</button>
+        <button class="tab" onclick="switchTab(event,'tab-grafik')">Grafik</button>
       </div>
 
-      <!-- SHU -->
       <div class="tab-panel active" id="tab-shu">
         <div class="card">
-          <h3>Perhitungan Sisa Hasil Usaha (SHU) — ${shu.periode}</h3>
-          <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Perbandingan Jan–Jun 2025 vs Jan–Jun 2026 (dalam Rupiah)</p>
-          <div class="table-wrap">
-            <table class="table-fin">
-              <thead><tr><th>No</th><th>Uraian</th><th class="num">Jan–Jun 2025</th><th class="num">Jan–Jun 2026</th><th class="num">Selisih</th></tr></thead>
-              <tbody>
-                <tr><td colspan="5" style="background:#dbeafe;font-weight:700;color:var(--primary-dark)">PENDAPATAN</td></tr>
-                ${shu.pendapatan.map((p,i) => {
-                  const diff = p.tahun_ini - p.tahun_lalu;
-                  return `<tr><td>${i+1}</td><td>${p.uraian}</td><td class="num">${fmtIDR(p.tahun_lalu)}</td><td class="num">${fmtIDR(p.tahun_ini)}</td><td class="num ${diff>=0?'text-success':'text-danger'}">${diff>=0?'+':''}${fmtIDR(diff)}</td></tr>`;
-                }).join("")}
-                <tr style="font-weight:700;background:#fef3c7"><td colspan="2">JUMLAH PENDAPATAN</td><td class="num">${fmtIDR(shu.total_pendapatan_lalu)}</td><td class="num">${fmtIDR(shu.total_pendapatan_ini)}</td><td class="num">${fmtIDR(shu.total_pendapatan_ini-shu.total_pendapatan_lalu)}</td></tr>
-                <tr><td colspan="5" style="background:#fee2e2;font-weight:700;color:#991b1b">BEBAN OPERASIONAL</td></tr>
-                ${shu.beban.map((b,i) => {
-                  const diff = b.tahun_ini - b.tahun_lalu;
-                  return `<tr><td>${i+1}</td><td>${b.uraian}</td><td class="num">${fmtIDR(b.tahun_lalu)}</td><td class="num">${fmtIDR(b.tahun_ini)}</td><td class="num ${diff>=0?'text-danger':'text-success'}">${diff>=0?'+':''}${fmtIDR(diff)}</td></tr>`;
-                }).join("")}
-                <tr style="font-weight:700;background:#fef3c7"><td colspan="2">JUMLAH BEBAN</td><td class="num">${fmtIDR(shu.total_beban_lalu)}</td><td class="num">${fmtIDR(shu.total_beban_ini)}</td><td class="num">${fmtIDR(shu.total_beban_ini-shu.total_beban_lalu)}</td></tr>
-                <tr style="font-weight:700;background:var(--primary);color:#fff"><td colspan="2">SISA HASIL USAHA (SHU)</td><td class="num">${fmtIDR(shu.shu_lalu)}</td><td class="num">${fmtIDR(shu.shu_ini)}</td><td class="num">${fmtIDR(shu.shu_ini-shu.shu_lalu)}</td></tr>
-              </tbody>
-            </table>
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+            <h3 style="margin:0">Laporan SHU — ${periodeLabel}</h3>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-ghost btn-sm" onclick="cetakPDF('shu')">🖨 PDF</button>
+              <button class="btn btn-ghost btn-sm" onclick="cetakExcel('shu')">📊 Excel</button>
+            </div>
           </div>
+          ${useLive ? renderSHULive(shuLive, periodeLabel) : renderSHUDemo(shu)}
         </div>
       </div>
 
-      <!-- Neraca -->
       <div class="tab-panel" id="tab-neraca">
         <div class="card">
-          <h3>Neraca — ${nrc.periode}</h3>
-          <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Perbandingan posisi keuangan Jan–Jun 2025 vs 2026</p>
-          <div class="table-wrap">
-            <table class="table-fin">
-              <thead><tr><th>No</th><th>AKTIVA</th><th class="num">2025</th><th class="num">2026</th><th style="width:8px;background:var(--primary-dark)"></th><th>No</th><th>KEWAJIBAN &amp; KEKAYAAN</th><th class="num">2025</th><th class="num">2026</th></tr></thead>
-              <tbody>
-                <tr><td colspan="4" style="background:#dbeafe;font-weight:700">AKTIVA LANCAR</td><td style="background:var(--primary-dark)"></td><td colspan="4" style="background:#fee2e2;font-weight:700">KEWAJIBAN JANGKA PENDEK</td></tr>
-                ${(() => {
-                  const al = nrc.aktiva_lancar, kj = nrc.kewajiban_jp;
-                  const max = Math.max(al.length, kj.length);
-                  let html = "";
-                  for (let i=0; i<max; i++){
-                    const a = al[i], k = kj[i];
-                    html += `<tr>
-                      <td>${a?a.i+1||i+1:i+1}</td>
-                      <td>${a?a.uraian:""}</td>
-                      <td class="num">${a?fmtIDR(a.lalu):""}</td>
-                      <td class="num">${a?fmtIDR(a.ini):""}</td>
-                      <td style="background:var(--primary-dark)"></td>
-                      <td>${k?i+1:""}</td>
-                      <td>${k?k.uraian:""}</td>
-                      <td class="num">${k?fmtIDR(k.lalu):""}</td>
-                      <td class="num">${k?fmtIDR(k.ini):""}</td>
-                    </tr>`;
-                  }
-                  html += `<tr style="font-weight:700;background:#fef3c7">
-                    <td colspan="3">Jml Aktiva Lancar</td><td class="num">${fmtIDR(nrc.total_aktiva_lancar_lalu)}</td><td class="num">${fmtIDR(nrc.total_aktiva_lancar_ini)}</td>
-                    <td style="background:var(--primary-dark)"></td>
-                    <td colspan="2">Jml Kewajiban JP</td><td class="num">${fmtIDR(nrc.total_kewajiban_lalu)}</td><td class="num">${fmtIDR(nrc.total_kewajiban_ini)}</td>
-                  </tr>`;
-                  return html;
-                })()}
-                <tr><td colspan="4" style="background:#dbeafe;font-weight:700">AKTIVA TETAP</td><td style="background:var(--primary-dark)"></td><td colspan="4" style="background:#dcfce7;font-weight:700">KEKAYAAN BERSIH (EKUITAS)</td></tr>
-                ${(() => {
-                  const at = nrc.aktiva_tetap, ek = nrc.ekuitas;
-                  const max = Math.max(at.length, ek.length);
-                  let html = "";
-                  for (let i=0; i<max; i++){
-                    const a = at[i], e = ek[i];
-                    html += `<tr>
-                      <td>${a?i+1:""}</td><td>${a?a.uraian:""}</td><td class="num">${a?fmtIDR(a.lalu):""}</td><td class="num">${a?fmtIDR(a.ini):""}</td>
-                      <td style="background:var(--primary-dark)"></td>
-                      <td>${e?i+1:""}</td><td>${e?e.uraian:""}</td><td class="num">${e?fmtIDR(e.lalu):""}</td><td class="num">${e?fmtIDR(e.ini):""}</td>
-                    </tr>`;
-                  }
-                  html += `<tr style="font-weight:700;background:#fef3c7">
-                    <td colspan="3">Jml Aktiva Tetap</td><td class="num">${fmtIDR(nrc.total_aktiva_tetap_lalu)}</td><td class="num">${fmtIDR(nrc.total_aktiva_tetap_ini)}</td>
-                    <td style="background:var(--primary-dark)"></td>
-                    <td colspan="2">Jml Kekayaan Bersih</td><td class="num">${fmtIDR(nrc.total_ekuitas_lalu)}</td><td class="num">${fmtIDR(nrc.total_ekuitas_ini)}</td>
-                  </tr>`;
-                  html += `<tr style="font-weight:700;background:var(--primary);color:#fff">
-                    <td colspan="4">TOTAL AKTIVA</td><td class="num">${fmtIDR(nrc.total_aktiva_lalu)}</td><td class="num">${fmtIDR(nrc.total_aktiva_ini)}</td>
-                    <td style="background:var(--primary-dark)"></td>
-                    <td colspan="3">TOTAL KEWAJIBAN + EKUITAS: ${fmtIDR(nrc.total_kewajiban_ini+nrc.total_ekuitas_ini)}</td>
-                  </tr>`;
-                  return html;
-                })()}
-              </tbody>
-            </table>
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+            <h3 style="margin:0">Neraca — s/d ${periodeLabel}</h3>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-ghost btn-sm" onclick="cetakPDF('neraca')">🖨 PDF</button>
+              <button class="btn btn-ghost btn-sm" onclick="cetakExcel('neraca')">📊 Excel</button>
+            </div>
           </div>
+          ${useLive ? renderNeracaLive(nrcLive, periodeLabel) : renderNeracaDemo(nrc)}
         </div>
       </div>
 
-      <!-- Pinjaman -->
+      <div class="tab-panel" id="tab-bb">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+            <h3 style="margin:0">Buku Besar — ${periodeLabel} (${bbRows.length} transaksi)</h3>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-ghost btn-sm" onclick="cetakPDF('bukubesar')">🖨 PDF</button>
+              <button class="btn btn-ghost btn-sm" onclick="cetakExcel('bukubesar')">📊 Excel</button>
+            </div>
+          </div>
+          ${bbRows.length ? `<div class="table-wrap"><table class="table-fin">
+            <thead><tr><th>TGL</th><th>NB</th><th>Uraian</th><th>KP</th><th>Akun</th><th class="num">Debet</th><th class="num">Kredit</th></tr></thead>
+            <tbody>${bbRows.map(b=>{ const d=new Date(b.tanggal); const tgl=String(d.getDate()).padStart(2,'0')+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getFullYear()).slice(2); return `<tr>
+              <td>${tgl}</td><td>${b.no_bukti||''}</td><td>${b.uraian||''}</td><td><code>${b.kp||''}</code></td><td>${b.akun||''}</td>
+              <td class="num">${b.debet?fmtIDR(b.debet):''}</td><td class="num">${b.kredit?fmtIDR(b.kredit):''}</td></tr>`; }).join("")}
+            <tr style="font-weight:700;background:var(--primary);color:#fff"><td colspan="5">TOTAL</td><td class="num">${fmtIDR(bbRows.reduce((s,b)=>s+(b.debet||0),0))}</td><td class="num">${fmtIDR(bbRows.reduce((s,b)=>s+(b.kredit||0),0))}</td></tr>
+            </tbody></table></div>` : `<p style="text-align:center;color:var(--muted);padding:24px">Belum ada transaksi Buku Besar untuk periode ${periodeLabel}. Input transaksi di menu <strong>Input Laporan → Input Buku Besar</strong>.</p>`}
+        </div>
+      </div>
+
       <div class="tab-panel" id="tab-pinjaman">
         <div class="card">
-          <h3>Pinjaman Anggota — Perbandingan 2023 vs 2024 (Jan–Jun)</h3>
-          <p style="font-size:13px;color:var(--muted);margin-bottom:12px">3 kategori: Anggota (karyawan aktif), TAD (tenaga tidak langsung), Khusus</p>
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+            <h3 style="margin:0">Pinjaman Anggota — ${laporanTahun} vs ${laporanTahun-1}</h3>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-ghost btn-sm" onclick="cetakPDF('pinjaman')">🖨 PDF</button>
+              <button class="btn btn-ghost btn-sm" onclick="cetakExcel('pinjaman')">📊 Excel</button>
+            </div>
+          </div>
           <div class="table-wrap">
             <table class="table-fin">
-              <thead><tr><th>Bulan</th><th>Kategori</th><th class="num">2023</th><th class="num">2024</th><th class="num">Selisih</th></tr></thead>
+              <thead><tr><th>Bulan</th><th>Kategori</th><th class="num">${laporanTahun-1}</th><th class="num">${laporanTahun}</th><th class="num">Selisih</th></tr></thead>
               <tbody>
-                ${["Januari","Februari","Maret","Apr","Mei","Jun"].map(b => {
-                  return ["Anggota","TAD","Khusus"].map(k => {
-                    const v23 = pj2023.find(p=>p.bulan===b&&p.kategori===k)?.nilai || 0;
-                    const v24 = pj2024.find(p=>p.bulan===b&&p.kategori===k)?.nilai || 0;
-                    if (!v23 && !v24) return "";
-                    const diff = v24 - v23;
-                    return `<tr><td>${b}</td><td>${k}</td><td class="num">${fmtIDR(v23)}</td><td class="num">${fmtIDR(v24)}</td><td class="num ${diff>=0?'text-success':'text-danger'}">${diff>=0?'+':''}${fmtIDR(diff)}</td></tr>`;
-                  }).join("");
-                }).join("")}
-                <tr style="font-weight:700;background:var(--primary);color:#fff">
-                  <td colspan="2">TOTAL ANGGOTA</td><td class="num">${fmtIDR(sumBy(pj2023,"Anggota"))}</td><td class="num">${fmtIDR(sumBy(pj2024,"Anggota"))}</td><td class="num">${fmtIDR(sumBy(pj2024,"Anggota")-sumBy(pj2023,"Anggota"))}</td>
-                </tr>
-                <tr style="font-weight:700;background:var(--primary);color:#fff">
-                  <td colspan="2">TOTAL TAD</td><td class="num">${fmtIDR(sumBy(pj2023,"TAD"))}</td><td class="num">${fmtIDR(sumBy(pj2024,"TAD"))}</td><td class="num">${fmtIDR(sumBy(pj2024,"TAD")-sumBy(pj2023,"TAD"))}</td>
-                </tr>
-                <tr style="font-weight:700;background:var(--primary);color:#fff">
-                  <td colspan="2">TOTAL KHUSUS</td><td class="num">${fmtIDR(sumBy(pj2023,"Khusus"))}</td><td class="num">${fmtIDR(sumBy(pj2024,"Khusus"))}</td><td class="num">${fmtIDR(sumBy(pj2024,"Khusus")-sumBy(pj2023,"Khusus"))}</td>
-                </tr>
-                <tr style="font-weight:700;background:var(--accent);color:var(--primary-dark)">
-                  <td colspan="2">GRAND TOTAL</td><td class="num">${fmtIDR(pj2023.reduce((s,p)=>s+p.nilai,0))}</td><td class="num">${fmtIDR(pj2024.reduce((s,p)=>s+p.nilai,0))}</td><td class="num">${fmtIDR(pj2024.reduce((s,p)=>s+p.nilai,0)-pj2023.reduce((s,p)=>s+p.nilai,0))}</td>
-                </tr>
+                ${BULAN_ID.slice(0,6).map(b => ["Anggota","TAD","Khusus"].map(k => {
+                  const vP = pjPrev.find(p=>p.bulan===b&&p.kategori===k)?.nilai || 0;
+                  const vC = pjCur.find(p=>p.bulan===b&&p.kategori===k)?.nilai || 0;
+                  if (!vP && !vC) return "";
+                  const diff = vC - vP;
+                  return `<tr><td>${b}</td><td>${k}</td><td class="num">${fmtIDR(vP)}</td><td class="num">${fmtIDR(vC)}</td><td class="num ${diff>=0?'text-success':'text-danger'}">${diff>=0?'+':''}${fmtIDR(diff)}</td></tr>`;
+                }).join("")).join("")}
+                <tr style="font-weight:700;background:var(--primary);color:#fff"><td colspan="2">GRAND TOTAL</td><td class="num">${fmtIDR(pjPrev.reduce((s,p)=>s+p.nilai,0))}</td><td class="num">${fmtIDR(pjCur.reduce((s,p)=>s+p.nilai,0))}</td><td class="num">${fmtIDR(pjCur.reduce((s,p)=>s+p.nilai,0)-pjPrev.reduce((s,p)=>s+p.nilai,0))}</td></tr>
               </tbody>
             </table>
           </div>
         </div>
       </div>
 
-      <!-- Grafik -->
       <div class="tab-panel" id="tab-grafik">
         <div class="grid-2">
           <div class="card"><h3>SHU: 2025 vs 2026</h3><div class="chart-wrap"><canvas id="chartSHU" height="200"></canvas></div></div>
           <div class="card"><h3>Komposisi Pendapatan 2026</h3><div class="chart-wrap"><canvas id="chartPendapatan" height="200"></canvas></div></div>
-          <div class="card"><h3>Pinjaman per Kategori (2024)</h3><div class="chart-wrap"><canvas id="chartPinjaman" height="200"></canvas></div></div>
-          <div class="card"><h3>Tren Pinjaman Bulanan 2024</h3><div class="chart-wrap"><canvas id="chartTrenPinjaman" height="200"></canvas></div></div>
+          <div class="card"><h3>Pinjaman per Kategori (${laporanTahun})</h3><div class="chart-wrap"><canvas id="chartPinjaman" height="200"></canvas></div></div>
+          <div class="card"><h3>Tren Pinjaman Bulanan ${laporanTahun}</h3><div class="chart-wrap"><canvas id="chartTrenPinjaman" height="200"></canvas></div></div>
         </div>
       </div>
     </div>
@@ -1196,8 +1268,6 @@ function pageInput(){
       <p class="section-sub">Formulir input data oleh Bendahara — periode baru, transaksi, &amp; aktivitas</p>
       <div class="tabs">
         <button class="tab active" onclick="switchTab(event,'in-bb')">Input Buku Besar</button>
-        <button class="tab" onclick="switchTab(event,'in-shu')">Input SHU</button>
-        <button class="tab" onclick="switchTab(event,'in-neraca')">Input Neraca</button>
         <button class="tab" onclick="switchTab(event,'in-pinjaman')">Input Pinjaman</button>
         <button class="tab" onclick="switchTab(event,'in-kegiatan')">Input Kegiatan</button>
       </div>
@@ -1234,37 +1304,8 @@ function pageInput(){
         </div>
       </div>
 
-      <div class="tab-panel" id="in-shu">
-        <div class="card">
-          <h3>Form Input Pendapatan / Beban SHU</h3>
-          <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Data tersimpan ke tabel <code>shu_items</code> Supabase.</p>
-          <form onsubmit="submitSHU(event)">
-            <div class="form-grid">
-              <div class="form-group"><label>Periode</label><input type="text" name="periode" placeholder="contoh: Januari - Juni 2026" required></div>
-              <div class="form-group"><label>Tipe</label><select name="tipe" required><option value="pendapatan">Pendapatan</option><option value="beban">Beban</option></select></div>
-              <div class="form-group"><label>Uraian</label><input type="text" name="uraian" placeholder="contoh: Pendapatan PPOB" required></div>
-              <div class="form-group"><label>Nilai (Rp)</label><input type="number" name="nilai" placeholder="contoh: 20667657" required></div>
-            </div>
-            <button class="btn btn-primary" type="submit">Simpan</button>
-          </form>
-        </div>
-      </div>
-
-      <div class="tab-panel" id="in-neraca">
-        <div class="card">
-          <h3>Form Input Post Neraca</h3>
-          <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Data tersimpan ke tabel <code>neraca_items</code>.</p>
-          <form onsubmit="submitNeraca(event)">
-            <div class="form-grid">
-              <div class="form-group"><label>Periode</label><input type="text" name="periode" placeholder="contoh: Januari - Juni 2026" required></div>
-              <div class="form-group"><label>Sisi</label><select name="sisi" required><option value="aktiva_lancar">Aktiva Lancar</option><option value="aktiva_tetap">Aktiva Tetap</option><option value="kewajiban_jp">Kewajiban Jangka Pendek</option><option value="ekuitas">Ekuitas</option></select></div>
-              <div class="form-group"><label>Uraian</label><input type="text" name="uraian" placeholder="contoh: Kas" required></div>
-              <div class="form-group"><label>Nilai Periode Lalu (Rp)</label><input type="number" name="nilai_lalu" placeholder="contoh: 10316508"></div>
-              <div class="form-group"><label>Nilai Periode Ini (Rp)</label><input type="number" name="nilai_ini" placeholder="contoh: 4495508" required></div>
-            </div>
-            <button class="btn btn-primary" type="submit">Simpan</button>
-          </form>
-        </div>
+      <div class="card" style="background:var(--light);border-left:4px solid var(--primary);margin-bottom:16px">
+        <p style="font-size:14px;margin:0">ℹ️ <strong>SHU &amp; Neraca tidak lagi diinput manual.</strong> Kedua laporan kini dihitung otomatis dari transaksi <strong>Buku Besar</strong> (standar nasional akuntansi koperasi: sumber data = jurnal, laporan = turunan). Input transaksi harian di tab <strong>Input Buku Besar</strong> di atas, lalu lihat hasilnya di menu <strong>Laporan</strong> dengan filter bulan/tahun.</p>
       </div>
 
       <div class="tab-panel" id="in-pinjaman">
@@ -1617,6 +1658,482 @@ async function saveUser(){
   closeEditUser();
 }
 
+/* ===== V2: Foto, Load data, Compute laporan, Cetak, CRUD anggota/pengurus, Profil Saya ===== */
+let signupFotoData = null;
+let editFotoData = null;
+
+function previewFoto(input, imgId){
+  const file = input.files && input.files[0];
+  if (!file) return;
+  if (!file.type.startsWith("image/")){ toast("File harus gambar (JPG/PNG).","error"); input.value=""; return; }
+  const img = $(imgId);
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const tmp = new Image();
+    tmp.onload = () => {
+      const maxW = 400, scale = Math.min(1, maxW / tmp.width);
+      const c = document.createElement("canvas");
+      c.width = Math.round(tmp.width * scale); c.height = Math.round(tmp.height * scale);
+      c.getContext("2d").drawImage(tmp, 0, 0, c.width, c.height);
+      const d = c.toDataURL("image/jpeg", 0.85);
+      signupFotoData = d; img.src = d; img.style.display = "block";
+      toast("Foto siap (" + Math.round(d.length/1024) + " KB).","success");
+    };
+    tmp.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function previewFotoEdit(input, imgId){
+  const file = input.files && input.files[0];
+  if (!file){ return; }
+  if (!file.type.startsWith("image/")){ toast("File harus gambar (JPG/PNG).","error"); input.value=""; return; }
+  const img = $(imgId);
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const tmp = new Image();
+    tmp.onload = () => {
+      const maxW = 400, scale = Math.min(1, maxW / tmp.width);
+      const c = document.createElement("canvas");
+      c.width = Math.round(tmp.width * scale); c.height = Math.round(tmp.height * scale);
+      c.getContext("2d").drawImage(tmp, 0, 0, c.width, c.height);
+      const d = c.toDataURL("image/jpeg", 0.85);
+      editFotoData = d; img.src = d; img.style.display = "block";
+      toast("Foto siap (" + Math.round(d.length/1024) + " KB).","success");
+    };
+    tmp.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function loadAnggota(){
+  if (!IS_LIVE || !sb) return;
+  try {
+    const { data, error } = await sb.from("anggota").select("*").order("nama", { ascending: true });
+    if (error) throw error;
+    liveAnggota = data || [];
+  } catch(e){ console.warn("loadAnggota:", e.message||e); liveAnggota = []; }
+}
+
+async function loadPengurus(){
+  if (!IS_LIVE || !sb) return;
+  try {
+    const { data, error } = await sb.from("pengurus").select("*").order("urutan", { ascending: true });
+    if (error) throw error;
+    livePengurus = data || [];
+  } catch(e){ console.warn("loadPengurus:", e.message||e); livePengurus = []; }
+}
+
+/* --- Filter periode laporan --- */
+function setPeriode(){
+  const b = $("filterBulan"), t = $("filterTahun");
+  if (b) laporanBulan = b.value;
+  if (t) laporanTahun = Number(t.value) || laporanTahun;
+  renderPage("laporan");
+}
+
+/* --- Hitung SHU dari Buku Besar (periode: bulan tertentu atau Jan..Des tahun) --- */
+function computeSHUFromBB(bulan, tahun){
+  const rows = liveBukuBesar.filter(b => {
+    if (!b.tanggal) return false;
+    const d = new Date(b.tanggal);
+    if (d.getFullYear() !== tahun) return false;
+    if (bulan && BULAN_ID[d.getMonth()] !== bulan) return false;
+    return true;
+  });
+  const pend = {}, beb = {};
+  rows.forEach(r => {
+    const acc = CHART_OF_ACCOUNTS[r.kp];
+    if (!acc || !acc.shu) return;
+    const val = (Number(r.debet)||0) - (Number(r.kredit)||0);
+    if (acc.shu === "pendapatan"){
+      // pendapatan normal Kredit → nilai = kredit - debet
+      pend[r.kp] = (pend[r.kp]||0) + (-val);
+    } else if (acc.shu === "beban"){
+      // beban normal Debet → nilai = debet - kredit
+      beb[r.kp] = (beb[r.kp]||0) + val;
+    }
+  });
+  const pendapatan = Object.entries(pend).filter(([k,v])=>v!==0).map(([k,v])=>({uraian:CHART_OF_ACCOUNTS[k].nama, nilai:v}));
+  const beban = Object.entries(beb).filter(([k,v])=>v!==0).map(([k,v])=>({uraian:CHART_OF_ACCOUNTS[k].nama, nilai:v}));
+  const total_pendapatan = pendapatan.reduce((s,p)=>s+p.nilai,0);
+  const total_beban = beban.reduce((s,p)=>s+p.nilai,0);
+  return { pendapatan, beban, total_pendapatan, total_beban, shu: total_pendapatan - total_beban };
+}
+
+/* --- Hitung Neraca dari Buku Besar (saldo s/d akhir periode) --- */
+function computeNeracaFromBB(bulan, tahun){
+  const end = bulan
+    ? new Date(tahun, BULAN_ID.indexOf(bulan) + 1, 0)   // hari terakhir bulan terpilih
+    : new Date(tahun, 11, 31);                           // 31 Desember jika semua bulan
+  const rows = liveBukuBesar.filter(b => {
+    if (!b.tanggal) return false;
+    const d = new Date(b.tanggal);
+    return d <= end;
+  });
+  const bal = {};
+  rows.forEach(r => {
+    const acc = CHART_OF_ACCOUNTS[r.kp];
+    if (!acc || !acc.neraca) return;
+    const val = (Number(r.debet)||0) - (Number(r.kredit)||0);
+    bal[r.kp] = (bal[r.kp]||0) + (acc.normal === "D" ? val : -val);
+  });
+  const pick = (sec) => Object.entries(bal).filter(([k])=>CHART_OF_ACCOUNTS[k].neraca===sec && bal[k]!==0)
+    .map(([k,v])=>({uraian:CHART_OF_ACCOUNTS[k].nama, nilai:v}));
+  const aktiva_lancar = pick("aktiva_lancar");
+  const kewajiban_jp = pick("kewajiban_jp");
+  const ekuitas = pick("ekuitas");
+  const total_aktiva = aktiva_lancar.reduce((s,a)=>s+a.nilai,0);
+  const total_kewajiban = kewajiban_jp.reduce((s,a)=>s+a.nilai,0);
+  const total_ekuitas = ekuitas.reduce((s,a)=>s+a.nilai,0);
+  return { aktiva_lancar, kewajiban_jp, ekuitas, total_aktiva, total_kewajiban, total_ekuitas };
+}
+
+/* --- Render SHU live (periode terpilih) --- */
+function renderSHULive(s, label){
+  return `<div class="table-wrap"><table class="table-fin">
+    <thead><tr><th>No</th><th>Uraian</th><th class="num">Nilai (Rp)</th></tr></thead>
+    <tbody>
+      <tr><td colspan="3" style="background:#dbeafe;font-weight:700">PENDAPATAN</td></tr>
+      ${s.pendapatan.length ? s.pendapatan.map((p,i)=>`<tr><td>${i+1}</td><td>${p.uraian}</td><td class="num">${fmtIDR(p.nilai)}</td></tr>`).join("") : `<tr><td colspan="3" style="text-align:center;color:var(--muted)">Tidak ada pendapatan</td></tr>`}
+      <tr style="font-weight:700;background:#fef3c7"><td colspan="2">JUMLAH PENDAPATAN</td><td class="num">${fmtIDR(s.total_pendapatan)}</td></tr>
+      <tr><td colspan="3" style="background:#fee2e2;font-weight:700;color:#991b1b">BEBAN OPERASIONAL</td></tr>
+      ${s.beban.length ? s.beban.map((b,i)=>`<tr><td>${i+1}</td><td>${b.uraian}</td><td class="num">${fmtIDR(b.nilai)}</td></tr>`).join("") : `<tr><td colspan="3" style="text-align:center;color:var(--muted)">Tidak ada beban</td></tr>`}
+      <tr style="font-weight:700;background:#fef3c7"><td colspan="2">JUMLAH BEBAN</td><td class="num">${fmtIDR(s.total_beban)}</td></tr>
+      <tr style="font-weight:700;background:var(--primary);color:#fff"><td colspan="2">SISA HASIL USAHA (SHU)</td><td class="num">${fmtIDR(s.shu)}</td></tr>
+    </tbody></table></div>`;
+}
+
+/* --- Render SHU demo (perbandingan 2025 vs 2026) --- */
+function renderSHUDemo(shu){
+  return `<p style="font-size:13px;color:var(--muted);margin-bottom:12px">Data demo — perbandingan Jan–Jun 2025 vs Jan–Jun 2026.</p>
+  <div class="table-wrap"><table class="table-fin">
+    <thead><tr><th>No</th><th>Uraian</th><th class="num">Jan–Jun 2025</th><th class="num">Jan–Jun 2026</th><th class="num">Selisih</th></tr></thead>
+    <tbody>
+      <tr><td colspan="5" style="background:#dbeafe;font-weight:700;color:var(--primary-dark)">PENDAPATAN</td></tr>
+      ${shu.pendapatan.map((p,i)=>{ const d=p.tahun_ini-p.tahun_lalu; return `<tr><td>${i+1}</td><td>${p.uraian}</td><td class="num">${fmtIDR(p.tahun_lalu)}</td><td class="num">${fmtIDR(p.tahun_ini)}</td><td class="num ${d>=0?'text-success':'text-danger'}">${d>=0?'+':''}${fmtIDR(d)}</td></tr>`; }).join("")}
+      <tr style="font-weight:700;background:#fef3c7"><td colspan="2">JUMLAH PENDAPATAN</td><td class="num">${fmtIDR(shu.total_pendapatan_lalu)}</td><td class="num">${fmtIDR(shu.total_pendapatan_ini)}</td><td class="num">${fmtIDR(shu.total_pendapatan_ini-shu.total_pendapatan_lalu)}</td></tr>
+      <tr><td colspan="5" style="background:#fee2e2;font-weight:700;color:#991b1b">BEBAN OPERASIONAL</td></tr>
+      ${shu.beban.map((b,i)=>{ const d=b.tahun_ini-b.tahun_lalu; return `<tr><td>${i+1}</td><td>${b.uraian}</td><td class="num">${fmtIDR(b.tahun_lalu)}</td><td class="num">${fmtIDR(b.tahun_ini)}</td><td class="num ${d>=0?'text-danger':'text-success'}">${d>=0?'+':''}${fmtIDR(d)}</td></tr>`; }).join("")}
+      <tr style="font-weight:700;background:#fef3c7"><td colspan="2">JUMLAH BEBAN</td><td class="num">${fmtIDR(shu.total_beban_lalu)}</td><td class="num">${fmtIDR(shu.total_beban_ini)}</td><td class="num">${fmtIDR(shu.total_beban_ini-shu.total_beban_lalu)}</td></tr>
+      <tr style="font-weight:700;background:var(--primary);color:#fff"><td colspan="2">SISA HASIL USAHA (SHU)</td><td class="num">${fmtIDR(shu.shu_lalu)}</td><td class="num">${fmtIDR(shu.shu_ini)}</td><td class="num">${fmtIDR(shu.shu_ini-shu.shu_lalu)}</td></tr>
+    </tbody></table></div>`;
+}
+
+/* --- Render Neraca live --- */
+function renderNeracaLive(n, label){
+  return `<div class="table-wrap"><table class="table-fin">
+    <thead><tr><th>No</th><th>AKTIVA</th><th class="num">Saldo</th><th style="width:8px;background:var(--primary-dark)"></th><th>No</th><th>KEWAJIBAN &amp; EKUITAS</th><th class="num">Saldo</th></tr></thead>
+    <tbody>
+      <tr><td colspan="3" style="background:#dbeafe;font-weight:700">AKTIVA LANCAR</td><td style="background:var(--primary-dark)"></td><td colspan="3" style="background:#fee2e2;font-weight:700">KEWAJIBAN</td></tr>
+      ${(() => { const a=n.aktiva_lancar, k=n.kewajiban_jp, m=Math.max(a.length,k.length); let h="";
+        for(let i=0;i<m;i++){ const x=a[i], y=k[i]; h+=`<tr><td>${x?i+1:""}</td><td>${x?x.uraian:""}</td><td class="num">${x?fmtIDR(x.nilai):""}</td><td style="background:var(--primary-dark)"></td><td>${y?i+1:""}</td><td>${y?y.uraian:""}</td><td class="num">${y?fmtIDR(y.nilai):""}</td></tr>`; }
+        h+=`<tr style="font-weight:700;background:#fef3c7"><td colspan="2">Jml Aktiva Lancar</td><td class="num">${fmtIDR(n.total_aktiva)}</td><td style="background:var(--primary-dark)"></td><td colspan="1">Jml Kewajiban</td><td class="num">${fmtIDR(n.total_kewajiban)}</td></tr>`;
+        return h; })()}
+      <tr><td colspan="3" style="background:#dcfce7;font-weight:700">&nbsp;</td><td style="background:var(--primary-dark)"></td><td colspan="3" style="background:#dcfce7;font-weight:700">EKUITAS</td></tr>
+      ${n.ekuitas.map((e,i)=>`<tr><td></td><td></td><td class="num"></td><td style="background:var(--primary-dark)"></td><td>${i+1}</td><td>${e.uraian}</td><td class="num">${fmtIDR(e.nilai)}</td></tr>`).join("")}
+      <tr style="font-weight:700;background:#fef3c7"><td colspan="3"></td><td style="background:var(--primary-dark)"></td><td colspan="1">Jml Ekuitas</td><td class="num">${fmtIDR(n.total_ekuitas)}</td></tr>
+      <tr style="font-weight:700;background:var(--primary);color:#fff"><td colspan="2">TOTAL AKTIVA</td><td class="num">${fmtIDR(n.total_aktiva)}</td><td style="background:var(--primary-dark)"></td><td colspan="1">TOTAL KEWAJIBAN + EKUITAS</td><td class="num">${fmtIDR(n.total_kewajiban+n.total_ekuitas)}</td></tr>
+    </tbody></table></div>`;
+}
+
+/* --- Render Neraca demo --- */
+function renderNeracaDemo(nrc){
+  return `<p style="font-size:13px;color:var(--muted);margin-bottom:12px">Data demo — perbandingan posisi keuangan Jan–Jun 2025 vs 2026.</p>
+  <div class="table-wrap"><table class="table-fin">
+    <thead><tr><th>No</th><th>AKTIVA</th><th class="num">2025</th><th class="num">2026</th><th style="width:8px;background:var(--primary-dark)"></th><th>No</th><th>KEWAJIBAN &amp; KEKAYAAN</th><th class="num">2025</th><th class="num">2026</th></tr></thead>
+    <tbody>
+      <tr><td colspan="4" style="background:#dbeafe;font-weight:700">AKTIVA LANCAR</td><td style="background:var(--primary-dark)"></td><td colspan="4" style="background:#fee2e2;font-weight:700">KEWAJIBAN JANGKA PENDEK</td></tr>
+      ${(() => { const al=nrc.aktiva_lancar, kj=nrc.kewajiban_jp, m=Math.max(al.length,kj.length); let h="";
+        for(let i=0;i<m;i++){ const a=al[i], k=kj[i]; h+=`<tr><td>${i+1}</td><td>${a?a.uraian:""}</td><td class="num">${a?fmtIDR(a.lalu):""}</td><td class="num">${a?fmtIDR(a.ini):""}</td><td style="background:var(--primary-dark)"></td><td>${k?i+1:""}</td><td>${k?k.uraian:""}</td><td class="num">${k?fmtIDR(k.lalu):""}</td><td class="num">${k?fmtIDR(k.ini):""}</td></tr>`; }
+        h+=`<tr style="font-weight:700;background:#fef3c7"><td colspan="3">Jml Aktiva Lancar</td><td class="num">${fmtIDR(nrc.total_aktiva_lancar_lalu)}</td><td class="num">${fmtIDR(nrc.total_aktiva_lancar_ini)}</td><td style="background:var(--primary-dark)"></td><td colspan="2">Jml Kewajiban JP</td><td class="num">${fmtIDR(nrc.total_kewajiban_lalu)}</td><td class="num">${fmtIDR(nrc.total_kewajiban_ini)}</td></tr>`; return h; })()}
+      <tr><td colspan="4" style="background:#dbeafe;font-weight:700">AKTIVA TETAP</td><td style="background:var(--primary-dark)"></td><td colspan="4" style="background:#dcfce7;font-weight:700">KEKAYAAN BERSIH (EKUITAS)</td></tr>
+      ${(() => { const at=nrc.aktiva_tetap, ek=nrc.ekuitas, m=Math.max(at.length,ek.length); let h="";
+        for(let i=0;i<m;i++){ const a=at[i], e=ek[i]; h+=`<tr><td>${a?i+1:""}</td><td>${a?a.uraian:""}</td><td class="num">${a?fmtIDR(a.lalu):""}</td><td class="num">${a?fmtIDR(a.ini):""}</td><td style="background:var(--primary-dark)"></td><td>${e?i+1:""}</td><td>${e?e.uraian:""}</td><td class="num">${e?fmtIDR(e.lalu):""}</td><td class="num">${e?fmtIDR(e.ini):""}</td></tr>`; }
+        h+=`<tr style="font-weight:700;background:#fef3c7"><td colspan="3">Jml Aktiva Tetap</td><td class="num">${fmtIDR(nrc.total_aktiva_tetap_lalu)}</td><td class="num">${fmtIDR(nrc.total_aktiva_tetap_ini)}</td><td style="background:var(--primary-dark)"></td><td colspan="2">Jml Kekayaan Bersih</td><td class="num">${fmtIDR(nrc.total_ekuitas_lalu)}</td><td class="num">${fmtIDR(nrc.total_ekuitas_ini)}</td></tr>`;
+        h+=`<tr style="font-weight:700;background:var(--primary);color:#fff"><td colspan="3">TOTAL AKTIVA</td><td class="num">${fmtIDR(nrc.total_aktiva_lalu)}</td><td class="num">${fmtIDR(nrc.total_aktiva_ini)}</td><td style="background:var(--primary-dark)"></td><td colspan="2">TOTAL KEWAJIBAN + EKUITAS</td><td class="num">${fmtIDR(nrc.total_kewajiban_lalu+nrc.total_ekuitas_lalu)}</td><td class="num">${fmtIDR(nrc.total_kewajiban_ini+nrc.total_ekuitas_ini)}</td></tr>`; return h; })()}
+    </tbody></table></div>`;
+}
+
+/* --- Cetak PDF (window.print) & Excel (CSV) --- */
+function labelLaporan(tipe){ return {shu:"SHU", neraca:"Neraca", bukubesar:"Buku Besar", pinjaman:"Pinjaman Anggota"}[tipe] || tipe; }
+function getReportTable(tipe){
+  const map = {shu:"tab-shu", neraca:"tab-neraca", bukubesar:"tab-bb", pinjaman:"tab-pinjaman"};
+  const el = document.getElementById(map[tipe]);
+  if (!el) return null;
+  return el.querySelector(".table-fin") || el.querySelector("table");
+}
+function cetakPDF(tipe){
+  const table = getReportTable(tipe);
+  if (!table){ toast("Tidak ada tabel untuk dicetak. Buka tab laporan dulu.","error"); return; }
+  const periode = (laporanBulan ? laporanBulan+" " : "Tahun ") + laporanTahun;
+  const w = window.open("", "_blank");
+  if (!w){ toast("Popup diblokir browser. Izinkan popup untuk mencetak.","error"); return; }
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Laporan ${labelLaporan(tipe)} — ${periode}</title>
+  <style>body{font-family:Arial,Helvetica,sans-serif;padding:24px;color:#0f172a;margin:0}
+  .kop{text-align:center;border-bottom:3px double #0f172a;padding-bottom:10px;margin-bottom:18px}
+  .kop h1{font-size:20px;margin:0}.kop h2{font-size:14px;color:#475569;margin:6px 0 0;font-weight:400}
+  table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+  th,td{border:1px solid #94a3b8;padding:5px 7px;text-align:left}th{background:#0f172a;color:#fff}
+  .num{text-align:right}tr[style*="font-weight:700"]{font-weight:700}
+  .footer{font-size:11px;color:#94a3b8;margin-top:20px;border-top:1px solid #e2e8f0;padding-top:8px}
+  @media print{.noprint{display:none}}</style></head><body>
+  <div class="kop"><h1>KOPERASI PIJAR LARE BLAMBANGAN</h1><h2>PT PLN (Persero) UP3 Banyuwangi · NIK 3510180040001</h2><h2>Laporan ${labelLaporan(tipe)} — ${periode}</h2></div>
+  ${table.outerHTML}
+  <div class="footer">Dicetak: ${new Date().toLocaleString("id-ID")} · Portal Digital Koperasi</div>
+  <script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script>
+  </body></html>`);
+  w.document.close();
+  toast("Dialog cetak dibuka — pilih 'Save as PDF'.","info");
+}
+function cetakExcel(tipe){
+  const table = getReportTable(tipe);
+  if (!table){ toast("Tidak ada tabel untuk diekspor.","error"); return; }
+  const rows = [...table.querySelectorAll("tr")];
+  const csv = rows.map(tr => [...tr.querySelectorAll("th,td")].map(c => {
+    let t = c.textContent.replace(/\s+/g," ").trim().replace(/"/g,'""');
+    if (/[",\n]/.test(t)) t = '"'+t+'"';
+    return t;
+  }).join(",")).join("\n");
+  const periode = (laporanBulan ? laporanBulan+"_" : "") + laporanTahun;
+  const blob = new Blob(["\ufeff"+csv], {type:"text/csv;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `Laporan_${tipe}_${periode}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+  toast("Excel (CSV) diunduh — buka dengan Microsoft Excel.","success");
+}
+
+/* --- Profil Saya (anggota view/edit profil sendiri) --- */
+function pageProfilSaya(){
+  if (!currentUser) return pageGate("Profil Saya", "Silakan masuk untuk melihat profil Anda.");
+  const foto = currentUser.foto || "";
+  return `
+  <section class="page active">
+    <div class="container">
+      <h2 class="section-title">Profil Saya</h2>
+      <p class="section-sub">Data pribadi anggota — nama, alamat, no. HP, dan foto</p>
+      <div class="card" style="max-width:640px">
+        <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start">
+          <div style="text-align:center">
+            <img id="psFotoImg" src="${foto||''}" style="${foto?'':'display:none'};width:120px;height:120px;border-radius:12px;object-fit:cover;border:2px solid var(--border)">
+            ${foto?'':'<div style="width:120px;height:120px;border-radius:12px;background:var(--light);display:flex;align-items:center;justify-content:center;font-size:40px;color:var(--muted)">👤</div>'}
+            <div style="margin-top:8px">
+              <input type="file" id="psFoto" accept="image/png,image/jpeg" onchange="previewFotoEdit(this,'psFotoImg')" style="font-size:12px">
+            </div>
+          </div>
+          <div style="flex:1;min-width:280px">
+            <div class="form-group"><label>Nama Lengkap</label><input type="text" id="psNama" value="${currentUser.nama||''}"></div>
+            <div class="form-group"><label>Email</label><input type="email" id="psEmail" value="${currentUser.email||''}" disabled style="background:var(--light);color:var(--muted)"></div>
+            <div class="form-group"><label>Alamat</label><input type="text" id="psAlamat" value="${currentUser.alamat||''}" placeholder="contoh: Jl. Nusantara No. 01, Banyuwangi"></div>
+            <div class="form-group"><label>No. HP</label><input type="text" id="psHp" value="${currentUser.no_hp||''}" placeholder="contoh: 0812xxxxxxx"></div>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button class="btn btn-primary" onclick="saveProfilSaya()">Simpan Perubahan</button>
+              <span class="badge badge-${currentUser.role}">${currentUser.role}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>`;
+}
+async function saveProfilSaya(){
+  if (!currentUser){ toast("Anda belum login.","error"); return; }
+  const nama = $("psNama").value.trim();
+  const alamat = $("psAlamat").value.trim();
+  const no_hp = $("psHp").value.trim();
+  if (!nama){ toast("Nama tidak boleh kosong.","error"); return; }
+  if (IS_LIVE && sb){
+    const upd = { nama, alamat, no_hp };
+    if (editFotoData) upd.foto = editFotoData;
+    try {
+      const { error } = await sb.from("profiles").update(upd).eq("id", currentUser.id);
+      if (error) throw error;
+      currentUser = { ...currentUser, ...upd };
+      editFotoData = null;
+      updateUserUI();
+      toast("Profil tersimpan.","success");
+      renderPage("profilsaya");
+    } catch(err){ toast("Gagal simpan: "+(err.message||err),"error"); }
+  } else {
+    currentUser = { ...currentUser, nama, alamat, no_hp };
+    toast("(Demo) Profil disimpan di browser.","info");
+    updateUserUI();
+    renderPage("profilsaya");
+  }
+}
+
+/* --- CRUD Anggota (admin/bendahara) --- */
+function anggotaRows(){ return (IS_LIVE && liveAnggota.length) ? liveAnggota : DEMO.anggota; }
+function addAnggota(){ editFotoData = null; openAnggotaModal(null); }
+function editAnggota(id){ editFotoData = null; openAnggotaModal(id); }
+function openAnggotaModal(id){
+  const rows = anggotaRows();
+  const a = id ? rows.find(r => r.id === id) : null;
+  const isNew = !a;
+  $("anggotaModalTitle").textContent = isNew ? "Tambah Anggota" : "Edit Anggota";
+  $("anggotaId").value = a?.id || ("A-" + String(rows.length+1).padStart(3,"0"));
+  $("anggotaId").disabled = !isNew;
+  $("anggotaNama").value = a?.nama || "";
+  $("anggotaUnit").value = a?.unit || "PLN UP3 Banyuwangi";
+  $("anggotaJabatan").value = a?.jabatan || "Anggota";
+  $("anggotaAlamat").value = a?.alamat || "";
+  $("anggotaHp").value = a?.no_hp || "";
+  $("anggotaPokok").value = a?.simpanan_pokok || 250000;
+  $("anggotaWajib").value = a?.simpanan_wajib || 0;
+  $("anggotaStatus").value = a?.status || "Aktif";
+  const img = $("anggotaFotoImg");
+  if (a?.foto){ img.src = a.foto; img.style.display = "block"; } else { img.style.display = "none"; img.src = ""; }
+  $("anggotaFoto").value = "";
+  $("anggotaModal").classList.add("show");
+}
+function closeAnggotaModal(){ $("anggotaModal").classList.remove("show"); editFotoData = null; }
+async function saveAnggota(){
+  const id = $("anggotaId").value.trim();
+  const nama = $("anggotaNama").value.trim();
+  if (!id || !nama){ toast("ID dan Nama wajib diisi.","error"); return; }
+  const data = {
+    id, nama,
+    unit: $("anggotaUnit").value,
+    jabatan: $("anggotaJabatan").value,
+    alamat: $("anggotaAlamat").value,
+    no_hp: $("anggotaHp").value,
+    simpanan_pokok: Number($("anggotaPokok").value)||0,
+    simpanan_wajib: Number($("anggotaWajib").value)||0,
+    status: $("anggotaStatus").value
+  };
+  if (editFotoData) data.foto = editFotoData;
+  if (IS_LIVE && sb){
+    const isNew = $("anggotaId").disabled === false;
+    try {
+      if (isNew){
+        const { error } = await sb.from("anggota").insert(data);
+        if (error) throw error;
+        toast("Anggota ditambahkan.","success");
+      } else {
+        const { error } = await sb.from("anggota").update(data).eq("id", id);
+        if (error) throw error;
+        toast("Anggota diperbarui.","success");
+      }
+      await loadAnggota();
+      closeAnggotaModal();
+      renderPage("anggota");
+    } catch(err){ toast("Gagal simpan: "+(err.message||err),"error"); }
+  } else {
+    toast("(Demo) Anggota disimpan di browser.","info");
+    closeAnggotaModal();
+    renderPage("anggota");
+  }
+}
+async function deleteAnggota(id){
+  if (!confirm("Hapus anggota "+id+"? Tindakan ini tidak bisa dibatalkan.")) return;
+  if (IS_LIVE && sb){
+    try {
+      const { error } = await sb.from("anggota").delete().eq("id", id);
+      if (error) throw error;
+      toast("Anggota dihapus.","success");
+      await loadAnggota();
+      renderPage("anggota");
+    } catch(err){ toast("Gagal hapus: "+(err.message||err),"error"); }
+  } else {
+    toast("(Demo) Anggota dihapus.","info");
+    renderPage("anggota");
+  }
+}
+async function toggleStatusAnggota(id){
+  const rows = anggotaRows();
+  const a = rows.find(r => r.id === id);
+  if (!a) return;
+  const baru = (a.status === "Aktif" || a.status === "aktif") ? "Nonaktif" : "Aktif";
+  if (IS_LIVE && sb){
+    try {
+      const { error } = await sb.from("anggota").update({ status: baru }).eq("id", id);
+      if (error) throw error;
+      toast("Status anggota: "+baru,"success");
+      await loadAnggota();
+      renderPage("anggota");
+    } catch(err){ toast("Gagal ubah status: "+(err.message||err),"error"); }
+  } else {
+    a.status = baru; toast("(Demo) Status: "+baru,"info"); renderPage("anggota");
+  }
+}
+
+/* --- CRUD Pengurus (admin/pengurus) --- */
+function pengurusRows(){ return (IS_LIVE && livePengurus.length) ? livePengurus : [...DEMO.pengurus.map(p=>({...p,unit:"Pengurus"})), ...DEMO.pengawas.map(p=>({...p,unit:"Pengawas"}))]; }
+function addPengurus(){ editFotoData = null; openPengurusModal(null); }
+function editPengurus(idx){ editFotoData = null; openPengurusModal(idx); }
+function openPengurusModal(idx){
+  const rows = pengurusRows();
+  const p = (idx!=null) ? rows[idx] : null;
+  $("pengurusModalTitle").textContent = p ? "Edit Pengurus" : "Tambah Pengurus";
+  $("pengurusIdx").value = idx!=null ? idx : "";
+  $("pengurusNama").value = p?.nama || "";
+  $("pengurusJabatan").value = p?.jabatan || "";
+  $("pengurusUnit").value = p?.unit || "Pengurus";
+  $("pengurusUrutan").value = p?.urutan || (rows.length+1);
+  $("pengurusPeriode").value = p?.periode || DEMO.profile.periode_pengurus;
+  const img = $("pengurusFotoImg");
+  if (p?.foto){ img.src = p.foto; img.style.display = "block"; } else { img.style.display = "none"; img.src = ""; }
+  $("pengurusFoto").value = "";
+  $("pengurusModal").classList.add("show");
+}
+function closePengurusModal(){ $("pengurusModal").classList.remove("show"); editFotoData = null; }
+async function savePengurus(){
+  const nama = $("pengurusNama").value.trim();
+  const jabatan = $("pengurusJabatan").value.trim();
+  if (!nama || !jabatan){ toast("Nama dan Jabatan wajib diisi.","error"); return; }
+  const idx = $("pengurusIdx").value;
+  const data = {
+    nama, jabatan,
+    unit: $("pengurusUnit").value,
+    urutan: Number($("pengurusUrutan").value)||0,
+    periode: $("pengurusPeriode").value
+  };
+  if (editFotoData) data.foto = editFotoData;
+  if (IS_LIVE && sb){
+    try {
+      if (idx === ""){
+        const { error } = await sb.from("pengurus").insert(data);
+        if (error) throw error;
+        toast("Pengurus ditambahkan.","success");
+      } else {
+        const rows = pengurusRows();
+        const p = rows[idx];
+        if (p && p.id){
+          const { error } = await sb.from("pengurus").update(data).eq("id", p.id);
+          if (error) throw error;
+          toast("Pengurus diperbarui.","success");
+        }
+      }
+      await loadPengurus();
+      closePengurusModal();
+      renderPage("struktur");
+    } catch(err){ toast("Gagal simpan: "+(err.message||err),"error"); }
+  } else {
+    toast("(Demo) Pengurus disimpan di browser.","info");
+    closePengurusModal();
+    renderPage("struktur");
+  }
+}
+async function deletePengurus(idx){
+  if (!confirm("Hapus pengurus ini?")) return;
+  if (IS_LIVE && sb){
+    const rows = pengurusRows();
+    const p = rows[idx];
+    if (!p || !p.id){ toast("Tidak bisa menghapus data demo.","error"); return; }
+    try {
+      const { error } = await sb.from("pengurus").delete().eq("id", p.id);
+      if (error) throw error;
+      toast("Pengurus dihapus.","success");
+      await loadPengurus();
+      renderPage("struktur");
+    } catch(err){ toast("Gagal hapus: "+(err.message||err),"error"); }
+  } else {
+    toast("(Demo) tidak bisa menghapus data demo.","info");
+  }
+}
+
 async function syncFromSupabase(){
   if (!IS_LIVE || !sb) return;
   const fetchTable = async (name) => {
@@ -1626,10 +2143,10 @@ async function syncFromSupabase(){
       return data;
     } catch(e){ return null; }
   };
-  const [anggota, kegiatan, shuItems, neracaItems, pinjaman, settings, bukuBesar] = await Promise.all([
+  const [anggota, kegiatan, shuItems, neracaItems, pinjaman, settings, bukuBesar, pengurus] = await Promise.all([
     fetchTable("anggota"), fetchTable("kegiatan"), fetchTable("shu_items"),
     fetchTable("neraca_items"), fetchTable("pinjaman"), fetchTable("settings"),
-    fetchTable("buku_besar")
+    fetchTable("buku_besar"), fetchTable("pengurus")
   ]);
   let changed = false;
   // ANGGOTA
@@ -1703,6 +2220,25 @@ async function syncFromSupabase(){
       no_bukti:b.no_bukti||"", uraian:b.uraian||"",
       kp:b.kp||"", sub:b.sub||"", akun:b.akun||"",
       debet:Number(b.debet)||0, kredit:Number(b.kredit)||0
+    }));
+    changed = true;
+  }
+  // ANGGOTA → liveAnggota
+  if (anggota && anggota.length){
+    liveAnggota = anggota.map(a => ({
+      id:a.id, nama:a.nama, unit:a.unit||"", jabatan:a.jabatan||"",
+      alamat:a.alamat||"", no_hp:a.no_hp||"", foto:a.foto||"",
+      simpanan_pokok:Number(a.simpanan_pokok)||0,
+      simpanan_wajib:Number(a.simpanan_wajib)||0,
+      status:a.status||"Aktif"
+    }));
+    changed = true;
+  }
+  // PENGURUS → livePengurus
+  if (pengurus && pengurus.length){
+    livePengurus = pengurus.map(p => ({
+      id:p.id, nama:p.nama, jabatan:p.jabatan, unit:p.unit||"Pengurus",
+      foto:p.foto||"", urutan:p.urutan||0, periode:p.periode||""
     }));
     changed = true;
   }
