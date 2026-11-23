@@ -695,6 +695,11 @@ html[data-dark] .activity-item{border-bottom-color:#26365a}
         <input type="email" id="editUserEmail" disabled style="background:var(--light);color:var(--muted)">
       </div>
       <div class="form-group">
+        <label>Kode Sistem / Anggota</label>
+        <input type="text" id="editUserKode" placeholder="cth: A-006" style="text-transform:uppercase;font-weight:700;letter-spacing:.5px">
+        <small style="display:block;color:var(--muted);font-size:11px;margin-top:4px;line-height:1.4">Jika kode diubah, kode anggota <strong>mengikuti wajib</strong> (sinkron otomatis).</small>
+      </div>
+      <div class="form-group">
         <label>Peran</label>
         <select id="editUserRole">
           <option value="anggota">Anggota</option>
@@ -2918,7 +2923,7 @@ function pageAdmin(){
   const useLive = IS_LIVE && sb && liveUsers.length > 0;
   const userList = useLive
     ? liveUsers.map(u => ({ id:u.id, email:u.email, role:u.role, nama:u.nama, status:u.status||'aktif', anggota_id:u.anggota_id||'' }))
-    : Object.entries(DEMO_USERS).map(([email,u]) => ({ id:u.id||email, email, role:u.role, nama:u.nama }));
+    : Object.entries(DEMO_USERS).map(([email,u]) => ({ id:u.id||email, email, role:u.role, nama:u.nama, anggota_id:(u.id && /^A-/.test(u.id) ? u.id : "") }));
   // Prefetch profile dari Supabase jika admin buka tapi data belum ada
   if (IS_LIVE && sb && currentUser.role === "admin" && liveUsers.length === 0){
     loadUsers().then(() => renderPage("admin")).catch(()=>{});
@@ -3397,7 +3402,7 @@ async function cleanupOldChat(){
 function pageChatAnggota(){
   if (!canManageChat()) return pageGate("Chat Anggota","Halaman ini khusus untuk <b>Admin &amp; Bendahara</b>.");
   return `<section class="page active">
-    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.24</span></h2>
+    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.28</span></h2>
     <p class="section-sub"><b>Pilih anggota dari dropdown</b> di kiri atas &mdash; atau klik percakapan terbaru di bawahnya &mdash; lalu percakapan terbuka di panel <b>kanan</b>. Ketik balasan di <b>kotak balas</b> (kanan bawah). Bisa memulai chat baru ke anggota mana pun. Balasan terkirim real-time ke widget anggota. Riwayat maks 1 tahun.</p>
     <div class="ca-wrap" id="caWrap">
       <div class="ca-list-col">
@@ -3646,6 +3651,7 @@ function editUser(id){
   $("editUserNama").value = u.nama || "";
   $("editUserEmail").value = u.email || "";
   $("editUserRole").value = u.role || "anggota";
+  $("editUserKode").value = u.anggota_id || (u.id && /^A-/.test(u.id) ? u.id : "") || "";
   $("editUserModal").classList.add("show");
 }
 
@@ -3658,23 +3664,69 @@ async function saveUser(){
   if (!editingUserId){ toast("Tidak ada pengguna dipilih","error"); return; }
   const nama = $("editUserNama").value.trim();
   const role = $("editUserRole").value;
+  const kodeBaru = $("editUserKode").value.trim().toUpperCase();
   if (!nama){ toast("Nama tidak boleh kosong","error"); return; }
-  const isLiveRow = liveUsers.some(x => x.id === editingUserId);
-  if (IS_LIVE && sb && isLiveRow){
-    try {
-      const { error } = await sb.from("profiles")
-        .update({ nama, role })
-        .eq("id", editingUserId);
-      if (error) throw error;
-      toast("Pengguna berhasil diperbarui","success");
-      await loadUsers();
-      renderPage("admin");
-    } catch(err){
-      toast("Gagal memperbarui: " + (err.message||err),"error");
-      return;
+  // cari user (live atau demo) + kode sistem saat ini
+  let u = liveUsers.find(x => x.id === editingUserId);
+  let isDemo = false;
+  if (!u){
+    for (const [email,d] of Object.entries(DEMO_USERS)){
+      if ((d.id||email) === editingUserId){ u = { id:d.id||email, email, nama:d.nama, role:d.role, anggota_id:d.id||"" }; isDemo = true; break; }
     }
+  }
+  const kodeLama = (u && u.anggota_id) ? String(u.anggota_id) : "";
+  // validasi: tidak boleh mengosongkan kode jika anggota sudah terhubung
+  if (kodeLama && /^A-/.test(kodeLama) && !kodeBaru){ toast("Kode sistem tidak boleh dikosongkan — anggota sudah terhubung.","error"); return; }
+  const kodeBerubah = !!kodeBaru && (kodeBaru !== kodeLama);
+
+  // ===== LIVE: profile + anggota (anggota mengikuti wajib) =====
+  if (IS_LIVE && sb && liveUsers.some(x => x.id === editingUserId)){
+    try {
+      if (kodeBerubah){
+        if (kodeLama){
+          // repoint anggota.id lama -> baru (FK-cascade auto; tanpa FK diperbaiki di langkah berikut)
+          const { error: ea } = await sb.from("anggota").update({ id: kodeBaru }).eq("id", kodeLama);
+          if (ea) throw new Error("Sinkron anggota gagal: "+(ea.message||ea));
+        } else {
+          // user belum punya anggota -> user sistem otomatis = anggota
+          const { error: ei } = await sb.from("anggota").upsert({
+            id: kodeBaru, nama, unit: u.pekerjaan||"PLN UP3 Banyuwangi", jabatan:"Anggota",
+            alamat:u.alamat||"", no_hp:u.no_hp||"", foto:u.foto||"", status:"Aktif",
+            tanggal_gabung:new Date().toISOString().slice(0,10)
+          }, { onConflict:"id" });
+          if (ei) throw new Error("Buat anggota gagal: "+(ei.message||ei));
+        }
+        // cascade tabel referensi (fallback bila tanpa FK ON UPDATE CASCADE)
+        for (const t of ["pengajuan_pinjaman","pinjaman","pelunasan_pinjaman"]){
+          try { await sb.from(t).update({ anggota_id: kodeBaru }).eq("anggota_id", kodeLama); } catch(e){}
+        }
+      }
+      // update profile: nama, role, anggota_id = kode sistem
+      const { error: ep } = await sb.from("profiles")
+        .update({ nama, role, anggota_id: kodeBaru||null })
+        .eq("id", editingUserId);
+      if (ep) throw ep;
+      toast(kodeBerubah ? ("Kode sistem diubah \u2014 anggota mengikuti: "+(kodeLama||"(baru)")+" \u2192 "+kodeBaru) : "Pengguna diperbarui.","success");
+      await loadUsers(); await loadAnggota(); renderPage("admin");
+    } catch(err){ toast("Gagal: "+(err.message||err),"error"); return; }
   } else {
-    toast("(Mode demo) Perubahan tidak disimpan ke server","info");
+    // ===== DEMO: sinkron in-memory (terverifikasi) =====
+    if (kodeBerubah && kodeLama && /^A-/.test(kodeLama)){
+      const a = DEMO.anggota.find(r => r.id === kodeLama);
+      if (a) a.id = kodeBaru;
+      ["pengajuan","pinjaman","pelunasan"].forEach(k => {
+        if (Array.isArray(DEMO[k])) DEMO[k].forEach(r => { if (String(r.anggota_id) === kodeLama) r.anggota_id = kodeBaru; });
+      });
+      Object.values(DEMO_USERS).forEach(d => { if (d.id === kodeLama) d.id = kodeBaru; });
+      if (currentUser && (currentUser.id === kodeLama || currentUser.anggota_id === kodeLama)){
+        if (currentUser.id === kodeLama) currentUser.id = kodeBaru;
+        currentUser.anggota_id = kodeBaru;
+      }
+      toast("(Demo) Kode sistem diubah \u2014 anggota mengikuti: "+kodeLama+" \u2192 "+kodeBaru,"success");
+    } else if (isDemo){
+      toast("(Mode demo) Perubahan nama/peran tidak disimpan ke server.","info");
+    }
+    renderPage("admin");
   }
   closeEditUser();
 }
