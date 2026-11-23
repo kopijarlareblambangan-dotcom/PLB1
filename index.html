@@ -18,6 +18,7 @@
   --sh-md:0 4px 12px rgba(15,23,42,.08),0 2px 6px rgba(15,23,42,.05);
   --sh-lg:0 12px 32px rgba(15,23,42,.14),0 4px 12px rgba(15,23,42,.08);
   --ring:0 0 0 3px rgba(37,99,235,.18);
+  --container-w:1440px;
   --font-body:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans',sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
@@ -26,7 +27,7 @@ body{font-family:var(--font-body);background:var(--bg);color:var(--text);line-he
 a{color:var(--primary-light);text-decoration:none;transition:color .15s}
 a:hover{text-decoration:underline}
 img{max-width:100%;height:auto}
-.container{max-width:1200px;margin:0 auto;padding:0 16px}
+.container{max-width:var(--container-w);margin:0 auto;padding:0 20px}
 .row{display:flex;flex-wrap:wrap;gap:16px}
 .col{flex:1;min-width:0}
 
@@ -3184,7 +3185,7 @@ async function cleanupOldChat(){
 function pageChatAnggota(){
   if (!canManageChat()) return pageGate("Chat Anggota","Halaman ini khusus untuk <b>Admin &amp; Bendahara</b>.");
   return `<section class="page active">
-    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.25</span></h2>
+    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.26</span></h2>
     <p class="section-sub"><b>Pilih anggota dari dropdown</b> di kiri atas &mdash; atau klik percakapan terbaru di bawahnya &mdash; lalu percakapan terbuka di panel <b>kanan</b>. Ketik balasan di <b>kotak balas</b> (kanan bawah). Bisa memulai chat baru ke anggota mana pun. Balasan terkirim real-time ke widget anggota. Riwayat maks 1 tahun.</p>
     <div class="ca-wrap" id="caWrap">
       <div class="ca-list-col">
