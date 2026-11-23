@@ -631,6 +631,7 @@ footer a:hover{color:var(--accent)}
 ============================================================ */
 const SUPABASE_URL = "https://rttklfuahfnxyxbgysgm.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_I7_ASkQ-5D2pV1-SFg6jvQ_KjpE3CVW";
+const PROD_URL = "https://kopilaba-new.vercel.app"; /* URL produksi Vercel. Diisi -> email reset sandi SELALU mengarah ke produksi (walau dipicu dari localhost). WAJIB juga daftar URL ini di Supabase Auth -> Redirect URLs. */
 const IS_LIVE = (SUPABASE_URL.startsWith("http") && !SUPABASE_URL.includes("GANTI"));
 let sb = null;
 if (IS_LIVE) {
@@ -642,9 +643,12 @@ if (IS_LIVE) {
   });
 }
 function resetRedirectUrl(){
-  /* URL bersih (origin + pathname) tanpa hash (#beranda) & query (?...). Supabase menambahkan
-     ?type=recovery&access_token=... sendiri; jika redirect membawa hash/query, tidak match
-     dgn allowlist -> fallback ke Site URL (localhost). */
+  /* URL redirect untuk email reset sandi.
+     - Isi PROD_URL (mis. "https://app-anda.vercel.app") agar reset SELALU ke produksi,
+       walau dipicu dari localhost/dev. WAJIB daftar URL tsb di Supabase Auth -> Redirect URLs.
+     - Jika PROD_URL kosong, pakai origin+pathname (bersih, tanpa hash/query).
+     Supabase menambahkan #access_token=...&type=recovery sendiri. */
+  if (typeof PROD_URL !== "undefined" && PROD_URL) return PROD_URL;
   return window.location.origin + window.location.pathname;
 }
 
