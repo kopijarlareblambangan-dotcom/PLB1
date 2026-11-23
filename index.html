@@ -88,7 +88,7 @@ nav.main a.active{background:var(--accent);color:var(--primary-dark)}
 .chat-msg.bot .ts{text-align:left}
 .nav-badge{display:inline-block;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#dc2626;color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;margin-left:4px;vertical-align:middle}
 .ca-wrap{display:grid;grid-template-columns:340px 1fr;gap:16px}
-@media(max-width:768px){.ca-wrap{grid-template-columns:1fr}}
+@media(max-width:768px){.ca-wrap{grid-template-columns:1fr}.ca-conv .ca-back{display:flex}.ca-wrap.mobile-conv .ca-list-col{display:none}.ca-wrap:not(.mobile-conv) .ca-conv{display:none}}
 .ca-list-col{border:1px solid var(--border);border-radius:10px;background:#fff;display:flex;flex-direction:column;height:72vh;overflow:hidden}
 @media(max-width:768px){.ca-list-col,.ca-conv{height:60vh}}
 .ca-list{flex:1;overflow-y:auto}
@@ -103,6 +103,9 @@ nav.main a.active{background:var(--accent);color:var(--primary-dark)}
 .ca-reply-row input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(30,58,138,.12)}
 .ca-reply-row input:disabled{background:var(--light);color:var(--muted)}
 .ca-reply-row button{border-radius:20px;white-space:nowrap}
+.ca-reply-foot{padding:10px 12px;border-top:1px solid var(--border);background:#fff;flex-shrink:0}
+.ca-back{display:none;width:30px;height:30px;border:none;background:var(--light);border-radius:50%;cursor:pointer;font-size:16px;color:var(--primary);flex-shrink:0;align-items:center;justify-content:center}
+.ca-back:hover{background:var(--border)}
 .ca-item{padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;flex-direction:column;gap:2px}
 .ca-item:hover{background:var(--light)}
 .ca-item.active{background:var(--primary);color:#fff}
@@ -110,7 +113,7 @@ nav.main a.active{background:var(--accent);color:var(--primary-dark)}
 .ca-item .nm{font-weight:600;font-size:13px}
 .ca-item .lm{font-size:12px;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ca-conv{border:1px solid var(--border);border-radius:10px;display:flex;flex-direction:column;height:72vh;background:#fff}
-.ca-head{padding:12px 14px;border-bottom:1px solid var(--border);font-weight:600}
+.ca-head{padding:10px 14px;border-bottom:1px solid var(--border);font-weight:600;display:flex;align-items:center;gap:8px}
 .ca-body{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px;background:var(--light)}
 .ca-bubble{max-width:80%;padding:8px 12px;border-radius:12px;font-size:13px;line-height:1.45;word-wrap:break-word}
 .ca-bubble.member{background:#fff;border:1px solid var(--border);align-self:flex-start;border-bottom-left-radius:4px}
@@ -623,7 +626,7 @@ footer a:hover{color:var(--accent)}
 <!-- V3.13: foto hover popover -->
 <div id="fotoHover" class="foto-hover"><img id="fotoHoverImg" alt=""><div class="fh-nama"></div><div class="fh-jabatan"></div></div>
 <!-- V3.13: floating live chat widget + bot ahli koperasi -->
-<button class="chat-fab pulse" id="chatFab" onclick="toggleChat()" title="Chat dengan Admin" aria-label="Chat langsung">
+<button class="chat-fab pulse" id="chatFab" onclick="toggleChat()" title="Chat dengan Admin" aria-label="Chat langsung" style="display:none">
   &#128172;<span class="fab-dot"></span><span class="chat-badge" id="chatBadge">1</span>
 </button>
 <div class="chat-panel" id="chatPanel" role="dialog" aria-label="Live Chat Koperasi">
@@ -1105,6 +1108,7 @@ function updateUserUI(){
     a.style.display = ok ? "" : "none";
   });
   if (currentUser) setupChatSubs(); else teardownChatSubs();
+  updateChatFabVisibility();
 }
 
 /* ---------- Page Renderer ---------- */
@@ -2982,6 +2986,20 @@ function chatHandle(text){
     }
   },delay);
 }
+function updateChatFabVisibility(){
+  const f=$("chatFab"); if(!f) return;
+  const show = !!(currentUser && currentUser.role !== "admin" && currentUser.role !== "bendahara");
+  f.style.display = show ? "" : "none";
+  if (!show){ const p=$("chatPanel"); if(p) p.classList.remove("open"); }
+}
+function backToCaList(){
+  activeChatThread=null;
+  const wrap=$("caWrap"); if(wrap) wrap.classList.remove("mobile-conv");
+  renderCaThreadList(); renderCaMemberSelect();
+  const h=$("caHeadTxt"); if(h){ h.style.color="var(--muted)"; h.innerHTML="&#8592; Pilih percakapan di kiri untuk melihat pesan"; }
+  const b=$("caBody"); if(b) b.innerHTML='<div style="color:var(--muted);font-size:13px;align-self:center;margin:auto">Belum ada percakapan dipilih.</div>';
+  setReplyEnabled(false, "Pilih percakapan dulu untuk membalas...", "&#8592; Pilih percakapan dulu");
+}
 function setupChatInit(){
   const bl=$("brandLogo"), av=$("chatAvatar");
   if(bl&&av) av.src=bl.src;
@@ -2993,6 +3011,7 @@ function setupChatInit(){
     if(w){ if(st)st.className="ch-status online"; if(stt)stt.innerHTML="Online &middot; Senin&ndash;Jumat 08.00&ndash;16.00 WIB"; if(f){f.classList.add("pulse");f.classList.remove("offline");} }
     else { if(st)st.className="ch-status offline"; if(stt)stt.innerHTML="Di luar jam kerja &middot; WA "+CHAT_WA_LABEL; if(f){f.classList.remove("pulse");f.classList.add("offline");} }
   },60000);
+  updateChatFabVisibility();
 }
 setupChatInit();
 
@@ -3141,9 +3160,9 @@ async function cleanupOldChat(){
 function pageChatAnggota(){
   if (!canManageChat()) return pageGate("Chat Anggota","Halaman ini khusus untuk <b>Admin &amp; Bendahara</b>.");
   return `<section class="page active">
-    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.23</span></h2>
-    <p class="section-sub"><b>Pilih anggota dari dropdown</b> di kiri atas &mdash; atau klik percakapan terbaru di bawahnya &mdash; lalu ketik balasan di <b>gelembung balas</b> (kiri bawah, selalu tampil). Bisa memulai chat baru ke anggota mana pun. Balasan terkirim real-time ke widget anggota. Riwayat maks 1 tahun.</p>
-    <div class="ca-wrap">
+    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.24</span></h2>
+    <p class="section-sub"><b>Pilih anggota dari dropdown</b> di kiri atas &mdash; atau klik percakapan terbaru di bawahnya &mdash; lalu percakapan terbuka di panel <b>kanan</b>. Ketik balasan di <b>kotak balas</b> (kanan bawah). Bisa memulai chat baru ke anggota mana pun. Balasan terkirim real-time ke widget anggota. Riwayat maks 1 tahun.</p>
+    <div class="ca-wrap" id="caWrap">
       <div class="ca-list-col">
         <div class="ca-member-bar">
           <label>&#128100; Pilih anggota untuk mulai chat</label>
@@ -3152,17 +3171,17 @@ function pageChatAnggota(){
           </select>
         </div>
         <div class="ca-list" id="caThreadList"><div style="padding:14px;color:var(--muted);font-size:13px">Memuat...</div></div>
-        <div class="ca-reply-bubble" id="caFoot">
+      </div>
+      <div class="ca-conv" id="caConv">
+        <div class="ca-head" id="caHead"><button class="ca-back" onclick="backToCaList()" title="Kembali ke daftar">&#8592;</button><span id="caHeadTxt" style="color:var(--muted)">&#8592; Pilih percakapan di kiri untuk melihat pesan</span></div>
+        <div class="ca-body" id="caBody"><div style="color:var(--muted);font-size:13px;align-self:center;margin:auto">Belum ada percakapan dipilih.</div></div>
+        <div class="ca-reply-foot" id="caFoot">
           <div class="ca-reply-head" id="caReplyHead">&#8592; Pilih percakapan dulu</div>
           <div class="ca-reply-row">
             <input id="caReplyInput" placeholder="Pilih percakapan dulu untuk membalas..." disabled onkeydown="if(event.key==='Enter')sendAdminReply()">
             <button class="btn btn-primary btn-sm" id="caReplyBtn" onclick="sendAdminReply()" disabled>&#128172; Balas</button>
           </div>
         </div>
-      </div>
-      <div class="ca-conv" id="caConv">
-        <div class="ca-head" id="caHead" style="color:var(--muted)">&#8592; Pilih percakapan di kiri untuk melihat pesan</div>
-        <div class="ca-body" id="caBody"><div style="color:var(--muted);font-size:13px;align-self:center;margin:auto">Belum ada percakapan dipilih.</div></div>
       </div>
     </div>
     <div style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
@@ -3202,10 +3221,11 @@ function escapeAttrJS(s){ return String(s||"").replace(/\\/g,"\\\\").replace(/'/
 
 async function openChatThread(email){
   activeChatThread=email;
+  const wrap=$("caWrap"); if(wrap) wrap.classList.add("mobile-conv");
   if (adminUnread[email]){ delete adminUnread[email]; updateNavChatBadge(); }
   renderCaMemberSelect();
   renderCaThreadList();
-  const h=$("caHead"), b=$("caBody");
+  const h=$("caHeadTxt"), b=$("caBody");
   if(h){ h.style.color="var(--muted)"; h.textContent="Memuat percakapan..."; }
   if(b) b.innerHTML="";
   setReplyEnabled(false, "Pilih percakapan dulu untuk membalas...", "&#8592; Pilih percakapan dulu");
