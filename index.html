@@ -1232,14 +1232,17 @@ function pageStruktur(){
   const pengurus = all.filter(p => (p.unit||"Pengurus")==="Pengurus");
   const pengawas = all.filter(p => p.unit==="Pengawas");
   const canManage = currentUser && ["admin","pengurus"].includes(currentUser.role);
-  const fotoHtml = (p) => pengurusFoto(p)
-    ? `<img src="${pengurusFoto(p)}" class="pengurus-foto" data-nama="${p.nama}" data-jabatan="${p.jabatan}" onmouseenter="showFotoHover(this)" onmouseleave="hideFotoHover()" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:3px solid var(--primary)" onclick="openLightbox(this.src)" title="Klik untuk perbesar">`
-    : `<div style="width:72px;height:72px;border-radius:50%;background:var(--light);display:flex;align-items:center;justify-content:center;font-size:32px;color:var(--muted)">👤</div>`;
+  const fotoHtml = (p) => {
+    if (!currentUser) return `<div class="foto-locked" style="width:72px;height:72px;border-radius:50%;background:var(--light);display:flex;align-items:center;justify-content:center;font-size:26px;color:var(--muted);border:3px solid var(--border);position:relative" title="Login untuk melihat foto pengurus">🔒<span style="position:absolute;bottom:-3px;right:-3px;background:var(--primary);color:#fff;font-size:9px;font-weight:600;padding:1px 5px;border-radius:8px;border:2px solid #fff;line-height:1">Login</span></div>`;
+    return pengurusFoto(p)
+      ? `<img src="${pengurusFoto(p)}" class="pengurus-foto" data-nama="${p.nama}" data-jabatan="${p.jabatan}" onmouseenter="showFotoHover(this)" onmouseleave="hideFotoHover()" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:3px solid var(--primary)" onclick="openLightbox(this.src)" title="Klik untuk perbesar">`
+      : `<div style="width:72px;height:72px;border-radius:50%;background:var(--light);display:flex;align-items:center;justify-content:center;font-size:32px;color:var(--muted)">👤</div>`;
+  };
   return `
   <section class="page active">
     <div class="container">
       <h2 class="section-title">Struktur Pengurus &amp; Pengawas</h2>
-      <p class="section-sub">Periode ${DEMO.profile.periode_pengurus} — hasil Rapat Anggota Tahunan</p>
+      <p class="section-sub">Periode ${DEMO.profile.periode_pengurus} — hasil Rapat Anggota Tahunan${!currentUser ? " · 🔒 Foto pengurus hanya untuk anggota yang sudah login" : ""}</p>
       <div class="card-grid">
         ${pengurus.map(p => `
           <div class="card" style="text-align:center">
@@ -2966,13 +2969,18 @@ function renderCharts(){
   if ($("chartUsaha")){
     const ut = usahaTahunSel || (usahaTahunList()[0] || 2026);
     const ud = getDistribusiUsaha(ut);
+    const palette=["#1e3a8a","#2563eb","#0891b2","#16a34a","#facc15","#f59e0b","#dc2626","#7c3aed","#0ea5e9","#84cc16"];
+    const vals = ud.items.map(p=>p.nilai);
+    const tot = vals.reduce((s,v)=>s+(Number(v)||0),0);
+    const pctStr = (v)=> tot ? ((Number(v)||0)/tot*100).toFixed(1) : "0.0";
+    const labels = ud.items.map((p,i)=>p.uraian.replace("Pendapatan ","").replace("Pendapatan Keuntungan ","Keunt. ")+" ("+pctStr(vals[i])+"%)");
     chartInstances.usaha = new Chart($("chartUsaha"), {
       type:"doughnut",
-      data:{ labels: ud.items.map(p=>p.uraian.replace("Pendapatan ","").replace("Pendapatan Keuntungan ","Keunt. ")), datasets:[{ data: ud.items.map(p=>p.nilai), backgroundColor:["#1e3a8a","#2563eb","#0891b2","#16a34a","#facc15","#f59e0b","#dc2626","#7c3aed","#0ea5e9","#84cc16"] }] },
+      data:{ labels, datasets:[{ data:vals, backgroundColor:palette }] },
       options:{ responsive:true, plugins:{ legend:{position:"right", labels:{boxWidth:12, font:{size:11}}}, tooltip:{callbacks:{label:c=>c.label+": "+fmtIDR(c.raw)}} } }
     });
     const si=$("usahaSrcInfo"); if(si) si.textContent="Sumber: "+ud.src;
-    const ti=$("usahaTotalInfo"); if(ti) ti.innerHTML = ud.items.length ? "Total Pendapatan: <strong>"+fmtIDR(ud.total)+"</strong> &middot; "+ud.items.length+" kategori" : '<span style="color:var(--muted">'+ud.src+'</span>';
+    const ti=$("usahaTotalInfo"); if(ti) ti.innerHTML = ud.items.length ? "Total Pendapatan: <strong>"+fmtIDR(ud.total)+"</strong> &middot; "+ud.items.length+" kategori &middot; 100%" : '<span style="color:var(--muted">'+ud.src+'</span>';
   }
 
   // Laporan: SHU bar
