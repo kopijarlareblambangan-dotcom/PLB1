@@ -92,6 +92,10 @@ nav.main a.active{background:var(--accent);color:var(--primary-dark)}
 .ca-list-col{border:1px solid var(--border);border-radius:10px;background:#fff;display:flex;flex-direction:column;height:72vh;overflow:hidden}
 @media(max-width:768px){.ca-list-col,.ca-conv{height:60vh}}
 .ca-list{flex:1;overflow-y:auto}
+.ca-member-bar{padding:10px 12px;border-bottom:1px solid var(--border);background:#fff;flex-shrink:0}
+.ca-member-bar label{display:block;font-size:11px;font-weight:700;color:var(--primary-dark);margin-bottom:4px}
+.ca-member-bar select{width:100%;border-radius:8px;border:1px solid var(--border);padding:8px 10px;font-size:13px;background:#fff;cursor:pointer;outline:none}
+.ca-member-bar select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(30,58,138,.12)}
 .ca-reply-bubble{padding:10px 12px;border-top:2px solid var(--primary);background:linear-gradient(135deg,#eff6ff,#f8fafc);box-shadow:0 -2px 8px rgba(0,0,0,.04)}
 .ca-reply-head{font-size:11px;color:var(--primary-dark);font-weight:700;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ca-reply-row{display:flex;gap:6px;align-items:center}
@@ -1132,7 +1136,7 @@ function renderPage(page){
   if (page === "beranda") renderCharts();
   if (page === "usaha") renderCharts();
   if (page === "blanko") blankoHitung();
-  if (page === "chatanggota") loadChatThreads();
+  if (page === "chatanggota") initChatAnggota();
 }
 
 /* ---------- Page: Beranda ---------- */
@@ -3000,6 +3004,36 @@ let adminUnread={}, chatThreadsCache=[], activeChatThread=null, shownMemberMsgId
 
 function canManageChat(){ return currentUser && ["admin","bendahara"].includes(currentUser.role); }
 
+function chatMembersList(){
+  let arr;
+  if (IS_LIVE && liveUsers.length){
+    arr = liveUsers.filter(u => u.email && u.role !== "admin" && u.role !== "bendahara" && (!currentUser || u.email !== currentUser.email));
+  } else {
+    arr = Object.entries(DEMO_USERS).map(([email,u]) => ({ email, nama:u.nama, role:u.role }))
+      .filter(u => u.role !== "admin" && u.role !== "bendahara" && (!currentUser || u.email !== currentUser.email));
+  }
+  return arr.sort((a,b)=>(a.nama||"").localeCompare(b.nama||""));
+}
+
+function renderCaMemberSelect(){
+  const sel=$("caMemberSelect"); if(!sel) return;
+  let members=chatMembersList();
+  const cur=activeChatThread||"";
+  // pastikan anggota yang sedang dibuka tetap muncul walau bukan role anggota (mis. pengurus yang pernah chat)
+  if (cur){
+    const t=chatThreadsCache.find(x=>x.email===cur);
+    if (t && !members.some(m=>m.email===cur)) members=members.concat([{email:cur, nama:t.nama||cur}]);
+  }
+  const opts=members.map(m=>'<option value="'+m.email+'"'+(m.email===cur?' selected':'')+'>'+escapeHtml(m.nama||m.email)+(m.email?' ('+escapeHtml(m.email)+')':'')+'</option>').join("");
+  sel.innerHTML='<option value="">&mdash; Pilih anggota &mdash;</option>'+opts;
+}
+
+async function initChatAnggota(){
+  if (IS_LIVE && sb && !liveUsers.length){ try{ await loadUsers(); }catch(e){} }
+  renderCaMemberSelect();
+  loadChatThreads();
+}
+
 function setupChatSubs(){
   if (!IS_LIVE || !sb) return;
   teardownChatSubs();
@@ -3100,9 +3134,15 @@ function pageChatAnggota(){
   if (!canManageChat()) return pageGate("Chat Anggota","Halaman ini khusus untuk <b>Admin &amp; Bendahara</b>.");
   return `<section class="page">
     <h2>&#128172; Chat Anggota</h2>
-    <p class="section-sub">Pertanyaan dari anggota via chat widget. <b>Klik percakapan</b> di kiri, lalu ketik balasan di <b>gelembung balas</b> (kiri bawah &mdash; selalu tampil). Balasan terkirim ke widget anggota real-time. Riwayat maks 1 tahun.</p>
+    <p class="section-sub"><b>Pilih anggota dari dropdown</b> di kiri atas &mdash; atau klik percakapan terbaru di bawahnya &mdash; lalu ketik balasan di <b>gelembung balas</b> (kiri bawah, selalu tampil). Bisa memulai chat baru ke anggota mana pun. Balasan terkirim real-time ke widget anggota. Riwayat maks 1 tahun.</p>
     <div class="ca-wrap">
       <div class="ca-list-col">
+        <div class="ca-member-bar">
+          <label>&#128100; Pilih anggota untuk mulai chat</label>
+          <select id="caMemberSelect" onchange="if(this.value) openChatThread(this.value)">
+            <option value="">&mdash; Pilih anggota &mdash;</option>
+          </select>
+        </div>
         <div class="ca-list" id="caThreadList"><div style="padding:14px;color:var(--muted);font-size:13px">Memuat...</div></div>
         <div class="ca-reply-bubble" id="caFoot">
           <div class="ca-reply-head" id="caReplyHead">&#8592; Pilih percakapan dulu</div>
@@ -3155,6 +3195,7 @@ function escapeAttrJS(s){ return String(s||"").replace(/\\/g,"\\\\").replace(/'/
 async function openChatThread(email){
   activeChatThread=email;
   if (adminUnread[email]){ delete adminUnread[email]; updateNavChatBadge(); }
+  renderCaMemberSelect();
   renderCaThreadList();
   const h=$("caHead"), b=$("caBody");
   if(h){ h.style.color="var(--muted)"; h.textContent="Memuat percakapan..."; }
