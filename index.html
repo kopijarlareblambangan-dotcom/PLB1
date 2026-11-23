@@ -641,6 +641,12 @@ if (IS_LIVE) {
     }
   });
 }
+function resetRedirectUrl(){
+  /* URL bersih (origin + pathname) tanpa hash (#beranda) & query (?...). Supabase menambahkan
+     ?type=recovery&access_token=... sendiri; jika redirect membawa hash/query, tidak match
+     dgn allowlist -> fallback ke Site URL (localhost). */
+  return window.location.origin + window.location.pathname;
+}
 
 /* ============================================================
    DATA DEMO — diisi dari file laporan asli koperasi Anda
@@ -1990,7 +1996,7 @@ async function kirimEmailReset(){
   if (!IS_LIVE||!sb){ toast("Reset hanya di mode LIVE.","info"); return; }
   const err=$("lsError");
   try {
-    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.href });
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: resetRedirectUrl() });
     if (error) throw error;
     if (err){ err.style.color="var(--success)"; err.textContent="Tautan reset terkirim ke "+email+". Cek email (termasuk folder spam)."; }
     toast("Email reset terkirim.","success");
@@ -2024,7 +2030,7 @@ async function verifikasiOtpWa(){
     if (error) throw error;
     const email = (data && data.email) || "";
     if (email){
-      await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.href });
+      await sb.auth.resetPasswordForEmail(email, { redirectTo: resetRedirectUrl() });
       if (err){ err.style.color="var(--success)"; err.innerHTML="Verifikasi berhasil. Tautan reset kata sandi dikirim ke email Anda ("+email+"). Cek email."; }
       toast("Verifikasi OK — tautan reset dikirim ke email.","success");
       setTimeout(closeLupaSandi, 4000);
@@ -3190,7 +3196,7 @@ async function lupaPassword(){
   if (!IS_LIVE || !sb){ toast("Reset sandi hanya tersedia di mode LIVE (terhubung Supabase).","info"); return; }
   $("loginError").textContent = "";
   try {
-    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.href });
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: resetRedirectUrl() });
     if (error) throw error;
     $("loginError").style.color = "var(--success)";
     $("loginError").textContent = "Tautan reset kata sandi dikirim ke "+email+". Cek email Anda (termasuk folder spam).";
