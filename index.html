@@ -87,9 +87,18 @@ nav.main a.active{background:var(--accent);color:var(--primary-dark)}
 .chat-msg .ts{display:block;font-size:9px;opacity:.6;margin-top:3px;text-align:right}
 .chat-msg.bot .ts{text-align:left}
 .nav-badge{display:inline-block;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#dc2626;color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;margin-left:4px;vertical-align:middle}
-.ca-wrap{display:grid;grid-template-columns:300px 1fr;gap:16px}
+.ca-wrap{display:grid;grid-template-columns:340px 1fr;gap:16px}
 @media(max-width:768px){.ca-wrap{grid-template-columns:1fr}}
-.ca-list{border:1px solid var(--border);border-radius:10px;overflow:hidden;max-height:72vh;overflow-y:auto;background:#fff}
+.ca-list-col{border:1px solid var(--border);border-radius:10px;background:#fff;display:flex;flex-direction:column;height:72vh;overflow:hidden}
+@media(max-width:768px){.ca-list-col,.ca-conv{height:60vh}}
+.ca-list{flex:1;overflow-y:auto}
+.ca-reply-bubble{padding:10px 12px;border-top:2px solid var(--primary);background:linear-gradient(135deg,#eff6ff,#f8fafc);box-shadow:0 -2px 8px rgba(0,0,0,.04)}
+.ca-reply-head{font-size:11px;color:var(--primary-dark);font-weight:700;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ca-reply-row{display:flex;gap:6px;align-items:center}
+.ca-reply-row input{flex:1;border-radius:20px;border:1px solid var(--border);padding:8px 14px;font-size:13px;background:#fff;outline:none}
+.ca-reply-row input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(30,58,138,.12)}
+.ca-reply-row input:disabled{background:var(--light);color:var(--muted)}
+.ca-reply-row button{border-radius:20px;white-space:nowrap}
 .ca-item{padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;flex-direction:column;gap:2px}
 .ca-item:hover{background:var(--light)}
 .ca-item.active{background:var(--primary);color:#fff}
@@ -103,8 +112,6 @@ nav.main a.active{background:var(--accent);color:var(--primary-dark)}
 .ca-bubble.member{background:#fff;border:1px solid var(--border);align-self:flex-start;border-bottom-left-radius:4px}
 .ca-bubble.admin{background:var(--primary);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
 .ca-bubble .ts{display:block;font-size:9px;opacity:.7;margin-top:3px}
-.ca-foot{padding:10px 12px;border-top:1px solid var(--border);display:flex;gap:8px}
-.ca-foot input{flex:1}
 .chat-wa-btn{display:inline-block;background:#25d366;color:#fff!important;font-weight:600;padding:8px 14px;border-radius:20px;text-decoration:none;font-size:12px;margin-top:4px}
 .chat-wa-btn:hover{background:#1da851}
 .chat-typing{align-self:flex-start;background:#fff;border:1px solid var(--border);border-radius:12px;padding:10px 14px;display:flex;gap:4px}
@@ -3070,10 +3077,11 @@ async function storeMemberChat(text){
 
 function oneYearAgoISO(){ const d=new Date(); d.setFullYear(d.getFullYear()-1); return d.toISOString(); }
 
-function setReplyEnabled(on, ph){
-  const inp=$("caReplyInput"), btn=$("caReplyBtn");
+function setReplyEnabled(on, ph, head){
+  const inp=$("caReplyInput"), btn=$("caReplyBtn"), hh=$("caReplyHead");
   if(inp){ inp.disabled=!on; if(ph) inp.placeholder=ph; }
   if(btn) btn.disabled=!on;
+  if(hh && head) hh.innerHTML=head;
 }
 
 async function cleanupOldChat(){
@@ -3092,16 +3100,21 @@ function pageChatAnggota(){
   if (!canManageChat()) return pageGate("Chat Anggota","Halaman ini khusus untuk <b>Admin &amp; Bendahara</b>.");
   return `<section class="page">
     <h2>&#128172; Chat Anggota</h2>
-    <p class="section-sub">Pertanyaan dari anggota via chat widget. <b>Klik percakapan</b> di samping kiri, lalu ketik balasan di kotak bawah kanan &mdash; terkirim ke widget anggota real-time. Riwayat disimpan maksimal 1 tahun.</p>
+    <p class="section-sub">Pertanyaan dari anggota via chat widget. <b>Klik percakapan</b> di kiri, lalu ketik balasan di <b>gelembung balas</b> (kiri bawah &mdash; selalu tampil). Balasan terkirim ke widget anggota real-time. Riwayat maks 1 tahun.</p>
     <div class="ca-wrap">
-      <div class="ca-list" id="caThreadList"><div style="padding:14px;color:var(--muted);font-size:13px">Memuat...</div></div>
-      <div class="ca-conv" id="caConv">
-        <div class="ca-head" id="caHead" style="color:var(--muted)">&#8592; Pilih percakapan di kiri untuk melihat pesan &amp; membalas</div>
-        <div class="ca-body" id="caBody"><div style="color:var(--muted);font-size:13px;align-self:center;margin:auto">Belum ada percakapan dipilih.</div></div>
-        <div class="ca-foot" id="caFoot">
-          <input id="caReplyInput" placeholder="Pilih percakapan dulu untuk membalas..." disabled onkeydown="if(event.key==='Enter')sendAdminReply()">
-          <button class="btn btn-primary btn-sm" id="caReplyBtn" onclick="sendAdminReply()" disabled>&#128172; Kirim Balasan</button>
+      <div class="ca-list-col">
+        <div class="ca-list" id="caThreadList"><div style="padding:14px;color:var(--muted);font-size:13px">Memuat...</div></div>
+        <div class="ca-reply-bubble" id="caFoot">
+          <div class="ca-reply-head" id="caReplyHead">&#8592; Pilih percakapan dulu</div>
+          <div class="ca-reply-row">
+            <input id="caReplyInput" placeholder="Pilih percakapan dulu untuk membalas..." disabled onkeydown="if(event.key==='Enter')sendAdminReply()">
+            <button class="btn btn-primary btn-sm" id="caReplyBtn" onclick="sendAdminReply()" disabled>&#128172; Balas</button>
+          </div>
         </div>
+      </div>
+      <div class="ca-conv" id="caConv">
+        <div class="ca-head" id="caHead" style="color:var(--muted)">&#8592; Pilih percakapan di kiri untuk melihat pesan</div>
+        <div class="ca-body" id="caBody"><div style="color:var(--muted);font-size:13px;align-self:center;margin:auto">Belum ada percakapan dipilih.</div></div>
       </div>
     </div>
     <div style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
@@ -3146,7 +3159,7 @@ async function openChatThread(email){
   const h=$("caHead"), b=$("caBody");
   if(h){ h.style.color="var(--muted)"; h.textContent="Memuat percakapan..."; }
   if(b) b.innerHTML="";
-  setReplyEnabled(false, "Pilih percakapan dulu untuk membalas...");
+  setReplyEnabled(false, "Pilih percakapan dulu untuk membalas...", "&#8592; Pilih percakapan dulu");
   if (!IS_LIVE||!sb) return;
   try {
     const { data, error } = await sb.from("chat_messages").select("id,sender,body,created_at").eq("thread_id",email).gte("created_at",oneYearAgoISO()).order("created_at",{ascending:true}).limit(200);
@@ -3154,7 +3167,7 @@ async function openChatThread(email){
     const t=chatThreadsCache.find(x=>x.email===email);
     if(h){ h.style.color=""; h.innerHTML='<b>'+escapeHtml(t?t.nama:email)+'</b><br><span style="font-size:12px;color:var(--muted)">'+escapeHtml(email)+'</span>'; }
     if(b){ b.innerHTML=(data||[]).map(m=>caBubble(m)).join("")||'<div style="color:var(--muted);font-size:13px;align-self:center;margin:auto">Belum ada pesan (dalam 1 tahun terakhir).</div>'; b.scrollTop=b.scrollHeight; }
-    setReplyEnabled(true, "Ketik balasan untuk anggota...");
+    setReplyEnabled(true, "Ketik balasan untuk anggota...", "&#128172; Membalas: "+escapeHtml(t?t.nama:email));
     const inp=$("caReplyInput"); if(inp) inp.focus();
   } catch(e){ if(h) h.textContent="Gagal memuat: "+(e.message||e); }
 }
