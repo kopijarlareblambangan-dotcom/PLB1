@@ -3006,11 +3006,16 @@ function canManageChat(){ return currentUser && ["admin","bendahara"].includes(c
 
 function chatMembersList(){
   let arr;
-  if (IS_LIVE && liveUsers.length){
-    arr = liveUsers.filter(u => u.email && u.role !== "admin" && u.role !== "bendahara" && (!currentUser || u.email !== currentUser.email));
+  if (IS_LIVE){
+    // selalu pakai liveUsers (jangan fallback ke DEMO_USERS palsu walau kosong)
+    arr = (liveUsers||[]).filter(u => u.email && (!currentUser || u.email !== currentUser.email));
+    const nonStaff = arr.filter(u => u.role !== "admin" && u.role !== "bendahara");
+    arr = nonStaff.length ? nonStaff : arr;   // jika semua staff, tampilkan semua user lain
   } else {
     arr = Object.entries(DEMO_USERS).map(([email,u]) => ({ email, nama:u.nama, role:u.role }))
-      .filter(u => u.role !== "admin" && u.role !== "bendahara" && (!currentUser || u.email !== currentUser.email));
+      .filter(u => (!currentUser || u.email !== currentUser.email));
+    const nonStaff = arr.filter(u => u.role !== "admin" && u.role !== "bendahara");
+    arr = nonStaff.length ? nonStaff : arr;
   }
   return arr.sort((a,b)=>(a.nama||"").localeCompare(b.nama||""));
 }
@@ -3024,12 +3029,15 @@ function renderCaMemberSelect(){
     const t=chatThreadsCache.find(x=>x.email===cur);
     if (t && !members.some(m=>m.email===cur)) members=members.concat([{email:cur, nama:t.nama||cur}]);
   }
-  const opts=members.map(m=>'<option value="'+m.email+'"'+(m.email===cur?' selected':'')+'>'+escapeHtml(m.nama||m.email)+(m.email?' ('+escapeHtml(m.email)+')':'')+'</option>').join("");
-  sel.innerHTML='<option value="">&mdash; Pilih anggota &mdash;</option>'+opts;
+  const head='<option value="">&mdash; Pilih anggota &mdash;</option>';
+  const opts = members.length
+    ? members.map(m=>'<option value="'+m.email+'"'+(m.email===cur?' selected':'')+'>'+escapeHtml(m.nama||m.email)+(m.email?' ('+escapeHtml(m.email)+')':'')+'</option>').join("")
+    : '<option value="" disabled>(Belum ada anggota terdaftar &mdash; tambah anggota di Menu Anggota)</option>';
+  sel.innerHTML=head+opts;
 }
 
 async function initChatAnggota(){
-  if (IS_LIVE && sb && !liveUsers.length){ try{ await loadUsers(); }catch(e){} }
+  if (IS_LIVE && sb){ try{ await loadUsers(); }catch(e){} }   // selalu segarkan daftar user
   renderCaMemberSelect();
   loadChatThreads();
 }
@@ -3133,7 +3141,7 @@ async function cleanupOldChat(){
 function pageChatAnggota(){
   if (!canManageChat()) return pageGate("Chat Anggota","Halaman ini khusus untuk <b>Admin &amp; Bendahara</b>.");
   return `<section class="page">
-    <h2>&#128172; Chat Anggota</h2>
+    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.22</span></h2>
     <p class="section-sub"><b>Pilih anggota dari dropdown</b> di kiri atas &mdash; atau klik percakapan terbaru di bawahnya &mdash; lalu ketik balasan di <b>gelembung balas</b> (kiri bawah, selalu tampil). Bisa memulai chat baru ke anggota mana pun. Balasan terkirim real-time ke widget anggota. Riwayat maks 1 tahun.</p>
     <div class="ca-wrap">
       <div class="ca-list-col">
