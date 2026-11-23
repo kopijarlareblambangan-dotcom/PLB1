@@ -592,14 +592,14 @@ footer a:hover{color:var(--accent)}
 <!-- V3.13: foto hover popover -->
 <div id="fotoHover" class="foto-hover"><img id="fotoHoverImg" alt=""><div class="fh-nama"></div><div class="fh-jabatan"></div></div>
 <!-- V3.13: floating live chat widget + bot ahli koperasi -->
-<button class="chat-fab pulse" id="chatFab" onclick="toggleChat()" title="Chat dengan Bendahara/Admin" aria-label="Chat langsung">
+<button class="chat-fab pulse" id="chatFab" onclick="toggleChat()" title="Chat dengan Admin" aria-label="Chat langsung">
   &#128172;<span class="fab-dot"></span><span class="chat-badge" id="chatBadge">1</span>
 </button>
 <div class="chat-panel" id="chatPanel" role="dialog" aria-label="Live Chat Koperasi">
   <div class="chat-head">
     <img id="chatAvatar" alt="Avatar Koperasi">
     <div class="ch-info">
-      <div class="ch-name">Bendahara Koperasi</div>
+      <div class="ch-name">Admin Koperasi</div>
       <div class="ch-status online" id="chatStatus"><span class="dot"></span><span id="chatStatusText">Online &middot; balas cepat</span></div>
     </div>
     <button class="ch-close" onclick="toggleChat()" aria-label="Tutup">&times;</button>
@@ -616,7 +616,7 @@ footer a:hover{color:var(--accent)}
     <input type="text" id="chatInput" placeholder="Tulis pesan..." onkeydown="if(event.key==='Enter')chatSend()" aria-label="Pesan">
     <button onclick="chatSend()" aria-label="Kirim">&#10148;</button>
   </div>
-  <div class="chat-wa-foot"><a href="https://wa.me/6282141508946?text=Halo%20Bendahara%20Koperasi%20PIJAR%20LARE%20BLAMBANGAN" target="_blank" rel="noopener">&#128172; WhatsApp +62 821-4150-8946</a></div>
+  <div class="chat-wa-foot"><a href="https://wa.me/6282141508946?text=Halo%20Admin%20Koperasi%20PIJAR%20LARE%20BLAMBANGAN" target="_blank" rel="noopener" title="+62 821-4150-8946">&#128172; Chat Admin</a></div>
 </div>
 
 <!-- Supabase + Chart.js + SheetJS CDN -->
@@ -2854,11 +2854,11 @@ const CHAT_KB = [
   {kw:["saham","investasi","keuntungan saham","penempatan dana"], a:"&#128200; Penempatan dana di saham untuk perolehan keuntungan. Pendapatan Keuntungan Saham Jan&ndash;Jun 2026: Rp 18.000.000."},
   {kw:["shu","sisa hasil","lab","rugi","hasil usaha","bagian","pembagian"], a:"&#128202; <b>SHU (Sisa Hasil Usaha)</b> dihitung otomatis dari transaksi Buku Besar (standar akuntansi koperasi: jurnal = sumber, laporan = turunan). SHU dibagikan ke anggota sesuai AD/ART, besarnya tergantung peran modal &amp; transaksi anggota. Lihat detail di menu <b>Laporan</b>."},
   {kw:["alamat","lokasi","kantor","dimana","tempat"], a:"&#128205; Kantor: <b>Jl. Nusantara No. 01, Kel. Kampung Melayu, Kec. Banyuwangi, Kab. Banyuwangi, Jawa Timur</b> (eks. KOPERLIN / APJ Banyuwangi)."},
-  {kw:["kontak","wa","whatsapp","telepon","hp","hubungi","nomor","telp"], a:"&#128222; Chat WhatsApp Bendahara/Admin: <a href='https://wa.me/"+CHAT_WA+"?text=Halo%20Koperasi%20PIJAR%20LARE%20BLAMBANGAN' target='_blank' rel='noopener' style='color:#25d366;font-weight:600'>"+CHAT_WA_LABEL+"</a>. Jam kerja Senin&ndash;Jumat 08.00&ndash;16.00 WIB."},
+  {kw:["kontak","wa","whatsapp","telepon","hp","hubungi","nomor","telp"], a:"&#128222; Chat WhatsApp Admin: <a href='https://wa.me/"+CHAT_WA+"?text=Halo%20Koperasi%20PIJAR%20LARE%20BLAMBANGAN' target='_blank' rel='noopener' style='color:#25d366;font-weight:600'>"+CHAT_WA_LABEL+"</a>. Jam kerja Senin&ndash;Jumat 08.00&ndash;16.00 WIB."},
   {kw:["daftar","anggota baru","gabung","mendaftar","jadi anggota","pendaftaran"], a:"&#128221; Untuk jadi anggota: klik <b>Masuk &rarr; Daftar Anggota Baru</b>, lengkapi nama, alamat, no. HP, KTP, foto, &amp; tanda tangan. Simpanan Pokok Rp 250.000 dibayar saat pengesahan. Peran awal: Anggota (admin dapat menaikkan peran kemudian)."},
   {kw:["usaha","jasa","layanan","produk","unit"], a:"&#127978; Unit Usaha Koperasi: 1) Simpanan (Pokok+Wajib), 2) Pinjaman, 3) PPOB (PLN/PDAM/BPJS/pulsa), 4) Toko Sembako/Swalayan, 5) Pengadaan Barang, 6) Penempatan Saham. Detail tiap unit ada di menu <b>Usaha</b>."},
   {kw:["salam","halo","hai","assalam","selamat pagi","selamat siang","selamat sore"], a:"Halo! &#128075; Saya <b>Asisten Digital Koperasi PIJAR LARE BLAMBANGAN</b>, ahli koperasi &amp; pelayanan. Saya bisa bantu pertanyaan soal: jam kerja, simpanan, pinjaman, SHU, usaha, &amp; kontak. Silakan tanya &#128522;"},
-  {kw:["terima kasih","makasih","thanks","suwun"], a:"Sama-sama! &#128522; Senang bisa membantu. Jika butuh bantuan lebih lanjut, chat WhatsApp Bendahara "+CHAT_WA_LABEL+". Sukses selalu!"},
+  {kw:["terima kasih","makasih","thanks","suwun"], a:"Sama-sama! &#128522; Senang bisa membantu. Jika butuh bantuan lebih lanjut, chat WhatsApp Admin "+CHAT_WA_LABEL+". Sukses selalu!"},
 ];
 function chatBotReply(text){
   const t = String(text).toLowerCase();
@@ -2898,12 +2898,12 @@ function chatGreet(){
     if(st) st.className="ch-status online";
     if(stt) stt.innerHTML="Online &middot; Senin&ndash;Jumat 08.00&ndash;16.00 WIB";
     if(f){ f.classList.add("pulse"); f.classList.remove("offline"); }
-    chatPush("bot","Halo! &#128075; Saya <b>Asisten Digital Koperasi PIJAR LARE BLAMBANGAN</b> &mdash; ahli koperasi &amp; pelayanan. Bendahara/Admin sedang <b>online</b> di jam kerja.<br><br>Saya bisa jawab: jam kerja, simpanan, pinjaman, SHU, usaha, &amp; kontak. Ketik pertanyaan atau pilih topik di bawah &#128071;");
+    chatPush("bot","Halo! &#128075; Saya <b>Asisten Digital Koperasi PIJAR LARE BLAMBANGAN</b> &mdash; ahli koperasi &amp; pelayanan. Admin sedang <b>online</b> di jam kerja.<br><br>Saya bisa jawab: jam kerja, simpanan, pinjaman, SHU, usaha, &amp; kontak. Ketik pertanyaan atau pilih topik di bawah &#128071;");
   } else {
     if(st) st.className="ch-status offline";
     if(stt) stt.innerHTML="Di luar jam kerja &middot; WA "+CHAT_WA_LABEL;
     if(f){ f.classList.remove("pulse"); f.classList.add("offline"); }
-    chatPush("bot","Halo! &#128075; Saat ini <b>di luar jam kerja</b> (Senin&ndash;Jumat 08.00&ndash;16.00 WIB). Bendahara/Admin belum online.<br><br>Saya tetap bisa bantu pertanyaan umum soal koperasi. Untuk urusan mendesak, silakan chat WhatsApp:<br><br><a href='https://wa.me/"+CHAT_WA+"?text=Halo%20Koperasi%20PIJAR%20LARE%20BLAMBANGAN%2C%20saya%20ingin%20bertanya' target='_blank' rel='noopener' class='chat-wa-btn'>&#128172; Chat WA "+CHAT_WA_LABEL+"</a>");
+    chatPush("bot","Halo! &#128075; Saat ini <b>di luar jam kerja</b> (Senin&ndash;Jumat 08.00&ndash;16.00 WIB). Admin belum online.<br><br>Saya tetap bisa bantu pertanyaan umum soal koperasi. Untuk urusan mendesak, silakan chat WhatsApp:<br><br><a href='https://wa.me/"+CHAT_WA+"?text=Halo%20Koperasi%20PIJAR%20LARE%20BLAMBANGAN%2C%20saya%20ingin%20bertanya' target='_blank' rel='noopener' class='chat-wa-btn'>&#128172; Chat Admin</a>");
   }
 }
 function chatSend(){
@@ -2923,13 +2923,13 @@ function chatHandle(text){
     else {
       const work=isWorkHour();
       if(work){
-        chatPush("bot","Pertanyaan Anda saya teruskan ke <b>Bendahara/Admin</b>. Mohon tunggu, kami akan menjawab segera &#9203;");
+        chatPush("bot","Pertanyaan Anda saya teruskan ke <b>Admin</b>. Mohon tunggu, kami akan menjawab segera &#9203;");
         if(chatHumanTimer) clearTimeout(chatHumanTimer);
         chatHumanTimer=setTimeout(()=>{
-          chatPush("bot","Mohon maaf, Bendahara belum sempat menjawab dalam 2 menit. Untuk respons cepat, silakan chat WhatsApp:<br><br><a href='https://wa.me/"+CHAT_WA+"?text="+encodeURIComponent("Halo Koperasi, saya ingin bertanya: "+text)+"' target='_blank' rel='noopener' class='chat-wa-btn'>&#128172; Chat WA "+CHAT_WA_LABEL+"</a>");
+          chatPush("bot","Mohon maaf, Admin belum sempat menjawab dalam 2 menit. Untuk respons cepat, silakan chat WhatsApp:<br><br><a href='https://wa.me/"+CHAT_WA+"?text="+encodeURIComponent("Halo Koperasi, saya ingin bertanya: "+text)+"' target='_blank' rel='noopener' class='chat-wa-btn'>&#128172; Chat Admin</a>");
         },120000);
       } else {
-        chatPush("bot","Untuk pertanyaan ini, silakan chat WhatsApp Bendahara/Admin (jam kerja Senin&ndash;Jumat 08.00&ndash;16.00 WIB):<br><br><a href='https://wa.me/"+CHAT_WA+"?text="+encodeURIComponent("Halo Koperasi, saya ingin bertanya: "+text)+"' target='_blank' rel='noopener' class='chat-wa-btn'>&#128172; Chat WA "+CHAT_WA_LABEL+"</a>");
+        chatPush("bot","Untuk pertanyaan ini, silakan chat WhatsApp Admin (jam kerja Senin&ndash;Jumat 08.00&ndash;16.00 WIB):<br><br><a href='https://wa.me/"+CHAT_WA+"?text="+encodeURIComponent("Halo Koperasi, saya ingin bertanya: "+text)+"' target='_blank' rel='noopener' class='chat-wa-btn'>&#128172; Chat Admin</a>");
       }
     }
   },delay);
