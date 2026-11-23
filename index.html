@@ -3037,7 +3037,7 @@ function setupMemberChatSub(){
 async function showRecentAdminReplies(){
   if (!IS_LIVE||!sb||!currentUser) return;
   try {
-    const { data } = await sb.from("chat_messages").select("id,body,created_at,sender").eq("thread_id",currentUser.email).order("created_at",{ascending:true}).limit(30);
+    const { data } = await sb.from("chat_messages").select("id,body,created_at,sender").eq("thread_id",currentUser.email).gte("created_at",oneYearAgoISO()).order("created_at",{ascending:true}).limit(30);
     if (!data) return;
     const adminMsgs = data.filter(m=>m.sender==="admin").slice(-5);
     adminMsgs.forEach(m=>{
@@ -3068,18 +3068,45 @@ async function storeMemberChat(text){
   } catch(e){ return false; }
 }
 
+function oneYearAgoISO(){ const d=new Date(); d.setFullYear(d.getFullYear()-1); return d.toISOString(); }
+
+function setReplyEnabled(on, ph){
+  const inp=$("caReplyInput"), btn=$("caReplyBtn");
+  if(inp){ inp.disabled=!on; if(ph) inp.placeholder=ph; }
+  if(btn) btn.disabled=!on;
+}
+
+async function cleanupOldChat(){
+  if (!IS_LIVE||!sb){ toast("Mode demo &mdash; tidak ada data server.","info"); return; }
+  if (!confirm("Hapus semua pesan chat lebih lama dari 1 tahun? Tindakan ini tidak bisa dibatalkan.")) return;
+  try {
+    const { error } = await sb.rpc("cleanup_old_chat");
+    if (error) throw error;
+    toast("Riwayat chat lebih dari 1 tahun dibersihkan.","success");
+    loadChatThreads();
+    if (activeChatThread) openChatThread(activeChatThread);
+  } catch(e){ toast("Gagal cleanup: "+(e.message||e)+". Pastikan function cleanup_old_chat sudah dibuat (lihat migration SQL).","error"); }
+}
+
 function pageChatAnggota(){
   if (!canManageChat()) return pageGate("Chat Anggota","Halaman ini khusus untuk <b>Admin &amp; Bendahara</b>.");
   return `<section class="page">
     <h2>&#128172; Chat Anggota</h2>
-    <p class="section-sub">Pertanyaan dari anggota via chat widget. Balas langsung &mdash; balasan terkirim ke widget anggota secara real-time. Notifikasi muncul saat anggota bertanya.</p>
+    <p class="section-sub">Pertanyaan dari anggota via chat widget. <b>Klik percakapan</b> di samping kiri, lalu ketik balasan di kotak bawah kanan &mdash; terkirim ke widget anggota real-time. Riwayat disimpan maksimal 1 tahun.</p>
     <div class="ca-wrap">
       <div class="ca-list" id="caThreadList"><div style="padding:14px;color:var(--muted);font-size:13px">Memuat...</div></div>
       <div class="ca-conv" id="caConv">
-        <div class="ca-head" id="caHead" style="color:var(--muted)">Pilih percakapan di samping</div>
-        <div class="ca-body" id="caBody"></div>
-        <div class="ca-foot" id="caFoot" style="display:none"><input id="caReplyInput" placeholder="Ketik balasan untuk anggota..." onkeydown="if(event.key==='Enter')sendAdminReply()"><button class="btn btn-primary btn-sm" onclick="sendAdminReply()">Kirim</button></div>
+        <div class="ca-head" id="caHead" style="color:var(--muted)">&#8592; Pilih percakapan di kiri untuk melihat pesan &amp; membalas</div>
+        <div class="ca-body" id="caBody"><div style="color:var(--muted);font-size:13px;align-self:center;margin:auto">Belum ada percakapan dipilih.</div></div>
+        <div class="ca-foot" id="caFoot">
+          <input id="caReplyInput" placeholder="Pilih percakapan dulu untuk membalas..." disabled onkeydown="if(event.key==='Enter')sendAdminReply()">
+          <button class="btn btn-primary btn-sm" id="caReplyBtn" onclick="sendAdminReply()" disabled>&#128172; Kirim Balasan</button>
+        </div>
       </div>
+    </div>
+    <div style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <button class="btn btn-ghost btn-sm" onclick="cleanupOldChat()">&#128465; Bersihkan riwayat &gt; 1 tahun</button>
+      <span style="font-size:12px;color:var(--muted)">Hapus pesan lebih lama dari 1 tahun. Pesan &lt; 1 tahun tetap aman.</span>
     </div>
   </section>`;
 }
@@ -3087,7 +3114,7 @@ function pageChatAnggota(){
 async function loadChatThreads(){
   if (!IS_LIVE||!sb){ const l=$("caThreadList"); if(l) l.innerHTML='<div style="padding:14px;color:var(--muted);font-size:13px">Mode demo &mdash; chat tidak tersimpan ke server.</div>'; return; }
   try {
-    const { data, error } = await sb.from("chat_messages").select("id,thread_id,sender,email,nama,body,created_at").order("created_at",{ascending:false}).limit(200);
+    const { data, error } = await sb.from("chat_messages").select("id,thread_id,sender,email,nama,body,created_at").gte("created_at",oneYearAgoISO()).order("created_at",{ascending:false}).limit(200);
     if (error) throw error;
     const threads={};
     (data||[]).forEach(m=>{ if(!threads[m.thread_id]){ threads[m.thread_id]={email:m.thread_id,nama:m.nama||m.email||m.thread_id,last:m.body,last_at:m.created_at}; } threads[m.thread_id].last=m.body; threads[m.thread_id].last_at=m.created_at; });
@@ -3116,18 +3143,18 @@ async function openChatThread(email){
   activeChatThread=email;
   if (adminUnread[email]){ delete adminUnread[email]; updateNavChatBadge(); }
   renderCaThreadList();
-  const h=$("caHead"), b=$("caBody"), foot=$("caFoot");
+  const h=$("caHead"), b=$("caBody");
   if(h){ h.style.color="var(--muted)"; h.textContent="Memuat percakapan..."; }
   if(b) b.innerHTML="";
-  if(foot) foot.style.display="none";
+  setReplyEnabled(false, "Pilih percakapan dulu untuk membalas...");
   if (!IS_LIVE||!sb) return;
   try {
-    const { data, error } = await sb.from("chat_messages").select("id,sender,body,created_at").eq("thread_id",email).order("created_at",{ascending:true}).limit(200);
+    const { data, error } = await sb.from("chat_messages").select("id,sender,body,created_at").eq("thread_id",email).gte("created_at",oneYearAgoISO()).order("created_at",{ascending:true}).limit(200);
     if (error) throw error;
     const t=chatThreadsCache.find(x=>x.email===email);
-    if(h) h.innerHTML='<b>'+escapeHtml(t?t.nama:email)+'</b><br><span style="font-size:12px;color:var(--muted)">'+escapeHtml(email)+'</span>';
-    if(b){ b.innerHTML=(data||[]).map(m=>caBubble(m)).join("")||'<div style="color:var(--muted);font-size:13px;align-self:center;margin:auto">Belum ada pesan.</div>'; b.scrollTop=b.scrollHeight; }
-    if(foot) foot.style.display="flex";
+    if(h){ h.style.color=""; h.innerHTML='<b>'+escapeHtml(t?t.nama:email)+'</b><br><span style="font-size:12px;color:var(--muted)">'+escapeHtml(email)+'</span>'; }
+    if(b){ b.innerHTML=(data||[]).map(m=>caBubble(m)).join("")||'<div style="color:var(--muted);font-size:13px;align-self:center;margin:auto">Belum ada pesan (dalam 1 tahun terakhir).</div>'; b.scrollTop=b.scrollHeight; }
+    setReplyEnabled(true, "Ketik balasan untuk anggota...");
     const inp=$("caReplyInput"); if(inp) inp.focus();
   } catch(e){ if(h) h.textContent="Gagal memuat: "+(e.message||e); }
 }
