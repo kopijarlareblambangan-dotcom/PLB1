@@ -1655,7 +1655,7 @@ function pageAnggota(){
           <div class="stat-card"><div class="stat-icon green">💵</div><div><div class="val">${fmtIDR(totalPokok)}</div><div class="lbl">Total Simpanan Pokok</div></div></div>
           <div class="stat-card"><div class="stat-icon yellow">💰</div><div><div class="val">${fmtIDR(totalWajib)}</div><div class="lbl">Total Simpanan Wajib</div></div></div>
         </div>
-        ${canManage ? `<div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-success btn-sm" onclick="addAnggota()">+ Tambah Anggota</button></div>` : ""}
+        ${canManage ? `<div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-success btn-sm" onclick="addAnggota()">+ Tambah Anggota</button>${isAdmin()?piiToggleBtn('No. HP'):''}</div>` : ""}
         <div class="table-wrap">
           <table>
             <thead><tr><th>Foto</th><th>ID</th><th>Nama</th><th>Unit</th><th>Jabatan</th><th>Alamat</th><th>No. HP</th><th class="num">Sim. Pokok</th><th class="num">Sim. Wajib</th><th>Status</th>${canManage?'<th>Aksi</th>':''}</tr></thead>
@@ -1665,7 +1665,7 @@ function pageAnggota(){
                 return `<tr>
                   <td>${a.foto?`<img src="${a.foto}" style="width:36px;height:36px;border-radius:6px;object-fit:cover">`:`<div style="width:36px;height:36px;border-radius:6px;background:var(--light);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--muted)">👤</div>`}</td>
                   <td>${a.id}</td><td>${a.nama}</td><td>${a.unit||''}</td><td>${a.jabatan||''}</td>
-                  <td style="font-size:12px">${a.alamat||'-'}</td><td>${a.no_hp||'-'}</td>
+                  <td style="font-size:12px">${a.alamat||'-'}</td><td>${showHP(a.no_hp)}</td>
                   <td class="num">${fmtIDR(a.simpanan_pokok||0)}</td><td class="num">${fmtIDR(a.simpanan_wajib||0)}</td>
                   <td><span class="badge ${aktif?'badge-anggota':'badge-pengawas'}">${a.status||'Aktif'}</span></td>
                   ${canManage?`<td style="white-space:nowrap">
@@ -2421,6 +2421,20 @@ function bukuBesarRowsRaw(){ return (IS_LIVE && liveBukuBesar.length) ? liveBuku
 function pinjamanRowsRaw(){ return (IS_LIVE && livePinjaman.length) ? livePinjaman : JSON.parse(localStorage.getItem("demo_pinjaman")||"[]"); }
 function pelunasanRowsRaw(){ return (IS_LIVE && livePelunasan.length) ? livePelunasan : JSON.parse(localStorage.getItem("demo_pelunasan_pinjaman")||"[]"); }
 function pengajuanRowsRaw(){ return (IS_LIVE && livePengajuan.length) ? livePengajuan : JSON.parse(localStorage.getItem("demo_pengajuan_pinjaman")||"[]"); }
+let revealPII = false;
+function isAdmin(){ return !!currentUser && currentUser.role === "admin"; }
+function maskHP(hp){ const d=String(hp||"").replace(/\D/g,""); if(!d) return "-"; if(d.length<=5) return "*".repeat(Math.max(d.length-2,1))+d.slice(-2); return d.slice(0,4)+"****"+d.slice(-3); }
+function maskEmail(em){ if(!em) return "-"; const i=String(em).indexOf("@"); if(i<0) return String(em); const u=em.slice(0,i), d=em.slice(i); const mu = u.length<=1 ? u+"***" : u[0]+"***"; return mu+d; }
+function showHP(v){ const s=String(v||""); return s ? ((isAdmin()&&revealPII)?s:maskHP(s)) : "-"; }
+function showEmail(v){ const s=String(v||""); return s ? ((isAdmin()&&revealPII)?s:maskEmail(s)) : "-"; }
+function piiToggleBtn(label){ return '<button class="btn btn-ghost btn-sm" onclick="togglePII()">'+(revealPII?'🙈 Sembunyikan ':'👁 Tampilkan ')+label+'</button>'; }
+function togglePII(){
+  if(!isAdmin()){ toast("Hanya admin yang dapat menampilkan data PII (No. HP / Email).","error"); return; }
+  revealPII = !revealPII;
+  const cur = (document.querySelector('nav.main a.active') && document.querySelector('nav.main a.active').dataset.page) || "beranda";
+  renderPage(cur);
+  toast(revealPII ? "Data PII ditampilkan (sementara, admin only)." : "Data PII disembunyikan kembali.","info");
+}
 function fmtTgl(d){ if(!d) return "-"; const t=new Date(d); if(isNaN(t)) return String(d); return t.toLocaleDateString("id-CA",{day:"2-digit",month:"short",year:"numeric"}); }
 
 function _alasanHapus(jenis){
@@ -2955,7 +2969,7 @@ function pageAdmin(){
                   : '';
                 return `<tr>
                   <td>${u.nama || '-'}</td>
-                  <td>${u.email}</td>
+                  <td>${showEmail(u.email)}</td>
                   <td>${u.anggota_id||'<span style="color:var(--muted)">-</span>'}</td>
                   <td><span class="badge badge-${u.role}">${u.role}</span></td>
                   <td>${stBadge}</td>
@@ -2967,6 +2981,7 @@ function pageAdmin(){
         </div>
         <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
           <button class="btn btn-ghost btn-sm" onclick="loadUsers().then(()=>{toast('Daftar pengguna dimuat ulang','success');renderPage('admin')}).catch(()=>{})">↻ Muat Ulang</button>
+          ${piiToggleBtn('Email/HP')}
           <button class="btn btn-success btn-sm" onclick="toast('Pengguna baru didaftarkan via halaman Masuk → Daftar Baru. Setelah anggota mendaftar, kembali ke Panel Admin untuk mengatur perannya.','info')">+ Tambah Pengguna</button>
         </div>
       </div>
@@ -3402,7 +3417,7 @@ async function cleanupOldChat(){
 function pageChatAnggota(){
   if (!canManageChat()) return pageGate("Chat Anggota","Halaman ini khusus untuk <b>Admin &amp; Bendahara</b>.");
   return `<section class="page active">
-    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.28</span></h2>
+    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.29</span></h2>
     <p class="section-sub"><b>Pilih anggota dari dropdown</b> di kiri atas &mdash; atau klik percakapan terbaru di bawahnya &mdash; lalu percakapan terbuka di panel <b>kanan</b>. Ketik balasan di <b>kotak balas</b> (kanan bawah). Bisa memulai chat baru ke anggota mana pun. Balasan terkirim real-time ke widget anggota. Riwayat maks 1 tahun.</p>
     <div class="ca-wrap" id="caWrap">
       <div class="ca-list-col">
@@ -3697,7 +3712,7 @@ async function saveUser(){
           if (ei) throw new Error("Buat anggota gagal: "+(ei.message||ei));
         }
         // cascade tabel referensi (fallback bila tanpa FK ON UPDATE CASCADE)
-        for (const t of ["pengajuan_pinjaman","pinjaman","pelunasan_pinjaman"]){
+        for (const t of ["pengajuan_pinjaman","pelunasan_pinjaman"]){
           try { await sb.from(t).update({ anggota_id: kodeBaru }).eq("anggota_id", kodeLama); } catch(e){}
         }
       }
@@ -3714,8 +3729,10 @@ async function saveUser(){
     if (kodeBerubah && kodeLama && /^A-/.test(kodeLama)){
       const a = DEMO.anggota.find(r => r.id === kodeLama);
       if (a) a.id = kodeBaru;
-      ["pengajuan","pinjaman","pelunasan"].forEach(k => {
-        if (Array.isArray(DEMO[k])) DEMO[k].forEach(r => { if (String(r.anggota_id) === kodeLama) r.anggota_id = kodeBaru; });
+      ["demo_pengajuan_pinjaman","demo_pelunasan_pinjaman"].forEach(k => {
+        let arr; try { arr = JSON.parse(localStorage.getItem(k)||"[]"); } catch(e){ arr=[]; }
+        let ch=false; arr.forEach(r => { if (String(r.anggota_id) === kodeLama){ r.anggota_id = kodeBaru; ch=true; } });
+        if (ch) localStorage.setItem(k, JSON.stringify(arr));
       });
       Object.values(DEMO_USERS).forEach(d => { if (d.id === kodeLama) d.id = kodeBaru; });
       if (currentUser && (currentUser.id === kodeLama || currentUser.anggota_id === kodeLama)){
