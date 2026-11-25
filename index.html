@@ -3437,7 +3437,7 @@ async function cleanupOldChat(){
 function pageChatAnggota(){
   if (!canManageChat()) return pageGate("Chat Anggota","Halaman ini khusus untuk <b>Admin &amp; Bendahara</b>.");
   return `<section class="page active">
-    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.33</span></h2>
+    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.34</span></h2>
     <p class="section-sub"><b>Pilih anggota dari dropdown</b> di kiri atas &mdash; atau klik percakapan terbaru di bawahnya &mdash; lalu percakapan terbuka di panel <b>kanan</b>. Ketik balasan di <b>kotak balas</b> (kanan bawah). Bisa memulai chat baru ke anggota mana pun. Balasan terkirim real-time ke widget anggota. Riwayat maks 1 tahun.</p>
     <div class="ca-wrap" id="caWrap">
       <div class="ca-list-col">
@@ -4486,7 +4486,6 @@ function pageBlanko(){
   <section class="page active">
     <div class="container">
       <h2 class="section-title">Blanko Pinjaman Online</h2>
-      <p class="section-sub">Perjanjian Pinjaman — ${NAMA_KOPERASI}. Pengurus &amp; tanda tangan otomatis; jasa terkunci (ubah di Admin).</p>
       <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
         <button class="btn btn-ghost" onclick="blankoSavedId=null;renderPage('blanko')">↺ Reset Form</button>
       </div>
@@ -4502,30 +4501,36 @@ function pageBlanko(){
           </div>
           <p style="font-weight:700">PIHAK PERTAMA (Pemberi Pinjaman):</p>
           <div class="form-grid">
-            <div class="form-group"><label>Nama (otomatis)</label><input value="${ketua.nama}" readonly style="background:var(--light)"></div>
-            <div class="form-group"><label>Jabatan (otomatis)</label><input value="Ketua ${NAMA_KOPERASI}" readonly style="background:var(--light)"></div>
+            <div class="form-group"><label>Nama</label><input value="${ketua.nama}" readonly style="background:var(--light)"></div>
+            <div class="form-group"><label>Jabatan</label><input value="Ketua ${NAMA_KOPERASI}" readonly style="background:var(--light)"></div>
             <div class="form-group" style="grid-column:1/-1"><label>Alamat</label><input value="Jl. Nusantara No. 1 Banyuwangi" readonly style="background:var(--light)"></div>
           </div>
           <p style="font-weight:700;margin-top:10px">PIHAK KEDUA (Peminjam):</p>
           <div class="form-grid">
-            <div class="form-group"><label>Nama Pemohon (otomatis — akun login)</label><input id="bk_nama" value="${aNama}" readonly style="background:var(--light)"></div>
-            <div class="form-group"><label>Nomor Anggota (otomatis)</label><input id="bk_noanggota" value="${aNoAnggota}" readonly style="background:var(--light)"></div>
-            <div class="form-group"><label>Nomor KTP (otomatis)</label><input id="bk_ktp" value="${aKtp}" readonly style="background:var(--light)"></div>
-            <div class="form-group"><label>Tempat/Tgl. Lahir (otomatis)</label><input id="bk_lahir" value="${aLahir}" readonly style="background:var(--light)"></div>
+            <div class="form-group"><label>Nama Pemohon</label><input id="bk_nama" value="${aNama}" readonly style="background:var(--light)"></div>
+            <div class="form-group"><label>Nomor Anggota</label><input id="bk_noanggota" value="${aNoAnggota}" readonly style="background:var(--light)"></div>
+            <div class="form-group"><label>Nomor KTP / NIK</label><input id="bk_ktp" value="${aKtp}"></div>
+            <div class="form-group"><label>Tempat/Tgl. Lahir</label><input id="bk_lahir" value="${aLahir}" readonly style="background:var(--light)"></div>
             <div class="form-group"><label>Pekerjaan</label><select id="bk_pekerjaan" onchange="blankoHitung()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px">${optPekerjaan}</select></div>
-            <div class="form-group" style="grid-column:1/-1"><label>Alamat Rumah (otomatis)</label><input id="bk_alamat" value="${aAlamat}" readonly style="background:var(--light)"></div>
+            <div class="form-group" style="grid-column:1/-1"><label>Alamat Rumah</label><input id="bk_alamat" value="${aAlamat}" readonly style="background:var(--light)"></div>
             <div class="form-group"><label>Alamat Kantor</label><input id="bk_kantor" value="PT PLN (Persero) UP3 Banyuwangi"></div>
             <div class="form-group"><label>NIPeg/NIKary</label><input id="bk_nip"></div>
-            <div class="form-group"><label>No. HP (otomatis)</label><input id="bk_hp" value="${aHp}" readonly style="background:var(--light)"></div>
+            <div class="form-group"><label>No. HP</label><input id="bk_hp" value="${aHp}" readonly style="background:var(--light)"></div>
           </div>
           <h4 style="margin-top:14px;background:var(--light);padding:6px 10px">PASAL 1 — PINJAMAN</h4>
           <div class="form-grid">
             <div class="form-group"><label>Pinjaman Reguler (Rp)</label><input type="number" id="bk_reguler" oninput="blankoHitung()" placeholder="0"></div>
-            <div class="form-group"><label>Terbilang (otomatis)</label><input id="bk_reguler_terbilang" readonly style="background:var(--light)"></div>
+            <div class="form-group"><label>Terbilang</label><input id="bk_reguler_terbilang" readonly style="background:var(--light)"></div>
+          </div>
+          <div class="form-grid">
             <div class="form-group"><label>Pinjaman Khusus (Rp)</label><input type="number" id="bk_khusus" oninput="blankoHitung()" placeholder="0"></div>
-            <div class="form-group"><label>Terbilang (otomatis)</label><input id="bk_khusus_terbilang" readonly style="background:var(--light)"></div>
+            <div class="form-group"><label>Terbilang</label><input id="bk_khusus_terbilang" readonly style="background:var(--light)"></div>
+          </div>
+          <div class="form-grid">
             <div class="form-group"><label>Pinjaman Barang (Rp)</label><input type="number" id="bk_barang" oninput="blankoHitung()" placeholder="0"></div>
-            <div class="form-group"><label>Terbilang (otomatis)</label><input id="bk_barang_terbilang" readonly style="background:var(--light)"></div>
+            <div class="form-group"><label>Terbilang</label><input id="bk_barang_terbilang" readonly style="background:var(--light)"></div>
+          </div>
+          <div class="form-grid">
             <div class="form-group" style="grid-column:1/-1"><label>Keterangan Barang</label><input id="bk_ket_barang"></div>
             <div class="form-group" style="grid-column:1/-1"><label>Pencairan</label>
               <div style="display:flex;gap:18px;align-items:center;padding:6px 0">
@@ -4543,19 +4548,25 @@ function pageBlanko(){
           </div>
           <h4 style="margin-top:14px;background:var(--light);padding:6px 10px">PASAL 2 — ANGSURAN POKOK &amp; JASA</h4>
           <div class="form-grid">
-            <div class="form-group"><label>Jasa Reguler (%) — 🔒 terkunci</label><input type="number" id="bk_jasa_reg" value="${JASA_REG}" step="0.1" readonly style="background:var(--light)" title="Diubah hanya Admin via Panel Admin"></div>
-            <div class="form-group"><label>Jangka Waktu (bulan) — otomatis = Jumlah Angsuran</label><input type="number" id="bk_tenor" value="12" readonly style="background:var(--light)"></div>
-            <div class="form-group"><label>Jumlah Angsuran (kali)</label><input type="number" id="bk_angsuran_kali" value="12" oninput="blankoSyncTenor();blankoHitung()"></div>
+            <div class="form-group"><label>Jasa Reguler (%)</label><input type="number" id="bk_jasa_reg" value="${JASA_REG}" step="0.1" readonly style="background:var(--light)"></div>
+            <div class="form-group"><label>Jumlah Angsuran (kali)</label><input type="number" id="bk_angsuran_kali" value="" placeholder="0" oninput="blankoSyncTenor();blankoHitung()"></div>
+            <div class="form-group"><label>Jangka Waktu (bulan)</label><input type="number" id="bk_tenor" value="" placeholder="0" readonly style="background:var(--light)"></div>
             <div class="form-group"><label>Tgl. Potong Gaji</label><input type="number" id="bk_tgl_potong" value="25"></div>
-            <div class="form-group"><label>Jasa Khusus (%) — 🔒 terkunci</label><input type="number" id="bk_jasa_khusus" value="${JASA_KHUSUS}" step="0.1" readonly style="background:var(--light)" title="Diubah hanya Admin via Panel Admin"></div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group"><label>Jasa Khusus (%)</label><input type="number" id="bk_jasa_khusus" value="${JASA_KHUSUS}" step="0.1" readonly style="background:var(--light)"></div>
             <div class="form-group"><label>Bulan Pelunasan Khusus</label><select id="bk_bulan_lunas" onchange="blankoHitung()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px">${optBulan}</select></div>
             <div class="form-group"><label>Tahun Pelunasan Khusus</label><select id="bk_tahun_lunas" onchange="blankoHitung()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px">${optTahun}</select></div>
             <div class="form-group"><label>Lama Bulan (N+1 s/d Pelunasan)</label><input id="bk_lama_bulan" readonly style="background:var(--light)"></div>
-            <div class="form-group"><label>Jasa Khusus (Rp) — otomatis</label><input id="bk_jasa_khusus_rp" readonly style="background:var(--light)"></div>
-            <div class="form-group"><label>Uang Pelunasan Khusus (Rp) — otomatis</label><input id="bk_pelunasan_khusus" readonly style="background:var(--light);font-weight:700"></div>
-            <div class="form-group"><label>Terbilang Pelunasan Khusus</label><input id="bk_pelunasan_khusus_terbilang" readonly style="background:var(--light)"></div>
-            <div class="form-group"><label>Angsuran/Bulan (Rp) — otomatis</label><input id="bk_angsuran_bln" readonly style="background:var(--light);font-weight:700"></div>
-            <div class="form-group"><label>Terbilang Angsuran/Bln</label><input id="bk_angsuran_bln_terbilang" readonly style="background:var(--light)"></div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group"><label>Jasa Khusus (Rp)</label><input id="bk_jasa_khusus_rp" readonly style="background:var(--light)"></div>
+            <div class="form-group"><label>Uang Pelunasan Khusus (Rp)</label><input id="bk_pelunasan_khusus" readonly style="background:var(--light);font-weight:700"></div>
+            <div class="form-group" style="grid-column:1/-1"><label>Terbilang Pelunasan Khusus</label><input id="bk_pelunasan_khusus_terbilang" readonly style="background:var(--light)"></div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group"><label>Angsuran/Bulan (Rp)</label><input id="bk_angsuran_bln" readonly style="background:var(--light);font-weight:700"></div>
+            <div class="form-group" style="grid-column:1/-1"><label>Terbilang Angsuran/Bln</label><input id="bk_angsuran_bln_terbilang" readonly style="background:var(--light)"></div>
           </div>
           <div class="card" style="background:var(--light);margin-top:14px;border:none">
             <p style="font-size:13px;margin:4px 0"><strong>PASAL 3 — Biaya Jaminan Pinjaman:</strong> 1% dari pokok reguler = <strong id="bk_jaminan">${fmtIDR(0)}</strong> (dikembalikan saat lunas; klausul meninggal dunia 70% berlaku).</p>
@@ -4577,7 +4588,6 @@ function pageBlanko(){
             <button class="btn btn-success" onclick="simpanPengajuanPinjaman()">💾 Simpan Pengajuan</button>
             <button class="btn btn-primary" id="bkCetakBtn" style="display:none" onclick="cetakBlanko()">🖨 Cetak / Simpan PDF</button>
           </div>
-          <p style="font-size:11px;color:var(--muted);margin-top:8px">Pengajuan wajib <strong>disimpan</strong> dulu sebelum bisa dicetak. Setelah disimpan, menunggu <strong>persetujuan Bendahara/Admin</strong> untuk masuk data Pinjaman.</p>
         </form>
       </div>
     </div>
