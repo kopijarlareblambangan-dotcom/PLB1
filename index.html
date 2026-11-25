@@ -2094,8 +2094,28 @@ let kegiatanFotos = [null,null,null];
 let blankoSavedId = null;
 
 /* --- #1 Simpan Pengajuan dari Blanko --- */
-function simpanPengajuanPinjaman(){
+async function simpanPengajuanPinjaman(){
   if (!currentUser){ toast("Anda belum login.","error"); return; }
+  // === BLOK: tidak bisa mengajukan lagi selama pengajuan sebelumnya belum di-approve ===
+  let _pending = [];
+  if (IS_LIVE && sb){
+    try {
+      const { data: pd, error: pe } = await sb.from("pengajuan_pinjaman")
+        .select("id,status").eq("status","diajukan").eq("user_id", currentUser.id);
+      if (!pe && Array.isArray(pd)) _pending = pd;
+    } catch(e){}
+  } else {
+    _pending = pengajuanRowsRaw().filter(p =>
+      (p.status||"diajukan")==="diajukan" &&
+      (String(p.user_id)===String(currentUser.id) ||
+       String(p.anggota_id)===String(currentUser.anggota_id||"") ||
+       String(p.email)===String(currentUser.email||""))
+    );
+  }
+  if (_pending.length){
+    toast("Pengajuan Anda sebelumnya (#"+_pending[0].id+") masih MENUNGGU PERSETUJUAN. Tidak bisa mengajukan pinjaman lagi hingga pengajuan tersebut disetujui/ditolak.","error");
+    return;
+  }
   blankoHitung();
   const v = id => ($(id) ? $(id).value : "");
   const reg = Number(v("bk_reguler"))||0, khu = Number(v("bk_khusus"))||0, bar = Number(v("bk_barang"))||0;
@@ -3417,7 +3437,7 @@ async function cleanupOldChat(){
 function pageChatAnggota(){
   if (!canManageChat()) return pageGate("Chat Anggota","Halaman ini khusus untuk <b>Admin &amp; Bendahara</b>.");
   return `<section class="page active">
-    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.31</span></h2>
+    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.32</span></h2>
     <p class="section-sub"><b>Pilih anggota dari dropdown</b> di kiri atas &mdash; atau klik percakapan terbaru di bawahnya &mdash; lalu percakapan terbuka di panel <b>kanan</b>. Ketik balasan di <b>kotak balas</b> (kanan bawah). Bisa memulai chat baru ke anggota mana pun. Balasan terkirim real-time ke widget anggota. Riwayat maks 1 tahun.</p>
     <div class="ca-wrap" id="caWrap">
       <div class="ca-list-col">
