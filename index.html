@@ -3437,7 +3437,7 @@ async function cleanupOldChat(){
 function pageChatAnggota(){
   if (!canManageChat()) return pageGate("Chat Anggota","Halaman ini khusus untuk <b>Admin &amp; Bendahara</b>.");
   return `<section class="page active">
-    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.32</span></h2>
+    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.33</span></h2>
     <p class="section-sub"><b>Pilih anggota dari dropdown</b> di kiri atas &mdash; atau klik percakapan terbaru di bawahnya &mdash; lalu percakapan terbuka di panel <b>kanan</b>. Ketik balasan di <b>kotak balas</b> (kanan bawah). Bisa memulai chat baru ke anggota mana pun. Balasan terkirim real-time ke widget anggota. Riwayat maks 1 tahun.</p>
     <div class="ca-wrap" id="caWrap">
       <div class="ca-list-col">
@@ -4190,21 +4190,30 @@ async function saveProfilSaya(){
       const { error } = await sb.from("profiles").update(upd).eq("id", currentUser.id);
       if (error) throw error;
       // SYNC WAJIB: perubahan profile -> anggota ikut (ID/HP/foto sama)
+      // Catatan: butuh RLS UPDATE policy di tabel anggota (lihat fix_foto_anggota_sync.sql).
+      // Tanpa policy tsb, Supabase memblokir update -> 0 baris tanpa error -> foto anggota tidak berubah.
       const angUpd = { nama, ktp, tempat_lahir, tgl_lahir, pekerjaan, alamat, no_hp };
       if (editFotoData) angUpd.foto = editFotoData;
       let aId = currentUser.anggota_id || "";
       if (!aId && no_hp){
         try { const { data: am } = await sb.from("anggota").select("id").eq("no_hp", no_hp).limit(1).single(); if (am && am.id) aId = am.id; } catch(e){}
       }
+      let syncN = 0, syncErr = null;
       if (aId){
-        const { error: ea } = await sb.from("anggota").update(angUpd).eq("id", aId);
-        if (ea) console.warn("Sinkron anggota gagal:", ea.message||ea);
+        const rA = await sb.from("anggota").update(angUpd, { count: "exact" }).eq("id", aId);
+        syncErr = rA.error; syncN = rA.count || 0;
+        if (syncErr) console.warn("Sinkron anggota gagal:", syncErr.message||syncErr);
       }
       await loadAnggota();
       currentUser = { ...currentUser, ...upd, anggota_id: aId || currentUser.anggota_id || "" };
       editFotoData = null; editTtdData = null;
       updateUserUI();
-      toast("Profil tersimpan \u2014 data anggota ikut diperbarui.","success");
+      const syncMsg = !aId
+        ? "Profil tersimpan. Data anggota BELUM tersinkron: kode anggota belum terhubung ke profil Anda (hubungi admin utk mengatur anggota_id)."
+        : (syncN > 0
+          ? "Profil tersimpan \u2014 data anggota ikut diperbarui."
+          : "Profil tersimpan. Data anggota BELUM tersinkron (RLS memblokir / kode tidak cocok) \u2014 jalankan SQL fix_foto_anggota_sync.sql di Supabase, atau hubungi admin.");
+      toast(syncMsg, (aId && syncN > 0) ? "success" : "info");
       renderPage("profilsaya");
     } catch(err){ toast("Gagal simpan: "+(err.message||err),"error"); }
   } else {
