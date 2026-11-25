@@ -1630,11 +1630,11 @@ function pageUsaha(){
 
 /* ---------- Page: Anggota ---------- */
 function pageAnggota(){
-  const canSeeAll = currentUser && ["pengurus","pengawas","bendahara","admin"].includes(currentUser.role);
+  const canSeeAll = currentUser && ["pengurus","bendahara","admin"].includes(currentUser.role);
   const canManage = currentUser && ["bendahara","admin"].includes(currentUser.role);
   let rows;
   if (canSeeAll) rows = anggotaRows();
-  else if (currentUser && currentUser.role === "anggota") rows = anggotaRows().filter(a => a.id === currentUser.id || a.id === currentUser.anggota_id);
+  else if (currentUser) rows = anggotaRows().filter(a => a.id === currentUser.id || a.id === currentUser.anggota_id);
   else rows = [];
   const totalPokok = rows.reduce((s,a)=>s+(a.simpanan_pokok||0),0);
   const totalWajib = rows.reduce((s,a)=>s+(a.simpanan_wajib||0),0);
@@ -1642,7 +1642,7 @@ function pageAnggota(){
   <section class="page active">
     <div class="container">
       <h2 class="section-title">Data Anggota</h2>
-      <p class="section-sub">${canSeeAll ? "Direktori anggota koperasi (akses penuh pengurus/pengawas/bendahara/admin)" : (currentUser ? "Data simpanan Anda sebagai anggota" : "Halaman ini khusus anggota yang sudah login.")}</p>
+      <p class="section-sub">${canSeeAll ? "Direktori anggota koperasi (akses penuh pengurus/bendahara/admin)" : (currentUser ? "Data simpanan Anda sebagai anggota" : "Halaman ini khusus anggota yang sudah login.")}</p>
       ${!currentUser ? `
         <div class="role-gate">
           <h3>🔒 Halaman Khusus Anggota</h3>
@@ -2564,7 +2564,7 @@ function _badge(st){
 }
 function pageSisaAngsuran(){
   if (!currentUser) return pageGate("Sisa Angsuran", "Silakan masuk untuk melihat sisa angsuran pinjaman Anda.");
-  const isStaff = ["pengurus","pengawas","bendahara","admin"].includes(currentUser.role);
+  const isStaff = ["pengurus","bendahara","admin"].includes(currentUser.role);
   const peng = pengajuanRowsRaw().filter(p=>p.status==="disetujui");
   const pel = pelunasanRowsRaw();
   const visible = peng.filter(p => isStaff || String(p.user_id)===String(currentUser.id) || String(p.anggota_id)===String(currentUser.anggota_id||""));
@@ -3417,7 +3417,7 @@ async function cleanupOldChat(){
 function pageChatAnggota(){
   if (!canManageChat()) return pageGate("Chat Anggota","Halaman ini khusus untuk <b>Admin &amp; Bendahara</b>.");
   return `<section class="page active">
-    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.30</span></h2>
+    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.31</span></h2>
     <p class="section-sub"><b>Pilih anggota dari dropdown</b> di kiri atas &mdash; atau klik percakapan terbaru di bawahnya &mdash; lalu percakapan terbuka di panel <b>kanan</b>. Ketik balasan di <b>kotak balas</b> (kanan bawah). Bisa memulai chat baru ke anggota mana pun. Balasan terkirim real-time ke widget anggota. Riwayat maks 1 tahun.</p>
     <div class="ca-wrap" id="caWrap">
       <div class="ca-list-col">
