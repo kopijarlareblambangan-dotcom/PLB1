@@ -3417,7 +3417,7 @@ async function cleanupOldChat(){
 function pageChatAnggota(){
   if (!canManageChat()) return pageGate("Chat Anggota","Halaman ini khusus untuk <b>Admin &amp; Bendahara</b>.");
   return `<section class="page active">
-    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.29</span></h2>
+    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.30</span></h2>
     <p class="section-sub"><b>Pilih anggota dari dropdown</b> di kiri atas &mdash; atau klik percakapan terbaru di bawahnya &mdash; lalu percakapan terbuka di panel <b>kanan</b>. Ketik balasan di <b>kotak balas</b> (kanan bawah). Bisa memulai chat baru ke anggota mana pun. Balasan terkirim real-time ke widget anggota. Riwayat maks 1 tahun.</p>
     <div class="ca-wrap" id="caWrap">
       <div class="ca-list-col">
@@ -4169,18 +4169,42 @@ async function saveProfilSaya(){
     try {
       const { error } = await sb.from("profiles").update(upd).eq("id", currentUser.id);
       if (error) throw error;
-      currentUser = { ...currentUser, ...upd };
+      // SYNC WAJIB: perubahan profile -> anggota ikut (ID/HP/foto sama)
+      const angUpd = { nama, ktp, tempat_lahir, tgl_lahir, pekerjaan, alamat, no_hp };
+      if (editFotoData) angUpd.foto = editFotoData;
+      let aId = currentUser.anggota_id || "";
+      if (!aId && no_hp){
+        try { const { data: am } = await sb.from("anggota").select("id").eq("no_hp", no_hp).limit(1).single(); if (am && am.id) aId = am.id; } catch(e){}
+      }
+      if (aId){
+        const { error: ea } = await sb.from("anggota").update(angUpd).eq("id", aId);
+        if (ea) console.warn("Sinkron anggota gagal:", ea.message||ea);
+      }
+      await loadAnggota();
+      currentUser = { ...currentUser, ...upd, anggota_id: aId || currentUser.anggota_id || "" };
       editFotoData = null; editTtdData = null;
       updateUserUI();
-      toast("Profil tersimpan.","success");
+      toast("Profil tersimpan \u2014 data anggota ikut diperbarui.","success");
       renderPage("profilsaya");
     } catch(err){ toast("Gagal simpan: "+(err.message||err),"error"); }
   } else {
     const upd = { nama, ktp, tempat_lahir, tgl_lahir, pekerjaan, alamat, no_hp };
+    if (editFotoData) upd.foto = editFotoData;
     if (editTtdData !== null) upd.tanda_tangan = editTtdData || null;
-    currentUser = { ...currentUser, ...upd };
-    editTtdData = null;
-    toast("(Demo) Profil disimpan di browser.","info");
+    // SYNC WAJIB (Demo): profile -> anggota (match anggota_id / id, fallback no_hp)
+    let aid = currentUser.anggota_id || (currentUser.id && /^A-/.test(currentUser.id) ? currentUser.id : "");
+    if (!aid && no_hp){ const am = DEMO.anggota.find(r => String(r.no_hp)===String(no_hp)); if (am) aid = am.id; }
+    if (aid){
+      const a = DEMO.anggota.find(r => r.id === aid);
+      if (a){
+        a.nama = nama; a.ktp = ktp; a.tempat_lahir = tempat_lahir; a.tgl_lahir = tgl_lahir;
+        a.pekerjaan = pekerjaan; a.alamat = alamat; a.no_hp = no_hp;
+        if (editFotoData) a.foto = editFotoData;
+      }
+    }
+    currentUser = { ...currentUser, ...upd, anggota_id: aid || currentUser.anggota_id || "" };
+    editFotoData = null; editTtdData = null;
+    toast("(Demo) Profil disimpan \u2014 data anggota ikut disinkron.","info");
     updateUserUI();
     renderPage("profilsaya");
   }
