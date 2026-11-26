@@ -1129,6 +1129,8 @@ let currentUser = null;
 const $ = (id) => document.getElementById(id);
 const fmtIDR = (n) => {
   if (n === null || n === undefined || n === "") return "-";
+  if (typeof n === "string") n = Number(n);
+  if (!isFinite(n)) return "-";
   const neg = n < 0;
   const s = Math.abs(n).toLocaleString("id-ID", {minimumFractionDigits:0, maximumFractionDigits:0});
   return (neg ? "(Rp " : "Rp ") + s + (neg ? ")" : "");
@@ -1341,7 +1343,7 @@ function updateUserUI(){
   $("userMenu").classList.toggle("hidden", !currentUser);
   if (currentUser){
     const roleLabel = {admin:"Admin", bendahara:"Bendahara", sekretaris:"Sekretaris", pengurus:"Pengurus", pengawas:"Pengawas", anggota:"Anggota"}[currentUser.role];
-    $("userInfo").innerHTML = `👋 ${currentUser.nama} <span class="badge badge-${currentUser.role}">${roleLabel}</span>` + (!IS_LIVE ? '<span class="tag-demo">DEMO</span>' : '');
+    $("userInfo").innerHTML = `👋 ${escapeHtml(currentUser.nama)} <span class="badge badge-${currentUser.role}">${roleLabel}</span>` + (!IS_LIVE ? '<span class="tag-demo">DEMO</span>' : '');
   }
   // refresh nav visibility
   document.querySelectorAll("nav.main a[data-role]").forEach(a => {
@@ -1526,7 +1528,7 @@ function pageStruktur(){
   const fotoHtml = (p) => {
     if (!currentUser) return `<div class="foto-locked" style="width:72px;height:72px;border-radius:50%;background:var(--light);display:flex;align-items:center;justify-content:center;font-size:26px;color:var(--muted);border:3px solid var(--border);position:relative" title="Login untuk melihat foto pengurus">🔒<span style="position:absolute;bottom:-3px;right:-3px;background:var(--primary);color:#fff;font-size:9px;font-weight:600;padding:1px 5px;border-radius:8px;border:2px solid #fff;line-height:1">Login</span></div>`;
     return pengurusFoto(p)
-      ? `<img src="${pengurusFoto(p)}" class="pengurus-foto" data-nama="${p.nama}" data-jabatan="${p.jabatan}" onmouseenter="showFotoHover(this)" onmouseleave="hideFotoHover()" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:3px solid var(--primary)" onclick="openLightbox(this.src)" title="Klik untuk perbesar">`
+      ? `<img src="${pengurusFoto(p)}" class="pengurus-foto" data-nama="${escapeHtml(p.nama)}" data-jabatan="${escapeHtml(p.jabatan)}" onmouseenter="showFotoHover(this)" onmouseleave="hideFotoHover()" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:3px solid var(--primary)" onclick="openLightbox(this.src)" title="Klik untuk perbesar">`
       : `<div style="width:72px;height:72px;border-radius:50%;background:var(--light);display:flex;align-items:center;justify-content:center;font-size:32px;color:var(--muted)">👤</div>`;
   };
   return `
@@ -1538,15 +1540,15 @@ function pageStruktur(){
         ${pengurus.map(p => `
           <div class="card" style="text-align:center">
             ${fotoHtml(p)}
-            <h3 style="margin-top:12px">${p.nama}</h3>
-            <span class="badge badge-pengurus">${p.jabatan}</span>
+            <h3 style="margin-top:12px">${escapeHtml(p.nama)}</h3>
+            <span class="badge badge-pengurus">${escapeHtml(p.jabatan)}</span>
             <div style="font-size:12px;color:var(--muted);margin-top:6px">Badan Pengurus</div>
           </div>`).join("")}
         ${pengawas.map(p => `
           <div class="card" style="text-align:center;border-color:var(--success)">
             ${fotoHtml(p)}
-            <h3 style="margin-top:12px">${p.nama}</h3>
-            <span class="badge badge-pengawas" style="background:var(--success)">${p.jabatan}</span>
+            <h3 style="margin-top:12px">${escapeHtml(p.nama)}</h3>
+            <span class="badge badge-pengawas" style="background:var(--success)">${escapeHtml(p.jabatan)}</span>
             <div style="font-size:12px;color:var(--muted);margin-top:6px">Badan Pengawas</div>
           </div>`).join("")}
       </div>
@@ -1571,8 +1573,8 @@ function pageStruktur(){
               <thead><tr><th>Foto</th><th>Nama</th><th>Jabatan</th><th>Unit</th><th>Urutan</th><th>Aksi</th></tr></thead>
               <tbody>
                 ${all.map((p,i) => `<tr>
-                  <td>${pengurusFoto(p)?`<img src="${pengurusFoto(p)}" class="pengurus-foto" data-nama="${p.nama}" data-jabatan="${p.jabatan}" onmouseenter="showFotoHover(this)" onmouseleave="hideFotoHover()" style="width:32px;height:32px;border-radius:6px;object-fit:cover" onclick="openLightbox(this.src)" title="Klik untuk perbesar">`:'<span style="color:var(--muted)">👤</span>'}</td>
-                  <td>${p.nama}</td><td>${p.jabatan}</td><td>${p.unit||'Pengurus'}</td><td>${p.urutan||''}</td>
+                  <td>${pengurusFoto(p)?`<img src="${pengurusFoto(p)}" class="pengurus-foto" data-nama="${escapeHtml(p.nama)}" data-jabatan="${escapeHtml(p.jabatan)}" onmouseenter="showFotoHover(this)" onmouseleave="hideFotoHover()" style="width:32px;height:32px;border-radius:6px;object-fit:cover" onclick="openLightbox(this.src)" title="Klik untuk perbesar">`:'<span style="color:var(--muted)">👤</span>'}</td>
+                  <td>${escapeHtml(p.nama)}</td><td>${escapeHtml(p.jabatan)}</td><td>${escapeHtml(p.unit||'Pengurus')}</td><td>${p.urutan||''}</td>
                   <td style="white-space:nowrap">
                     <button class="btn btn-blue btn-sm" onclick="editPengurus(${i})">Edit</button>
                     <button class="btn btn-danger btn-sm" onclick="deletePengurus(${i})">Hapus</button>
@@ -1664,11 +1666,11 @@ function pageAnggota(){
               ${rows.length ? rows.map(a => {
                 const aktif = (a.status||'Aktif') !== 'Nonaktif';
                 return `<tr>
-                  <td>${a.foto?`<img src="${a.foto}" style="width:36px;height:36px;border-radius:6px;object-fit:cover">`:`<div style="width:36px;height:36px;border-radius:6px;background:var(--light);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--muted)">👤</div>`}</td>
-                  <td>${a.id}</td><td>${a.nama}</td><td>${a.unit||''}</td><td>${a.jabatan||''}</td>
-                  <td style="font-size:12px">${a.alamat||'-'}</td><td>${showHP(a.no_hp)}</td>
+                  <td>${a.foto?`<img src="${escapeHtml(a.foto)}" style="width:36px;height:36px;border-radius:6px;object-fit:cover">`:`<div style="width:36px;height:36px;border-radius:6px;background:var(--light);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--muted)">👤</div>`}</td>
+                  <td>${escapeHtml(a.id)}</td><td>${escapeHtml(a.nama)}</td><td>${escapeHtml(a.unit||'')}</td><td>${escapeHtml(a.jabatan||'')}</td>
+                  <td style="font-size:12px">${escapeHtml(a.alamat||'-')}</td><td>${escapeHtml(showHP(a.no_hp))}</td>
                   <td class="num">${fmtIDR(a.simpanan_pokok||0)}</td><td class="num">${fmtIDR(a.simpanan_wajib||0)}</td>
-                  <td><span class="badge ${aktif?'badge-anggota':'badge-pengawas'}">${a.status||'Aktif'}</span></td>
+                  <td><span class="badge ${aktif?'badge-anggota':'badge-pengawas'}">${escapeHtml(a.status||'Aktif')}</span></td>
                   ${canManage?`<td style="white-space:nowrap">
                     <button class="btn btn-blue btn-sm" onclick="editAnggota('${a.id}')">Edit</button>
                     <button class="btn btn-ghost btn-sm" onclick="toggleStatusAnggota('${a.id}')">${aktif?'Nonaktifkan':'Aktifkan'}</button>
@@ -1769,7 +1771,7 @@ function pageLaporan(){
           ${bbRows.length ? `<div class="table-wrap"><table class="table-fin">
             <thead><tr><th>TGL</th><th>NB</th><th>Uraian</th><th>KP</th><th>Akun</th><th class="num">Debet</th><th class="num">Kredit</th></tr></thead>
             <tbody>${bbRows.map(b=>{ const d=new Date(b.tanggal); const tgl=String(d.getDate()).padStart(2,'0')+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getFullYear()).slice(2); return `<tr>
-              <td>${tgl}</td><td>${b.no_bukti||''}</td><td>${b.uraian||''}</td><td><code>${b.kp||''}</code></td><td>${b.akun||''}</td>
+              <td>${tgl}</td><td>${escapeHtml(b.no_bukti||'')}</td><td>${escapeHtml(b.uraian||'')}</td><td><code>${escapeHtml(b.kp||'')}</code></td><td>${escapeHtml(b.akun||'')}</td>
               <td class="num">${b.debet?fmtIDR(b.debet):''}</td><td class="num">${b.kredit?fmtIDR(b.kredit):''}</td></tr>`; }).join("")}
             <tr style="font-weight:700;background:var(--primary);color:#fff"><td colspan="5">TOTAL</td><td class="num">${fmtIDR(bbRows.reduce((s,b)=>s+(b.debet||0),0))}</td><td class="num">${fmtIDR(bbRows.reduce((s,b)=>s+(b.kredit||0),0))}</td></tr>
             </tbody></table></div>` : `<p style="text-align:center;color:var(--muted);padding:24px">Belum ada transaksi Buku Besar untuk periode ${periodeLabel}. Input transaksi di menu <strong>Input Laporan → Input Buku Besar</strong>.</p>`}
@@ -1918,7 +1920,7 @@ function pageInput(){
           <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Catat pelunasan/angsuran bulanan anggota yang membayar pinjaman <strong>reguler/barang</strong>. Tersimpan ke tabel <code>pelunasan_pinjaman</code> &amp; dipakai menghitung sisa angsuran di menu <strong>Sisa Angsuran</strong>.</p>
           <form onsubmit="submitPelunasan(event)">
             <div class="form-grid">
-              <div class="form-group"><label>Anggota</label><select name="anggota_id" required>${anggotaRows().map(a=>`<option value="${a.id}">${a.id} — ${a.nama}</option>`).join("")}</select></div>
+              <div class="form-group"><label>Anggota</label><select name="anggota_id" required>${anggotaRows().map(a=>`<option value="${escapeHtml(a.id)}">${escapeHtml(a.id)} — ${escapeHtml(a.nama)}</option>`).join("")}</select></div>
               <div class="form-group"><label>Pengajuan Pinjaman (yg disetujui)</label><select name="pengajuan_id" required>${pelunasanPengajuanOpts()}</select></div>
               <div class="form-group"><label>Bulan</label><select name="bulan" required>${BULAN_ID.map((b,i)=>`<option value="${i+1}">${b}</option>`).join("")}</select></div>
               <div class="form-group"><label>Tahun</label><input type="number" name="tahun" value="${new Date().getFullYear()}" required></div>
@@ -2054,7 +2056,7 @@ async function submitKegiatan(e){
       if (error){ toast("Gagal update kegiatan: "+error.message,"error"); return; }
       toast("Kegiatan diperbarui.","success"); await syncFromSupabase();
     } else {
-      let arr = JSON.parse(localStorage.getItem("demo_kegiatan")||"[]");
+      let arr = loadArr("demo_kegiatan");
       const it = arr.find(x=>String(x.id)===String(editKegiatanId));
       if (it){ Object.assign(it, data); localStorage.setItem("demo_kegiatan", JSON.stringify(arr)); }
       toast("(Demo) Kegiatan diperbarui.","success");
@@ -2082,7 +2084,7 @@ async function saveRecord(table, data, label){
   } else {
     // Demo: simpan ke localStorage agar tampil di reload
     const key = "demo_"+table;
-    const arr = JSON.parse(localStorage.getItem(key) || "[]");
+    const arr = loadArr(key);
     arr.push({ ...data, id: Date.now(), created_at: new Date().toISOString() });
     localStorage.setItem(key, JSON.stringify(arr));
     toast(label+" tersimpan (mode demo, disimpan di browser).", "success");
@@ -2151,7 +2153,7 @@ async function simpanPengajuanPinjaman(){
       syncFromSupabase();
     });
   } else {
-    const arr = JSON.parse(localStorage.getItem("demo_pengajuan_pinjaman")||"[]");
+    const arr = loadArr("demo_pengajuan_pinjaman");
     const id = Date.now(); arr.push({ ...data, id, created_at: new Date().toISOString() });
     localStorage.setItem("demo_pengajuan_pinjaman", JSON.stringify(arr));
     done(id);
@@ -2161,7 +2163,7 @@ async function simpanPengajuanPinjaman(){
 /* --- #2 Antrian approve -> Pinjaman --- */
 function renderAntrianPengajuan(){
   const list = (IS_LIVE && livePengajuan.length) ? livePengajuan
-    : JSON.parse(localStorage.getItem("demo_pengajuan_pinjaman")||"[]");
+    : loadArr("demo_pengajuan_pinjaman");
   const now = new Date(); const mNow = now.getMonth()+1, yNow = now.getFullYear();
   const optB = BULAN_ID.map((b,i)=>'<option value="'+(i+1)+'" '+(i+1===mNow?'selected':'')+'>'+b+'</option>').join("");
   const optT = Array.from({length:5},(_,i)=>yNow-2+i).map(y=>'<option value="'+y+'" '+(y===yNow?'selected':'')+'>'+y+'</option>').join("");
@@ -2181,17 +2183,18 @@ function renderAntrianPengajuan(){
       } else if (st==='disetujui'){
         aksi = 'Pencairan: '+BULAN_ID[(p.bulan_disburse||1)-1]+' '+(p.tahun_disburse||'')+'<div style="margin-top:4px"><button class="btn btn-ghost btn-sm" title="Cetak ulang blanko" onclick="cetakUlangBlanko('+p.id+')">🖨 Cetak Ulang</button> <button class="btn btn-del btn-sm" title="Hapus permanen" onclick="hapusPengajuan('+p.id+')">🗑 Hapus</button></div>';
       } else {
-        aksi = (p.catatan?('Catatan: '+p.catatan):'-')+'<div style="margin-top:4px"><button class="btn btn-ghost btn-sm" title="Cetak ulang blanko" onclick="cetakUlangBlanko('+p.id+')">🖨 Cetak Ulang</button> <button class="btn btn-del btn-sm" title="Hapus permanen" onclick="hapusPengajuan('+p.id+')">🗑 Hapus</button></div>';
+        aksi = (p.catatan?('Catatan: '+escapeHtml(p.catatan)):'-')+'<div style="margin-top:4px"><button class="btn btn-ghost btn-sm" title="Cetak ulang blanko" onclick="cetakUlangBlanko('+p.id+')">🖨 Cetak Ulang</button> <button class="btn btn-del btn-sm" title="Hapus permanen" onclick="hapusPengajuan('+p.id+')">🗑 Hapus</button></div>';
       }
-      return '<tr><td>'+p.id+'</td><td>'+(p.nama||'')+'<br><span style="color:var(--muted)">'+(p.anggota_id||'')+'</span></td>'+
-        '<td>'+(p.jenis||'')+'</td><td>'+fmtIDR(Number(p.pokok)||0)+'</td><td>'+(p.tenor||0)+' bln</td>'+
+      return '<tr><td>'+escapeHtml(p.id)+'</td><td>'+escapeHtml(p.nama||'')+'<br><span style="color:var(--muted)">'+escapeHtml(p.anggota_id||'')+'</span></td>'+
+        '<td>'+escapeHtml(p.jenis||'')+'</td><td>'+fmtIDR(Number(p.pokok)||0)+'</td><td>'+(p.tenor||0)+' bln</td>'+
         '<td>'+fmtIDR(Number(p.angsuran_bln)||0)+'</td><td>'+badge+'</td><td>'+aksi+'</td></tr>';
     }).join("")+'</tbody></table></div>';
 }
 async function approvePengajuan(id){
+  if (!_staffOnly()){ toast("Hanya admin/bendahara.","error"); return; }
   const bulan = Number(($("apg_bulan_"+id)||{}).value)||1;
   const tahun = Number(($("apg_tahun_"+id)||{}).value)||new Date().getFullYear();
-  const src = (IS_LIVE&&livePengajuan.length) ? livePengajuan : JSON.parse(localStorage.getItem("demo_pengajuan_pinjaman")||"[]");
+  const src = (IS_LIVE&&livePengajuan.length) ? livePengajuan : loadArr("demo_pengajuan_pinjaman");
   const p = src.find(x=>String(x.id)===String(id));
   if (!p){ toast("Pengajuan tidak ditemukan.","error"); return; }
   const kategori = (p.pekerjaan==='TAD') ? 'TAD' : (Number(p.khusus)>0 ? 'Khusus' : 'Anggota');
@@ -2205,10 +2208,10 @@ async function approvePengajuan(id){
       await syncFromSupabase(); renderPage("input");
     } catch(err){ toast("Gagal approve: "+(err.message||err),"error"); }
   } else {
-    const arr = JSON.parse(localStorage.getItem("demo_pengajuan_pinjaman")||"[]");
+    const arr = loadArr("demo_pengajuan_pinjaman");
     const it = arr.find(x=>String(x.id)===String(id)); if (it){ it.status="disetujui"; it.bulan_disburse=bulan; it.tahun_disburse=tahun; }
     localStorage.setItem("demo_pengajuan_pinjaman", JSON.stringify(arr));
-    const pa = JSON.parse(localStorage.getItem("demo_pinjaman")||"[]");
+    const pa = loadArr("demo_pinjaman");
     pa.push({ id:Date.now(), bulan:BULAN_ID[bulan-1], tahun, kategori, nilai:Number(p.pokok)||0 });
     localStorage.setItem("demo_pinjaman", JSON.stringify(pa));
     toast("(Demo) Pengajuan disetujui — masuk pinjaman "+BULAN_ID[bulan-1]+" "+tahun+".","success");
@@ -2216,6 +2219,7 @@ async function approvePengajuan(id){
   }
 }
 async function rejectPengajuan(id){
+  if (!_staffOnly()){ toast("Hanya admin/bendahara.","error"); return; }
   const catatan = prompt("Alasan penolakan (opsional):")||"";
   if (IS_LIVE && sb){
     try {
@@ -2224,7 +2228,7 @@ async function rejectPengajuan(id){
       toast("Pengajuan ditolak.","info"); await syncFromSupabase(); renderPage("input");
     } catch(err){ toast("Gagal: "+(err.message||err),"error"); }
   } else {
-    const arr = JSON.parse(localStorage.getItem("demo_pengajuan_pinjaman")||"[]");
+    const arr = loadArr("demo_pengajuan_pinjaman");
     const it = arr.find(x=>String(x.id)===String(id)); if (it){ it.status="ditolak"; it.catatan=catatan; }
     localStorage.setItem("demo_pengajuan_pinjaman", JSON.stringify(arr));
     toast("(Demo) Pengajuan ditolak.","info"); renderPage("input");
@@ -2438,10 +2442,10 @@ function bkBuatTtd(){
 }
 
 /* ===== V3.8: Hapus data uji coba + Pelunasan bulanan + Sisa Angsuran/Jatuh Tempo ===== */
-function bukuBesarRowsRaw(){ return (IS_LIVE && liveBukuBesar.length) ? liveBukuBesar : JSON.parse(localStorage.getItem("demo_buku_besar")||"[]"); }
-function pinjamanRowsRaw(){ return (IS_LIVE && livePinjaman.length) ? livePinjaman : JSON.parse(localStorage.getItem("demo_pinjaman")||"[]"); }
-function pelunasanRowsRaw(){ return (IS_LIVE && livePelunasan.length) ? livePelunasan : JSON.parse(localStorage.getItem("demo_pelunasan_pinjaman")||"[]"); }
-function pengajuanRowsRaw(){ return (IS_LIVE && livePengajuan.length) ? livePengajuan : JSON.parse(localStorage.getItem("demo_pengajuan_pinjaman")||"[]"); }
+function bukuBesarRowsRaw(){ return (IS_LIVE && liveBukuBesar.length) ? liveBukuBesar : loadArr("demo_buku_besar"); }
+function pinjamanRowsRaw(){ return (IS_LIVE && livePinjaman.length) ? livePinjaman : loadArr("demo_pinjaman"); }
+function pelunasanRowsRaw(){ return (IS_LIVE && livePelunasan.length) ? livePelunasan : loadArr("demo_pelunasan_pinjaman"); }
+function pengajuanRowsRaw(){ return (IS_LIVE && livePengajuan.length) ? livePengajuan : loadArr("demo_pengajuan_pinjaman"); }
 let revealPII = false;
 function isAdmin(){ return !!currentUser && currentUser.role === "admin"; }
 function maskHP(hp){ const d=String(hp||"").replace(/\D/g,""); if(!d) return "-"; if(d.length<=5) return "*".repeat(Math.max(d.length-2,1))+d.slice(-2); return d.slice(0,4)+"****"+d.slice(-3); }
@@ -2475,7 +2479,7 @@ async function hapusPengajuan(id){
       toast("Pengajuan dihapus. Alasan: "+alasan,"success"); await syncFromSupabase(); renderPage("input");
     } catch(err){ toast("Gagal hapus: "+(err.message||err),"error"); }
   } else {
-    let arr = JSON.parse(localStorage.getItem("demo_pengajuan_pinjaman")||"[]");
+    let arr = loadArr("demo_pengajuan_pinjaman");
     arr = arr.filter(x=>String(x.id)!==String(id));
     localStorage.setItem("demo_pengajuan_pinjaman", JSON.stringify(arr));
     toast("(Demo) Pengajuan dihapus. Alasan: "+alasan,"success"); renderPage("input");
@@ -2490,7 +2494,7 @@ async function hapusBukuBesar(id){
       toast("Transaksi dihapus. Alasan: "+alasan,"success"); await syncFromSupabase(); renderPage("input");
     } catch(err){ toast("Gagal hapus: "+(err.message||err),"error"); }
   } else {
-    let arr = JSON.parse(localStorage.getItem("demo_buku_besar")||"[]");
+    let arr = loadArr("demo_buku_besar");
     arr = arr.filter(x=>String(x.id)!==String(id));
     localStorage.setItem("demo_buku_besar", JSON.stringify(arr));
     toast("(Demo) Transaksi dihapus. Alasan: "+alasan,"success"); renderPage("input");
@@ -2505,7 +2509,7 @@ async function hapusPinjaman(id){
       toast("Data pinjaman dihapus. Alasan: "+alasan,"success"); await syncFromSupabase(); renderPage("input");
     } catch(err){ toast("Gagal hapus: "+(err.message||err),"error"); }
   } else {
-    let arr = JSON.parse(localStorage.getItem("demo_pinjaman")||"[]");
+    let arr = loadArr("demo_pinjaman");
     arr = arr.filter(x=>String(x.id)!==String(id));
     localStorage.setItem("demo_pinjaman", JSON.stringify(arr));
     toast("(Demo) Data pinjaman dihapus. Alasan: "+alasan,"success"); renderPage("input");
@@ -2520,7 +2524,7 @@ async function hapusPelunasan(id){
       toast("Pelunasan dihapus. Alasan: "+alasan,"success"); await syncFromSupabase(); renderPage("input");
     } catch(err){ toast("Gagal hapus: "+(err.message||err),"error"); }
   } else {
-    let arr = JSON.parse(localStorage.getItem("demo_pelunasan_pinjaman")||"[]");
+    let arr = loadArr("demo_pelunasan_pinjaman");
     arr = arr.filter(x=>String(x.id)!==String(id));
     localStorage.setItem("demo_pelunasan_pinjaman", JSON.stringify(arr));
     toast("(Demo) Pelunasan dihapus. Alasan: "+alasan,"success"); renderPage("input");
@@ -2531,7 +2535,7 @@ function renderRiwayatBukuBesar(){
   const rows = bukuBesarRowsRaw().slice().sort((a,b)=> new Date(b.tanggal||0)-new Date(a.tanggal||0)).slice(0,30);
   if (!rows.length) return '<p style="color:var(--muted);font-size:13px">Belum ada transaksi.</p>';
   return '<div class="table-wrap"><table style="font-size:12px"><thead><tr><th>Tgl</th><th>NB</th><th>Uraian</th><th>Akun</th><th class="num">D</th><th class="num">K</th><th></th></tr></thead><tbody>'+
-    rows.map(b=>'<tr><td>'+fmtTgl(b.tanggal)+'</td><td>'+(b.no_bukti||'')+'</td><td>'+(b.uraian||'')+'</td><td>'+(b.akun||b.kp||'')+'</td><td class="num">'+fmtIDR(Number(b.debet)||0)+'</td><td class="num">'+fmtIDR(Number(b.kredit)||0)+'</td><td>'+(b.id?'<button class="btn btn-del btn-sm" title="Hapus" onclick="hapusBukuBesar('+b.id+')">🗑</button>':'')+'</td></tr>').join('')+
+    rows.map(b=>'<tr><td>'+fmtTgl(b.tanggal)+'</td><td>'+escapeHtml(b.no_bukti||'')+'</td><td>'+escapeHtml(b.uraian||'')+'</td><td>'+escapeHtml(b.akun||b.kp||'')+'</td><td class="num">'+fmtIDR(Number(b.debet)||0)+'</td><td class="num">'+fmtIDR(Number(b.kredit)||0)+'</td><td>'+(b.id?'<button class="btn btn-del btn-sm" title="Hapus" onclick="hapusBukuBesar('+b.id+')">🗑</button>':'')+'</td></tr>').join('')+
     '</tbody></table></div>';
 }
 function renderRiwayatPinjaman(){
@@ -2545,13 +2549,13 @@ function renderRiwayatPelunasan(){
   const rows = pelunasanRowsRaw().slice().sort((a,b)=> new Date(b.tanggal||0)-new Date(a.tanggal||0)).slice(0,30);
   if (!rows.length) return '<p style="color:var(--muted);font-size:13px">Belum ada pelunasan tercatat.</p>';
   return '<div class="table-wrap"><table style="font-size:12px"><thead><tr><th>Tgl</th><th>Anggota</th><th>Bulan/Thn</th><th class="num">Jumlah</th><th>Ket</th><th></th></tr></thead><tbody>'+
-    rows.map(r=>'<tr><td>'+fmtTgl(r.tanggal)+'</td><td>'+(r.nama||r.anggota_id||'')+'</td><td>'+(BULAN_ID[(Number(r.bulan)||1)-1]||'')+' '+(r.tahun||'')+'</td><td class="num">'+fmtIDR(Number(r.jumlah)||0)+'</td><td>'+(r.keterangan||'')+'</td><td>'+(r.id?'<button class="btn btn-del btn-sm" title="Hapus" onclick="hapusPelunasan('+r.id+')">🗑</button>':'')+'</td></tr>').join('')+
+    rows.map(r=>'<tr><td>'+fmtTgl(r.tanggal)+'</td><td>'+escapeHtml(r.nama||r.anggota_id||'')+'</td><td>'+(BULAN_ID[(Number(r.bulan)||1)-1]||'')+' '+(r.tahun||'')+'</td><td class="num">'+fmtIDR(Number(r.jumlah)||0)+'</td><td>'+escapeHtml(r.keterangan||'')+'</td><td>'+(r.id?'<button class="btn btn-del btn-sm" title="Hapus" onclick="hapusPelunasan('+r.id+')">🗑</button>':'')+'</td></tr>').join('')+
     '</tbody></table></div>';
 }
 function pelunasanPengajuanOpts(){
   const peng = pengajuanRowsRaw().filter(p=>p.status==="disetujui");
   if (!peng.length) return '<option value="">(belum ada pengajuan disetujui)</option>';
-  return peng.map(p=>'<option value="'+p.id+'">#'+p.id+' — '+(p.nama||p.anggota_id||'?')+' · '+(p.jenis||'')+' · '+fmtIDR(Number(p.pokok)||0)+'</option>').join('');
+  return peng.map(p=>'<option value="'+escapeHtml(p.id)+'">#'+escapeHtml(p.id)+' — '+escapeHtml(p.nama||p.anggota_id||'?')+' · '+escapeHtml(p.jenis||'')+' · '+fmtIDR(Number(p.pokok)||0)+'</option>').join('');
 }
 async function submitPelunasan(e){
   e.preventDefault();
@@ -2609,8 +2613,8 @@ function pageSisaAngsuran(){
     }
   });
   const escAttr = s => String(s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");
-  const rowRB = r => '<tr class="sa-row" data-nama="'+escAttr(r.p.nama)+'" data-id="'+escAttr(r.p.anggota_id)+'" data-tg="'+r.tanggungan+'"><td>'+(r.p.nama||'-')+'<br><span style="color:var(--muted);font-size:11px">'+(r.p.anggota_id||'')+'</span></td><td>'+(r.p.jenis||'')+'</td><td class="num">'+fmtIDR(Number(r.p.pokok)||0)+'</td><td>'+(r.p.tenor||0)+' bln</td><td class="num">'+fmtIDR(Number(r.p.angsuran_bln)||0)+'</td><td>'+(r.p.tgl_potong?('Tgl '+r.p.tgl_potong):'-')+'</td><td>'+r.angKe+'</td><td class="num">'+fmtIDR(r.dibayar)+'</td><td class="num">'+fmtIDR(r.sisaPokok)+'</td><td>'+r.sisaTenor+' bln</td><td>'+_badge(r.lunas?'Lunas':'Aktif')+'</td></tr>';
-  const rowK = r => '<tr class="sa-row" data-nama="'+escAttr(r.p.nama)+'" data-id="'+escAttr(r.p.anggota_id)+'" data-tg="'+r.tanggungan+'"><td>'+(r.p.nama||'-')+'<br><span style="color:var(--muted);font-size:11px">'+(r.p.anggota_id||'')+'</span></td><td class="num">'+fmtIDR(Number(r.p.pokok)||0)+'</td><td class="num">'+fmtIDR(Number(r.p.khusus)||0)+'</td><td>'+(r.p.tenor||0)+' bln</td><td><strong>'+r.jt+'</strong></td><td class="num">'+fmtIDR(r.dibayar)+'</td><td>'+_badge(r.lunas?'Lunas':'Aktif')+'</td></tr>';
+  const rowRB = r => '<tr class="sa-row" data-nama="'+escAttr(r.p.nama)+'" data-id="'+escAttr(r.p.anggota_id)+'" data-tg="'+r.tanggungan+'"><td>'+escapeHtml(r.p.nama||'-')+'<br><span style="color:var(--muted);font-size:11px">'+escapeHtml(r.p.anggota_id||'')+'</span></td><td>'+escapeHtml(r.p.jenis||'')+'</td><td class="num">'+fmtIDR(Number(r.p.pokok)||0)+'</td><td>'+(r.p.tenor||0)+' bln</td><td class="num">'+fmtIDR(Number(r.p.angsuran_bln)||0)+'</td><td>'+(r.p.tgl_potong?('Tgl '+escapeHtml(r.p.tgl_potong)):'-')+'</td><td>'+r.angKe+'</td><td class="num">'+fmtIDR(r.dibayar)+'</td><td class="num">'+fmtIDR(r.sisaPokok)+'</td><td>'+r.sisaTenor+' bln</td><td>'+_badge(r.lunas?'Lunas':'Aktif')+'</td></tr>';
+  const rowK = r => '<tr class="sa-row" data-nama="'+escAttr(r.p.nama)+'" data-id="'+escAttr(r.p.anggota_id)+'" data-tg="'+r.tanggungan+'"><td>'+escapeHtml(r.p.nama||'-')+'<br><span style="color:var(--muted);font-size:11px">'+escapeHtml(r.p.anggota_id||'')+'</span></td><td class="num">'+fmtIDR(Number(r.p.pokok)||0)+'</td><td class="num">'+fmtIDR(Number(r.p.khusus)||0)+'</td><td>'+(r.p.tenor||0)+' bln</td><td><strong>'+escapeHtml(r.jt)+'</strong></td><td class="num">'+fmtIDR(r.dibayar)+'</td><td>'+_badge(r.lunas?'Lunas':'Aktif')+'</td></tr>';
   const totalTanggungan = reguler.reduce((s,r)=>s+(r.tanggungan?r.sisaPokok:0),0) + khusus.reduce((s,r)=>s+(r.tanggungan?r.sisa:0),0);
   const filterBar = isStaff ? `
       <div class="card" style="margin-bottom:16px">
@@ -2658,7 +2662,7 @@ function saApplyFilter(){
 
 /* ===== V3.9: Cetak Ulang Blanko Pinjaman dari Antrian Pengajuan ===== */
 function cetakUlangBlanko(id){
-  const src = (IS_LIVE && livePengajuan.length) ? livePengajuan : JSON.parse(localStorage.getItem("demo_pengajuan_pinjaman")||"[]");
+  const src = (IS_LIVE && livePengajuan.length) ? livePengajuan : loadArr("demo_pengajuan_pinjaman");
   const p = src.find(x=>String(x.id)===String(id));
   if (!p){ toast("Pengajuan tidak ditemukan.","error"); return; }
   blankoSavedId = p.id;
@@ -2694,7 +2698,7 @@ function cetakUlangBlanko(id){
   if (typeof blankoHitung === "function") blankoHitung();
   const cb = $("bkCetakBtn"); if (cb) cb.style.display = "inline-block";
   const st = $("bkStatus");
-  if (st){ st.style.display = "block"; st.innerHTML = "📄 Cetak ulang blanko dari Pengajuan <strong>#"+p.id+"</strong> — "+(p.nama||"")+". Klik <strong>Cetak / Simpan PDF</strong> bila dialog cetak tidak muncul."; }
+  if (st){ st.style.display = "block"; st.innerHTML = "📄 Cetak ulang blanko dari Pengajuan <strong>#"+escapeHtml(p.id)+"</strong> — "+escapeHtml(p.nama||"")+". Klik <strong>Cetak / Simpan PDF</strong> bila dialog cetak tidak muncul."; }
   toast("Blanko diisi dari pengajuan #"+p.id+" — membuka dialog cetak.","info");
   try { cetakBlanko(); } catch(e){ toast("Klik tombol 'Cetak / Simpan PDF' di form blanko.","info"); }
 }
@@ -2703,14 +2707,14 @@ function cetakUlangBlanko(id){
 let editKegiatanId = null;
 function kegiatanRows(){
   if (IS_LIVE) return DEMO.kegiatan || [];
-  const extra = JSON.parse(localStorage.getItem("demo_kegiatan")||"[]");
+  const extra = loadArr("demo_kegiatan");
   return [...extra, ...(DEMO.kegiatan||[])].sort((a,b)=>new Date(b.tanggal||0)-new Date(a.tanggal||0));
 }
 function renderDaftarKegiatan(){
   const rows = kegiatanRows().filter(k=>k.id);
   if (!rows.length) return '<p style="color:var(--muted);font-size:13px">Belum ada kegiatan yang bisa diedit/dihapus. Kegiatan bawaan tidak dapat diubah.</p>';
   return '<div class="table-wrap"><table style="font-size:12px"><thead><tr><th>Tgl</th><th>Judul</th><th>Deskripsi</th><th></th></tr></thead><tbody>'+
-    rows.map(k=>'<tr><td>'+fmtTgl(k.tanggal)+'</td><td>'+(k.judul||'')+'</td><td style="max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(k.deskripsi||k.desc||'').slice(0,80)+'</td><td><button class="btn btn-primary btn-sm" onclick="editKegiatan('+k.id+')">✏ Edit</button> <button class="btn btn-del btn-sm" title="Hapus" onclick="deleteKegiatan('+k.id+')">🗑</button></td></tr>').join('')+
+    rows.map(k=>'<tr><td>'+fmtTgl(k.tanggal)+'</td><td>'+escapeHtml(k.judul||'')+'</td><td style="max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escapeHtml((k.deskripsi||k.desc||'').slice(0,80))+'</td><td><button class="btn btn-primary btn-sm" onclick="editKegiatan('+k.id+')">✏ Edit</button> <button class="btn btn-del btn-sm" title="Hapus" onclick="deleteKegiatan('+k.id+')">🗑</button></td></tr>').join('')+
     '</tbody></table></div>';
 }
 function editKegiatan(id){
@@ -2750,7 +2754,7 @@ async function deleteKegiatan(id){
       toast("Kegiatan dihapus.","success"); await syncFromSupabase(); renderPage("kegiatan");
     } catch(err){ toast("Gagal hapus: "+(err.message||err),"error"); }
   } else {
-    let arr = JSON.parse(localStorage.getItem("demo_kegiatan")||"[]");
+    let arr = loadArr("demo_kegiatan");
     arr = arr.filter(x=>String(x.id)!==String(id));
     localStorage.setItem("demo_kegiatan", JSON.stringify(arr));
     toast("(Demo) Kegiatan dihapus.","success"); renderPage("kegiatan");
@@ -2859,7 +2863,7 @@ function parseBukuBesarXlsx(file){
         prev.innerHTML = `<div style="background:var(--light);border-left:4px solid var(--success);padding:10px 12px;border-radius:6px;font-size:13px">
           ✅ <strong>${parsed.length}</strong> baris transaksi terbaca untuk tahun <strong>${ubbParsedTahun}</strong>.<br>
           Total Debet: ${fmtIDR(totD)} · Total Kredit: ${fmtIDR(totK)}.<br>
-          Contoh baris: <code>${parsed[0]?parsed[0].tanggal:""} · ${parsed[0]?(parsed[0].uraian||"").slice(0,40):""} · D ${fmtIDR(parsed[0]?parsed[0].debet:0)}</code>
+          Contoh baris: <code>${parsed[0]?parsed[0].tanggal:""} · ${parsed[0]?escapeHtml((parsed[0].uraian||"").slice(0,40)):""} · D ${fmtIDR(parsed[0]?parsed[0].debet:0)}</code>
         </div>`;
       }
       const btn = $("ubbImportBtn"); if (btn) btn.disabled = parsed.length === 0;
@@ -2898,7 +2902,7 @@ async function importBukuBesar(){
       toast(`✅ ${inserted} transaksi tahun ${tahun} berhasil diimpor.`, "success");
       await syncFromSupabase();
     } else {
-      let arr = JSON.parse(localStorage.getItem("demo_buku_besar")||"[]");
+      let arr = loadArr("demo_buku_besar");
       if (replace){ arr = arr.filter(b => (b.tanggal||"").slice(0,4) !== String(tahun)); }
       const now = new Date().toISOString();
       ubbParsedRows.forEach((r,i) => arr.push({ ...r, id: Date.now()+i, created_by: currentUser.id, created_at: now }));
@@ -2943,7 +2947,7 @@ async function hapusBukuBesarTahun(tahun){
       renderPage("uploadbukubesar");
     } catch(err){ toast("Gagal hapus: "+(err.message||err), "error"); }
   } else {
-    let arr = JSON.parse(localStorage.getItem("demo_buku_besar")||"[]");
+    let arr = loadArr("demo_buku_besar");
     arr = arr.filter(b => (b.tanggal||"").slice(0,4) !== String(tahun));
     localStorage.setItem("demo_buku_besar", JSON.stringify(arr));
     toast(`(Demo) Data buku besar tahun ${tahun} dihapus.`, "success");
@@ -2968,9 +2972,9 @@ function pageKegiatan(){
           return `<div class="activity-item">
             <div class="activity-date"><div class="d">${dt.d}</div><div class="m">${dt.m}</div></div>
             <div class="activity-body">
-              <h4>${k.judul}</h4>
-              <p>${k.deskripsi||k.desc||""}</p>
-              ${fotos.length?`<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">${fotos.map(f=>`<img src="${f}" style="width:92px;height:92px;border-radius:8px;object-fit:cover;border:1px solid var(--border);cursor:pointer" onclick="openLightbox(this.src)">`).join("")}</div>`:""}
+              <h4>${escapeHtml(k.judul)}</h4>
+              <p>${escapeHtml(k.deskripsi||k.desc||"")}</p>
+              ${fotos.length?`<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">${fotos.map(f=>`<img src="${escapeHtml(f)}" style="width:92px;height:92px;border-radius:8px;object-fit:cover;border:1px solid var(--border);cursor:pointer" onclick="openLightbox(this.src)">`).join("")}</div>`:""}
               <p style="font-size:11px;color:var(--muted);margin-top:4px">${dt.full}</p>
               ${k.id && canInput ? `<div style="margin-top:6px"><button class="btn btn-primary btn-sm" onclick="editKegiatan(${k.id})">✏ Edit</button> <button class="btn btn-del btn-sm" onclick="deleteKegiatan(${k.id})">🗑 Hapus</button></div>` : ""}
             </div>
@@ -3021,9 +3025,9 @@ function pageAdmin(){
                   ? `<button class="btn btn-success btn-sm" onclick="approveUser('${u.id}')">Setujui</button> <button class="btn btn-danger btn-sm" onclick="rejectUser('${u.id}')">Tolak</button> `
                   : '';
                 return `<tr>
-                  <td>${u.nama || '-'}</td>
-                  <td>${showEmail(u.email)}</td>
-                  <td>${u.anggota_id||'<span style="color:var(--muted)">-</span>'}</td>
+                  <td>${escapeHtml(u.nama || '-')}</td>
+                  <td>${escapeHtml(showEmail(u.email))}</td>
+                  <td>${u.anggota_id?escapeHtml(u.anggota_id):'<span style="color:var(--muted)">-</span>'}</td>
                   <td><span class="badge badge-${u.role}">${u.role}</span></td>
                   <td>${stBadge}</td>
                   <td style="white-space:nowrap">${ap}<button class="btn btn-blue btn-sm" onclick="editUser('${u.id}')">Edit</button> <button class="btn btn-danger btn-sm" onclick="deleteUser('${u.id}')">Hapus</button></td>
@@ -3135,7 +3139,7 @@ let usahaTahunSel = null;
 function usahaTahunList(){
   const yrs = new Set();
   if (IS_LIVE) liveBukuBesar.forEach(b=>{ if(b.tanggal) yrs.add(String(b.tanggal).slice(0,4)); });
-  else { try { JSON.parse(localStorage.getItem("demo_buku_besar")||"[]").forEach(b=>{ if(b.tanggal) yrs.add(String(b.tanggal).slice(0,4)); }); } catch(e){} }
+  else { try { loadArr("demo_buku_besar").forEach(b=>{ if(b.tanggal) yrs.add(String(b.tanggal).slice(0,4)); }); } catch(e){} }
   lapKeuRows().forEach(r=>yrs.add(String(r.tahun)));
   yrs.add("2025"); yrs.add("2026");
   return [...yrs].filter(Boolean).map(Number).sort((a,b)=>b-a);
@@ -3148,7 +3152,7 @@ function optTahunUsaha(){
 function getDistribusiUsaha(tahun){
   let bbRows = [];
   if (IS_LIVE) bbRows = liveBukuBesar;
-  else { try { bbRows = JSON.parse(localStorage.getItem("demo_buku_besar")||"[]"); } catch(e){} }
+  else { try { bbRows = loadArr("demo_buku_besar"); } catch(e){} }
   const hasBB = bbRows.some(b=>b.tanggal && String(b.tanggal).slice(0,4)===String(tahun));
   if (IS_LIVE && hasBB){
     const s = computeSHUFromBB(null, tahun);
@@ -3180,6 +3184,7 @@ function isWorkHour(){
   return mins >= 8*60 && mins < 16*60; /* 08.00 - 16.00 WIB */
 }
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])); }
+function loadArr(k){ try { const v = JSON.parse(localStorage.getItem(k)||"[]"); return Array.isArray(v) ? v : []; } catch(e){ return []; } }
 
 /* --- #2 Hover foto profil & pengurus: zoom + nama + jabatan tanpa klik --- */
 function showFotoHover(el){
@@ -3470,7 +3475,7 @@ async function cleanupOldChat(){
 function pageChatAnggota(){
   if (!canManageChat()) return pageGate("Chat Anggota","Halaman ini khusus untuk <b>Admin &amp; Bendahara</b>.");
   return `<section class="page active">
-    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.35</span></h2>
+    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.36</span></h2>
     <p class="section-sub"><b>Pilih anggota dari dropdown</b> di kiri atas &mdash; atau klik percakapan terbaru di bawahnya &mdash; lalu percakapan terbuka di panel <b>kanan</b>. Ketik balasan di <b>kotak balas</b> (kanan bawah). Bisa memulai chat baru ke anggota mana pun. Balasan terkirim real-time ke widget anggota. Riwayat maks 1 tahun.</p>
     <div class="ca-wrap" id="caWrap">
       <div class="ca-list-col">
@@ -3527,7 +3532,7 @@ function renderCaThreadList(){
   }).join("");
 }
 
-function escapeAttrJS(s){ return String(s||"").replace(/\\/g,"\\\\").replace(/'/g,"\\'"); }
+function escapeAttrJS(s){ return String(s||"").replace(/\\/g,"\\\\").replace(/'/g,"\\'").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 
 async function openChatThread(email){
   activeChatThread=email;
@@ -3729,6 +3734,7 @@ function closeEditUser(){
 }
 
 async function saveUser(){
+  if (!currentUser || currentUser.role !== "admin"){ toast("Hanya admin.","error"); return; }
   if (!editingUserId){ toast("Tidak ada pengguna dipilih","error"); return; }
   const nama = $("editUserNama").value.trim();
   const role = $("editUserRole").value;
@@ -3783,7 +3789,7 @@ async function saveUser(){
       const a = DEMO.anggota.find(r => r.id === kodeLama);
       if (a) a.id = kodeBaru;
       ["demo_pengajuan_pinjaman","demo_pelunasan_pinjaman"].forEach(k => {
-        let arr; try { arr = JSON.parse(localStorage.getItem(k)||"[]"); } catch(e){ arr=[]; }
+        let arr; try { arr = loadArr(k); } catch(e){ arr=[]; }
         let ch=false; arr.forEach(r => { if (String(r.anggota_id) === kodeLama){ r.anggota_id = kodeBaru; ch=true; } });
         if (ch) localStorage.setItem(k, JSON.stringify(arr));
       });
@@ -4303,6 +4309,7 @@ function openAnggotaModal(id){
 }
 function closeAnggotaModal(){ $("anggotaModal").classList.remove("show"); editFotoData = null; }
 async function saveAnggota(){
+  if (!currentUser || !["bendahara","admin"].includes(currentUser.role)){ toast("Hanya bendahara/admin.","error"); return; }
   const id = $("anggotaId").value.trim();
   const nama = $("anggotaNama").value.trim();
   if (!id || !nama){ toast("ID dan Nama wajib diisi.","error"); return; }
@@ -4340,6 +4347,7 @@ async function saveAnggota(){
   }
 }
 async function deleteAnggota(id){
+  if (!currentUser || !["bendahara","admin"].includes(currentUser.role)){ toast("Hanya bendahara/admin.","error"); return; }
   if (!confirm("Hapus anggota "+id+"? Tindakan ini tidak bisa dibatalkan.")) return;
   if (IS_LIVE && sb){
     try {
@@ -4355,6 +4363,7 @@ async function deleteAnggota(id){
   }
 }
 async function toggleStatusAnggota(id){
+  if (!currentUser || !["bendahara","admin"].includes(currentUser.role)){ toast("Hanya bendahara/admin.","error"); return; }
   const rows = anggotaRows();
   const a = rows.find(r => r.id === id);
   if (!a) return;
@@ -4391,7 +4400,7 @@ function openPengurusModal(idx){
   if (sel){
     const opts = ['<option value="">— tidak terhubung —</option>']
       .concat((IS_LIVE ? liveUsers : []).filter(u => (u.status||'aktif')==='aktif')
-        .map(u => `<option value="${u.id}" ${p && p.profile_id===u.id?'selected':''}>${u.nama||u.email} ${u.anggota_id?'('+u.anggota_id+')':''}</option>`));
+        .map(u => `<option value="${escapeHtml(u.id)}" ${p && p.profile_id===u.id?'selected':''}>${escapeHtml(u.nama||u.email)} ${u.anggota_id?'('+escapeHtml(u.anggota_id)+')':''}</option>`));
     sel.innerHTML = opts.join("");
     sel.value = (p && p.profile_id) ? p.profile_id : "";
   }
@@ -4408,6 +4417,7 @@ function onPengurusLinkChange(profileId){
   else { img.style.display = "none"; img.src = ""; }
 }
 async function savePengurus(){
+  if (!currentUser || !["admin","pengurus"].includes(currentUser.role)){ toast("Hanya admin/pengurus.","error"); return; }
   const nama = $("pengurusNama").value.trim();
   const jabatan = $("pengurusJabatan").value.trim();
   if (!nama || !jabatan){ toast("Nama dan Jabatan wajib diisi.","error"); return; }
@@ -4448,6 +4458,7 @@ async function savePengurus(){
   }
 }
 async function deletePengurus(idx){
+  if (!currentUser || !["admin","pengurus"].includes(currentUser.role)){ toast("Hanya admin/pengurus.","error"); return; }
   if (!confirm("Hapus pengurus ini?")) return;
   if (IS_LIVE && sb){
     const rows = pengurusRows();
@@ -4675,7 +4686,7 @@ function blankoHitung(){
   if ($("bk_pelunasan_khusus_terbilang")) $("bk_pelunasan_khusus_terbilang").value = pelunasanKhusus>0 ? terbilang(pelunasanKhusus) : "";
 }
 function cetakBlanko(){
-  const v = id => ($(id) ? $(id).value : "");
+  const v = id => escapeHtml($(id) ? $(id).value : "");
   const ketua = blankoPengurus("ketua"), bend = blankoPengurus("bendahara");
   const reg = Number(v("bk_reguler"))||0, khu = Number(v("bk_khusus"))||0, bar = Number(v("bk_barang"))||0;
   const jaminan = Math.round(reg*0.01);
@@ -4722,7 +4733,7 @@ function cetakBlanko(){
   <h2 class="judul">PERJANJIAN PINJAMAN</h2>
   <p><b>Pihak Pertama:</b></p>
   <table>
-  <tr><td class="lbl">Nama</td><td>: ${ketua.nama}</td></tr>
+  <tr><td class="lbl">Nama</td><td>: ${escapeHtml(ketua.nama)}</td></tr>
   <tr><td class="lbl">Jabatan</td><td>: Ketua ${NAMA_KOPERASI}</td></tr>
   <tr><td class="lbl">Alamat</td><td>: Jl. Nusantara No. 1 Banyuwangi</td></tr></table>
   <p>Yang selanjutnya disebut sebagai <b>Pihak Pertama</b>.</p>
@@ -4769,9 +4780,9 @@ function cetakBlanko(){
   <table style="margin-top:8px"><tr><td class="lbl">Dibuat di</td><td>: ${v("bk_tempat")||"Banyuwangi"}</td></tr>
   <tr><td class="lbl">Tanggal</td><td>: ${tglTxt}</td></tr></table>
   <table style="margin-top:22px"><tr>
-  <td class="tt"><b>Pihak Pertama</b><br>Ketua ${NAMA_KOPERASI}<div class="nm">(${ketua.nama})</div></td>
+  <td class="tt"><b>Pihak Pertama</b><br>Ketua ${NAMA_KOPERASI}<div class="nm">(${escapeHtml(ketua.nama)})</div></td>
   <td class="tt"><b>Pihak Kedua</b><br>Pemohon${(blankoSertakanTtd && currentUser && currentUser.tanda_tangan) ? '<div style="text-align:center;margin:4px 0"><img src="'+currentUser.tanda_tangan+'" style="width:150px;height:60px;object-fit:contain"></div>' : ''}<div class="nm">(${v("bk_nama") || '. . . . . . . . . . . .'})</div></td>
-  <td class="tt"><b>Mengetahui</b><br>Bendahara ${NAMA_KOPERASI}<div class="nm">(${bend.nama})</div></td>
+  <td class="tt"><b>Mengetahui</b><br>Bendahara ${NAMA_KOPERASI}<div class="nm">(${escapeHtml(bend.nama)})</div></td>
   </tr></table>
   <p class="noprint" style="text-align:center;margin-top:24px"><button onclick="window.print()" style="padding:8px 24px;font-size:14px;cursor:pointer">🖨 Cetak / Save as PDF</button></p>
   <script>window.onload=function(){setTimeout(function(){window.print()},400)}<\/script>
@@ -4801,7 +4812,7 @@ function lapKeuRows(){
 }
 function renderLapKeuList(){
   const rows = lapKeuRows().slice().sort((a,b)=>b.tahun-a.tahun);
-  const canManage = currentUser && ["admin","bendahara","pengurus"].includes(currentUser.role);
+  const canManage = currentUser && ["admin","bendahara"].includes(currentUser.role);
   if (!rows.length) return "<p style='color:var(--muted)'>Belum ada laporan tersimpan.</p>";
   return `<div class="table-wrap"><table class="table-fin">
     <thead><tr><th>Tahun</th><th class="num">Total Aktiva</th><th class="num">Kewajiban</th><th class="num">Ekuitas</th><th class="num">SHU Bersih</th><th>File</th>${canManage?'<th>Aksi</th>':''}</tr></thead>
@@ -5005,15 +5016,17 @@ function renderEvaluasi(){
 function evaluasiNarasi(rows){
   if (rows.length < 2) return "<p>Butuh minimal 2 tahun data untuk analisis tren.</p>";
   const first = rows[0], last = rows[rows.length-1];
-  const dAktiva = (last.total_aktiva-first.total_aktiva)/first.total_aktiva*100;
-  const dSHU = (last.shu_bersih-first.shu_bersih)/first.shu_bersih*100;
-  const derLast = last.kewajiban/last.ekuitas;
-  const marginLast = last.shu_bersih/last.pendapatan*100;
-  const derKet = derLast < 0.35 ? "(sangat sehat — kewajiban kecil)" : (derLast < 0.6 ? "(cukup sehat)" : "(perlu diwaspadai)");
+  const safePct = (cur,prev)=> prev ? (cur-prev)/prev*100 : null;
+  const safeRatio = (a,b)=> b ? a/b : null;
+  const dAktiva = safePct(Number(last.total_aktiva)||0, Number(first.total_aktiva)||0);
+  const dSHU = safePct(Number(last.shu_bersih)||0, Number(first.shu_bersih)||0);
+  const derLast = safeRatio(Number(last.kewajiban)||0, Number(last.ekuitas)||0);
+  const marginLast = safePct(Number(last.shu_bersih)||0, Number(last.pendapatan)||0);
+  const derKet = derLast==null ? "(data belum lengkap)" : (derLast < 0.35 ? "(sangat sehat — kewajiban kecil)" : (derLast < 0.6 ? "(cukup sehat)" : "(perlu diwaspadai)"));
   return `<p style="font-size:14px;line-height:1.7">
-    Selama <strong>${first.tahun}–${last.tahun}</strong>, total aktiva <strong>${dAktiva>=0?'naik':'menurun'}</strong> sebesar <strong>${Math.abs(dAktiva).toFixed(1)}%</strong> (dari ${fmtIDR(first.total_aktiva)} menjadi ${fmtIDR(last.total_aktiva)}), sementara SHU bersih <strong>${dSHU>=0?'naik':'menurun'} ${Math.abs(dSHU).toFixed(1)}%</strong> (dari ${fmtIDR(first.shu_bersih)} menjadi ${fmtIDR(last.shu_bersih)}).
-    Rasio DER (debt-to-equity) tahun ${last.tahun} sebesar <strong>${derLast.toFixed(2)}×</strong> ${derKet}, dan margin SHU terhadap pendapatan <strong>${marginLast.toFixed(1)}%</strong>.
-    ${dSHU < 0 ? '<br>⚠️ SHU menurun — evaluasi efisiensi biaya operasional (gaji, jasa pengurus) dan optimalisasi pendapatan jasa pinjaman &amp; PPOB. Pertimbangkan menekan beban non-usaha yang naik.' : '<br>✅ SHU tetap positif &amp; relatif stabil — pertahankan disiplin biaya dan likuiditas simpanan anggota.'}
+    Selama <strong>${first.tahun}–${last.tahun}</strong>, total aktiva <strong>${dAktiva==null?'tidak berubah':(dAktiva>=0?'naik':'menurun')}</strong>${dAktiva==null?'':' sebesar <strong>'+Math.abs(dAktiva).toFixed(1)+'%</strong>'} (dari ${fmtIDR(first.total_aktiva)} menjadi ${fmtIDR(last.total_aktiva)}), sementara SHU bersih <strong>${dSHU==null?'tidak berubah':(dSHU>=0?'naik':'menurun')}${dSHU==null?'':' '+Math.abs(dSHU).toFixed(1)+'%'}</strong> (dari ${fmtIDR(first.shu_bersih)} menjadi ${fmtIDR(last.shu_bersih)}).
+    Rasio DER (debt-to-equity) tahun ${last.tahun} sebesar <strong>${derLast==null?'—':derLast.toFixed(2)+'×'}</strong> ${derKet}, dan margin SHU terhadap pendapatan <strong>${marginLast==null?'—':marginLast.toFixed(1)+'%'}</strong>.
+    ${dSHU!=null && dSHU < 0 ? '<br>⚠️ SHU menurun — evaluasi efisiensi biaya operasional (gaji, jasa pengurus) dan optimalisasi pendapatan jasa pinjaman &amp; PPOB. Pertimbangkan menekan beban non-usaha yang naik.' : '<br>✅ SHU tetap positif &amp; relatif stabil — pertahankan disiplin biaya dan likuiditas simpanan anggota.'}
   </p>`;
 }
 
