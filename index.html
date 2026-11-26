@@ -1382,6 +1382,7 @@ function renderPage(page){
   if (page === "beranda") renderCharts();
   if (page === "usaha") renderCharts();
   if (page === "blanko") blankoHitung();
+  if (page === "sisaangsuran" && typeof saApplyFilter === "function") saApplyFilter();
   if (page === "chatanggota") initChatAnggota();
 }
 
@@ -2595,22 +2596,37 @@ function pageSisaAngsuran(){
     if (isKhusus){
       const jt = (p.bulan_lunas && p.tahun_lunas) ? BULAN_ID[(Number(p.bulan_lunas)||1)-1]+" "+p.tahun_lunas
         : addMonthsBulan(p.bulan_disburse||1, p.tahun_disburse||new Date().getFullYear(), p.tenor||0);
-      khusus.push({p, jt, dibayar, lunas: dibayar>=(Number(p.pokok)||0) && (Number(p.pokok)||0)>0});
+      const lunas = dibayar>=(Number(p.pokok)||0) && (Number(p.pokok)||0)>0;
+      const sisaK = Math.max(0,(Number(p.pokok)||0)-dibayar);
+      khusus.push({p, jt, dibayar, lunas, sisa:sisaK, tanggungan: lunas?0:1});
     } else {
       const angBln = Number(p.angsuran_bln)||0;
       const angKe = angBln>0 ? Math.floor(dibayar/angBln) : 0;
       const sisaPokok = Math.max(0, (Number(p.pokok)||0) - dibayar);
       const sisaTenor = Math.max(0, (Number(p.tenor)||0) - angKe);
-      reguler.push({p, dibayar, angKe, sisaPokok, sisaTenor, lunas: sisaPokok<=0 && (Number(p.pokok)||0)>0});
+      const lunas = sisaPokok<=0 && (Number(p.pokok)||0)>0;
+      reguler.push({p, dibayar, angKe, sisaPokok, sisaTenor, lunas, tanggungan: sisaPokok>0?1:0});
     }
   });
-  const rowRB = r => '<tr><td>'+(r.p.nama||'-')+'<br><span style="color:var(--muted);font-size:11px">'+(r.p.anggota_id||'')+'</span></td><td>'+(r.p.jenis||'')+'</td><td class="num">'+fmtIDR(Number(r.p.pokok)||0)+'</td><td>'+(r.p.tenor||0)+' bln</td><td class="num">'+fmtIDR(Number(r.p.angsuran_bln)||0)+'</td><td>'+(r.p.tgl_potong?('Tgl '+r.p.tgl_potong):'-')+'</td><td>'+r.angKe+'</td><td class="num">'+fmtIDR(r.dibayar)+'</td><td class="num">'+fmtIDR(r.sisaPokok)+'</td><td>'+r.sisaTenor+' bln</td><td>'+_badge(r.lunas?'Lunas':'Aktif')+'</td></tr>';
-  const rowK = r => '<tr><td>'+(r.p.nama||'-')+'<br><span style="color:var(--muted);font-size:11px">'+(r.p.anggota_id||'')+'</span></td><td class="num">'+fmtIDR(Number(r.p.pokok)||0)+'</td><td class="num">'+fmtIDR(Number(r.p.khusus)||0)+'</td><td>'+(r.p.tenor||0)+' bln</td><td><strong>'+r.jt+'</strong></td><td class="num">'+fmtIDR(r.dibayar)+'</td><td>'+_badge(r.lunas?'Lunas':'Aktif')+'</td></tr>';
+  const escAttr = s => String(s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");
+  const rowRB = r => '<tr class="sa-row" data-nama="'+escAttr(r.p.nama)+'" data-id="'+escAttr(r.p.anggota_id)+'" data-tg="'+r.tanggungan+'"><td>'+(r.p.nama||'-')+'<br><span style="color:var(--muted);font-size:11px">'+(r.p.anggota_id||'')+'</span></td><td>'+(r.p.jenis||'')+'</td><td class="num">'+fmtIDR(Number(r.p.pokok)||0)+'</td><td>'+(r.p.tenor||0)+' bln</td><td class="num">'+fmtIDR(Number(r.p.angsuran_bln)||0)+'</td><td>'+(r.p.tgl_potong?('Tgl '+r.p.tgl_potong):'-')+'</td><td>'+r.angKe+'</td><td class="num">'+fmtIDR(r.dibayar)+'</td><td class="num">'+fmtIDR(r.sisaPokok)+'</td><td>'+r.sisaTenor+' bln</td><td>'+_badge(r.lunas?'Lunas':'Aktif')+'</td></tr>';
+  const rowK = r => '<tr class="sa-row" data-nama="'+escAttr(r.p.nama)+'" data-id="'+escAttr(r.p.anggota_id)+'" data-tg="'+r.tanggungan+'"><td>'+(r.p.nama||'-')+'<br><span style="color:var(--muted);font-size:11px">'+(r.p.anggota_id||'')+'</span></td><td class="num">'+fmtIDR(Number(r.p.pokok)||0)+'</td><td class="num">'+fmtIDR(Number(r.p.khusus)||0)+'</td><td>'+(r.p.tenor||0)+' bln</td><td><strong>'+r.jt+'</strong></td><td class="num">'+fmtIDR(r.dibayar)+'</td><td>'+_badge(r.lunas?'Lunas':'Aktif')+'</td></tr>';
+  const totalTanggungan = reguler.reduce((s,r)=>s+(r.tanggungan?r.sisaPokok:0),0) + khusus.reduce((s,r)=>s+(r.tanggungan?r.sisa:0),0);
+  const filterBar = isStaff ? `
+      <div class="card" style="margin-bottom:16px">
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+          <input id="saFilter" placeholder="🔍 Cari nama / ID anggota..." oninput="saApplyFilter()" style="flex:1;min-width:220px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px">
+          <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer;white-space:nowrap"><input type="checkbox" id="saOnlyTanggungan" onchange="saApplyFilter()"> Hanya yang masih ada tanggungan</label>
+          <span id="saCount" style="font-size:13px;color:var(--muted);white-space:nowrap"></span>
+        </div>
+        <p style="font-size:12px;color:var(--muted);margin:8px 0 0">Total sisa tanggungan (pinjaman belum lunas): <strong>${fmtIDR(totalTanggungan)}</strong></p>
+      </div>` : "";
   return `
   <section class="page active">
     <div class="container">
       <h2 class="section-title">Sisa Angsuran &amp; Jatuh Tempo Pinjaman</h2>
-      <p class="section-sub">${isStaff ? "Semua pinjaman aktif anggota." : "Sisa pinjaman Anda."} Pelunasan dicatat bendahara di menu Input Laporan &rarr; Pelunasan Angsuran.</p>
+      <p class="section-sub">${isStaff ? "Semua pinjaman aktif anggota — gunakan filter untuk mencari anggota yang masih memiliki tanggungan." : "Sisa pinjaman Anda."} Pelunasan dicatat bendahara di menu Input Laporan &rarr; Pelunasan Angsuran.</p>
+      ${filterBar}
       <div class="card" style="margin-bottom:16px">
         <h3>📌 Pinjaman Reguler &amp; Barang — Sisa Angsuran</h3>
         ${reguler.length ? '<div class="table-wrap"><table style="font-size:12px"><thead><tr><th>Anggota</th><th>Jenis</th><th class="num">Pokok</th><th>Tenor</th><th class="num">Angsuran/bln</th><th>Tgl Potong</th><th>Angg. ke</th><th class="num">Dibayar</th><th class="num">Sisa Pokok</th><th>Sisa Tenor</th><th>Status</th></tr></thead><tbody>'+reguler.map(rowRB).join('')+'</tbody></table></div>' : '<p style="color:var(--muted);font-size:13px">Belum ada pinjaman reguler/barang aktif.</p>'}
@@ -2621,6 +2637,23 @@ function pageSisaAngsuran(){
       </div>
     </div>
   </section>`;
+}
+function saApplyFilter(){
+  const inp = $("saFilter");
+  const q = ((inp && inp.value)||"").trim().toLowerCase();
+  const onlyTg = ($("saOnlyTanggungan") && $("saOnlyTanggungan").checked);
+  let shown=0, total=0;
+  document.querySelectorAll("tr.sa-row").forEach(tr=>{
+    total++;
+    const nama=(tr.getAttribute("data-nama")||"").toLowerCase();
+    const id=(tr.getAttribute("data-id")||"").toLowerCase();
+    const tg=tr.getAttribute("data-tg")==="1";
+    const ok=(!q || nama.includes(q) || id.includes(q)) && (!onlyTg || tg);
+    tr.style.display = ok ? "" : "none";
+    if(ok) shown++;
+  });
+  const c=$("saCount");
+  if(c) c.textContent="Tampil "+shown+" dari "+total+" pinjaman"+(onlyTg?" (tanggungan)":"");
 }
 
 /* ===== V3.9: Cetak Ulang Blanko Pinjaman dari Antrian Pengajuan ===== */
@@ -3437,7 +3470,7 @@ async function cleanupOldChat(){
 function pageChatAnggota(){
   if (!canManageChat()) return pageGate("Chat Anggota","Halaman ini khusus untuk <b>Admin &amp; Bendahara</b>.");
   return `<section class="page active">
-    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.34</span></h2>
+    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.35</span></h2>
     <p class="section-sub"><b>Pilih anggota dari dropdown</b> di kiri atas &mdash; atau klik percakapan terbaru di bawahnya &mdash; lalu percakapan terbuka di panel <b>kanan</b>. Ketik balasan di <b>kotak balas</b> (kanan bawah). Bisa memulai chat baru ke anggota mana pun. Balasan terkirim real-time ke widget anggota. Riwayat maks 1 tahun.</p>
     <div class="ca-wrap" id="caWrap">
       <div class="ca-list-col">
