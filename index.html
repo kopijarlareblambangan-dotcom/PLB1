@@ -1689,12 +1689,14 @@ function pageAnggota(){
 /* ---------- Page: Laporan ---------- */
 function pageLaporan(){
   const useLive = IS_LIVE && liveBukuBesar.length > 0;
+  const bbAll = bukuBesarRowsRaw();
+  const hasBBData = bbAll.length > 0;
   const shu = DEMO.shu, nrc = DEMO.neraca, pj = DEMO.pinjaman;
   const pjCur = pj.filter(p=>p.tahun===laporanTahun);
   const pjPrev = pj.filter(p=>p.tahun===(laporanTahun-1));
-  const shuLive = useLive ? computeSHUFromBB(laporanBulan, laporanTahun) : null;
-  const nrcLive = useLive ? computeNeracaFromBB(laporanBulan, laporanTahun) : null;
-  const bbRows = (useLive ? liveBukuBesar : []).filter(b => {
+  const shuLive = hasBBData ? computeSHUFromBB(laporanBulan, laporanTahun) : null;
+  const nrcLive = hasBBData ? computeNeracaFromBB(laporanBulan, laporanTahun) : null;
+  const bbRows = bbAll.filter(b => {
     if (!b.tanggal) return false;
     const d = new Date(b.tanggal);
     if (d.getFullYear() !== laporanTahun) return false;
@@ -1706,7 +1708,18 @@ function pageLaporan(){
   <section class="page active">
     <div class="container">
       <h2 class="section-title">Laporan Keuangan</h2>
-      <p class="section-sub">Filter periode untuk lihat data bulanan/tahunan — ${useLive ? "dihitung otomatis dari Buku Besar" : "menampilkan data demo (input transaksi di Buku Besar untuk laporan otomatis)"}</p>
+      <p class="section-sub">Filter periode untuk lihat data bulanan/tahunan — ${hasBBData ? "dihitung otomatis dari Buku Besar (" + (IS_LIVE ? "mode live" : "mode demo") + ")" : "menampilkan data demo — input transaksi di Buku Besar / Setoran / Pelunasan untuk laporan otomatis"}</p>
+      <div class="card" style="margin-bottom:14px;background:#ecfdf5;border-left:4px solid #059669">
+        <h3 style="margin:0 0 6px">🔗 Alur Interkoneksi Laporan Keuangan</h3>
+        <p style="font-size:13px;color:#065f46;margin:0;line-height:1.7">
+          Setiap transaksi harian tercatat ke <b>Buku Besar</b> (single source of truth), lalu mengalir otomatis ke <b>SHU</b> &amp; <b>Neraca</b>:<br>
+          • <b>Input Buku Besar</b> (manual) &rarr; jurnal double-entry<br>
+          • <b>Setoran Simpanan</b> &rarr; auto-jurnal (Dr Kas 1950 / Cr Simpanan Pokok 15102 atau Wajib 15103)<br>
+          • <b>Pencairan Pinjaman</b> (saat approve pengajuan) &rarr; auto-jurnal (Dr Piutang 10241 / Cr Kas 1950)<br>
+          • <b>Pelunasan Angsuran</b> (manual/upload Excel) &rarr; auto-jurnal (Dr Kas 1950 / Cr Piutang 10241 + Cr Pendapatan Jasa 70017)<br>
+          <span style="color:#047857">SHU = Pendapatan &minus; Beban &middot; Neraca: Aktiva = Kewajiban + Ekuitas. Tidak ada laporan diinput manual ganda.</span>
+        </p>
+      </div>
       <div class="card" style="margin-bottom:16px;display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
         <div class="form-group" style="margin:0;min-width:160px">
           <label>Bulan</label>
@@ -1742,7 +1755,7 @@ function pageLaporan(){
               <button class="btn btn-ghost btn-sm" onclick="cetakExcel('shu')">📊 Excel</button>
             </div>
           </div>
-          ${useLive ? renderSHULive(shuLive, periodeLabel) : renderSHUDemo(shu)}
+          ${shuLive ? renderSHULive(shuLive, periodeLabel) : renderSHUDemo(shu)}
         </div>
       </div>
 
@@ -1755,7 +1768,7 @@ function pageLaporan(){
               <button class="btn btn-ghost btn-sm" onclick="cetakExcel('neraca')">📊 Excel</button>
             </div>
           </div>
-          ${useLive ? renderNeracaLive(nrcLive, periodeLabel) : renderNeracaDemo(nrc)}
+          ${nrcLive ? renderNeracaLive(nrcLive, periodeLabel) : renderNeracaDemo(nrc)}
         </div>
       </div>
 
@@ -1844,7 +1857,8 @@ function pageInput(){
       <div class="tabs">
         ${isSek ? `` : `<button class="tab active" onclick="switchTab(event,'in-bb')">Input Buku Besar</button>
         <button class="tab" onclick="switchTab(event,'in-pinjaman')">Input Pinjaman</button>
-        <button class="tab" onclick="switchTab(event,'in-pelunasan')">Pelunasan Angsuran</button>`}
+        <button class="tab" onclick="switchTab(event,'in-pelunasan')">Pelunasan Angsuran</button>
+        <button class="tab" onclick="switchTab(event,'in-setoran')">Setoran Simpanan</button>`}
         <button class="tab ${isSek?`active`:``}" onclick="switchTab(event,'in-kegiatan')">Input Kegiatan</button>
         ${isSek ? `` : `<button class="tab" onclick="switchTab(event,'in-lapkeu')">Lap. Keuangan Tahunan</button>`}
       </div>
@@ -1948,6 +1962,23 @@ function pageInput(){
         <div class="card" style="margin-top:14px">
           <h3>🗑 Riwayat Pelunasan</h3>
           ${renderRiwayatPelunasan()}
+        </div>
+      </div>
+
+      <div class="tab-panel" id="in-setoran">
+        <div class="card">
+          <h3>🏦 Setoran Simpanan Pokok/Wajib</h3>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Catat setoran simpanan anggota. Sistem otomatis menulis <strong>jurnal Buku Besar</strong> (Debet Kas/Bank 1950, Kredit Simpanan Pokok 15102 / Wajib 15103) &amp; menambah saldo simpanan anggota. Tampil di Laporan &rarr; Buku Besar &amp; menambah ekuitas di Neraca.</p>
+          <form onsubmit="submitSetoran(event)">
+            <div class="form-grid">
+              <div class="form-group"><label>Anggota</label><select name="anggota_id" required>${anggotaRows().map(a=>`<option value="${escapeHtml(a.id)}">${escapeHtml(a.id)} — ${escapeHtml(a.nama)}</option>`).join("")}</select></div>
+              <div class="form-group"><label>Jenis Simpanan</label><select name="jenis" required><option value="pokok">Simpanan Pokok (15102)</option><option value="wajib">Simpanan Wajib (15103)</option></select></div>
+              <div class="form-group"><label>Tanggal</label><input type="date" name="tanggal" required></div>
+              <div class="form-group"><label>Jumlah (Rp)</label><input type="number" name="jumlah" placeholder="contoh: 250000" required min="0"></div>
+              <div class="form-group" style="grid-column:1/-1"><label>Keterangan</label><input type="text" name="keterangan" placeholder="opsional: setoran awal, iuran bulanan, dst"></div>
+            </div>
+            <button class="btn btn-primary" type="submit">Simpan Setoran</button>
+          </form>
         </div>
       </div>
 
@@ -2218,6 +2249,17 @@ async function approvePengajuan(id){
       if (e1) throw e1;
       const { error: e2 } = await sb.from("pinjaman").insert({ bulan:BULAN_ID[bulan-1], tahun, kategori, nilai:Number(p.pokok)||0, created_by:currentUser.id });
       if (e2) throw e2;
+      // V3.38: auto-jurnal pencairan pinjaman: Dr Piutang (10241) / Cr Kas (1950)
+      const _pokokDisb = Math.round(Number(p.pokok)||0);
+      if (_pokokDisb > 0){
+        const _tglD = tahun+"-"+String(bulan).padStart(2,"0")+"-01";
+        const _nbD = "DV-"+id;
+        const _urD = "Pencairan pinjaman "+(p.nama||p.anggota_id||"")+" #"+id;
+        await _bbInsertRows([
+          {ku:"104",kb:"01",tanggal:_tglD,no_bukti:_nbD,uraian:_urD,kp:"10241",akun:_bbAkunNama("10241"),debet:_pokokDisb,kredit:0,sub:null,ref_anggota:p.anggota_id||null},
+          {ku:"104",kb:"01",tanggal:_tglD,no_bukti:_nbD,uraian:_urD,kp:"1950",akun:_bbAkunNama("1950"),debet:0,kredit:_pokokDisb,sub:null,ref_anggota:p.anggota_id||null}
+        ]);
+      }
       toast("Pengajuan disetujui — masuk data pinjaman "+BULAN_ID[bulan-1]+" "+tahun+".","success");
       await syncFromSupabase(); renderPage("input");
     } catch(err){ toast("Gagal approve: "+(err.message||err),"error"); }
@@ -2228,6 +2270,17 @@ async function approvePengajuan(id){
     const pa = loadArr("demo_pinjaman");
     pa.push({ id:Date.now(), bulan:BULAN_ID[bulan-1], tahun, kategori, nilai:Number(p.pokok)||0 });
     localStorage.setItem("demo_pinjaman", JSON.stringify(pa));
+    // V3.38: auto-jurnal pencairan pinjaman: Dr Piutang (10241) / Cr Kas (1950)
+    const _pokokDisbD = Math.round(Number(p.pokok)||0);
+    if (_pokokDisbD > 0){
+      const _tglD = tahun+"-"+String(bulan).padStart(2,"0")+"-01";
+      const _nbD = "DV-"+id;
+      const _urD = "Pencairan pinjaman "+(p.nama||p.anggota_id||"")+" #"+id;
+      await _bbInsertRows([
+        {ku:"104",kb:"01",tanggal:_tglD,no_bukti:_nbD,uraian:_urD,kp:"10241",akun:_bbAkunNama("10241"),debet:_pokokDisbD,kredit:0,sub:null,ref_anggota:p.anggota_id||null},
+        {ku:"104",kb:"01",tanggal:_tglD,no_bukti:_nbD,uraian:_urD,kp:"1950",akun:_bbAkunNama("1950"),debet:0,kredit:_pokokDisbD,sub:null,ref_anggota:p.anggota_id||null}
+      ]);
+    }
     toast("(Demo) Pengajuan disetujui — masuk pinjaman "+BULAN_ID[bulan-1]+" "+tahun+".","success");
     renderPage("input");
   }
@@ -2532,16 +2585,19 @@ async function hapusPinjaman(id){
 async function hapusPelunasan(id){
   if (!_staffOnly()){ toast("Hanya admin/bendahara.","error"); return; }
   const alasan = _alasanHapus("pelunasan"); if (alasan===null) return;
-  if (!confirm("HAPUS pelunasan #"+id+"?\nAlasan: "+alasan)) return;
+  if (!confirm("HAPUS pelunasan #"+id+"?\nAlasan: "+alasan+"\nJurnal Buku Besar terkait juga akan dihapus.")) return;
+  const rec = pelunasanRowsRaw().find(x=>String(x.id)===String(id));
   if (IS_LIVE && sb){
     try { const { error } = await sb.from("pelunasan_pinjaman").delete().eq("id", id); if (error) throw error;
-      toast("Pelunasan dihapus. Alasan: "+alasan,"success"); await syncFromSupabase(); renderPage("input");
+      if (rec){ await _bbDeleteByNoBuktiExact(_pelunasanNoBukti(rec)); }
+      toast("Pelunasan + jurnal Buku Besar terkait dihapus. Alasan: "+alasan,"success"); await syncFromSupabase(); renderPage("input");
     } catch(err){ toast("Gagal hapus: "+(err.message||err),"error"); }
   } else {
     let arr = loadArr("demo_pelunasan_pinjaman");
     arr = arr.filter(x=>String(x.id)!==String(id));
     localStorage.setItem("demo_pelunasan_pinjaman", JSON.stringify(arr));
-    toast("(Demo) Pelunasan dihapus. Alasan: "+alasan,"success"); renderPage("input");
+    if (rec){ await _bbDeleteByNoBuktiExact(_pelunasanNoBukti(rec)); }
+    toast("(Demo) Pelunasan + jurnal terkait dihapus. Alasan: "+alasan,"success"); renderPage("input");
   }
 }
 
@@ -2587,6 +2643,8 @@ async function submitPelunasan(e){
     keterangan: f.keterangan.value || ""
   };
   await saveRecord("pelunasan_pinjaman", data, "Pelunasan");
+  // V3.38: auto-jurnal ke Buku Besar (Dr Kas, Cr Piutang + Cr Pendapatan Jasa)
+  try { await _bbInsertRows(_journalRowsPelunasan(data, peng)); } catch(e){ console.warn("jurnal pelunasan gagal:", e); }
   f.reset();
 }
 
@@ -2770,12 +2828,18 @@ async function importPelunasan(){
   const replace = $("upp_replace") && $("upp_replace").checked;
   const btn = $("uppImportBtn");
   if (btn){ btn.disabled = true; btn.textContent = "Memproses..."; }
+  // V3.38: siapkan baris jurnal Buku Besar utk semua pelunasan (split pokok/jasa)
+  const _pengMap = {}; pengajuanRowsRaw().forEach(p=>{ if(p.status==="disetujui") _pengMap[String(p.id)] = p; });
+  const _jr = [];
+  uppParsedRows.forEach(pel=>{ _journalRowsPelunasan(pel, _pengMap[String(pel.pengajuan_id)]).forEach(r=>_jr.push(r)); });
   try {
     if (IS_LIVE && sb){
       if (replace && uppParsedPairs.length){
         for (const p of uppParsedPairs){
+          const MM = String(p.bulan).padStart(2,"0");
           const { error: eDel } = await sb.from("pelunasan_pinjaman").delete().eq("bulan", p.bulan).eq("tahun", p.tahun);
           if (eDel){ toast("Gagal hapus data lama (bln "+p.bulan+"/"+p.tahun+"): "+eDel.message, "error"); return; }
+          await _bbDeleteByNoBuktiLike("PL-%-"+MM+p.tahun);   // hapus jurnal PL- lama utk bulan/tahun ini
         }
       }
       const payload = uppParsedRows.map(r => ({
@@ -2791,18 +2855,21 @@ async function importPelunasan(){
         if (error){ toast(`Gagal impor (baris ${i+1}-${i+chunk.length}): ${error.message}`, "error"); return; }
         inserted += chunk.length;
       }
-      toast(`✅ ${inserted} pelunasan berhasil diimpor.`, "success");
+      await _bbInsertRows(_jr);
+      toast(`✅ ${inserted} pelunasan + ${_jr.length} baris jurnal Buku Besar terimpor.`, "success");
       await syncFromSupabase();
     } else {
       let arr = loadArr("demo_pelunasan_pinjaman");
       if (replace){
         const pairSet = new Set(uppParsedPairs.map(p=>`${p.tahun}-${p.bulan}`));
         arr = arr.filter(x => !pairSet.has(`${Number(x.tahun)||0}-${Number(x.bulan)||0}`));
+        for (const p of uppParsedPairs){ await _bbDeleteByNoBuktiLike("PL-%-"+String(p.bulan).padStart(2,"0")+p.tahun); }
       }
       const now = new Date().toISOString();
       uppParsedRows.forEach((r,i) => arr.push({ ...r, id: Date.now()+i, created_by: currentUser.id, created_at: now }));
       localStorage.setItem("demo_pelunasan_pinjaman", JSON.stringify(arr));
-      toast(`(Demo) ${uppParsedRows.length} pelunasan diimpor.`, "success");
+      await _bbInsertRows(_jr);
+      toast(`(Demo) ${uppParsedRows.length} pelunasan + ${_jr.length} baris jurnal Buku Besar terimpor.`, "success");
     }
     uppParsedRows = []; uppParsedPairs = [];
     renderPage("input");
@@ -3003,6 +3070,120 @@ let ubbParsedRows = [];
 let ubbParsedTahun = null;
 let uppParsedRows = [];   // V3.37: hasil parse upload pelunasan
 let uppParsedPairs = [];  // V3.37: pasangan (bulan,tahun) unik yg akan diimpor
+
+/* ===== V3.38: Auto-jurnal Buku Besar — interkoneksi semua laporan keuangan =====
+   Setiap transaksi harian (setoran, pencairan pinjaman, pelunasan angsuran) otomatis
+   menulis jurnal double-entry ke buku_besar, sehingga SHU & Neraca terhitung otomatis.
+   Konvensi no_bukti: SP- (setoran), DV- (disburse), PL- (pelunasan). */
+function _bbAkunNama(kp){ return (CHART_OF_ACCOUNTS[kp] && CHART_OF_ACCOUNTS[kp].nama) || kp; }
+function _pelunasanSplit(jumlah, peng){
+  const pokok=Number(peng&&peng.pokok)||0, tenor=Number(peng&&peng.tenor)||0, angsBln=Number(peng&&peng.angsuran_bln)||0;
+  if (tenor<=0||angsBln<=0||pokok<=0) return { pokokPortion:jumlah, jasaPortion:0, hasJasa:false };
+  const pokokPerBln=pokok/tenor, jasaPerBln=angsBln-pokokPerBln;
+  if (Math.abs(jumlah-angsBln)<0.01) return { pokokPortion:pokokPerBln, jasaPortion:jasaPerBln, hasJasa:true };
+  const ratio=angsBln>0?jumlah/angsBln:1;
+  return { pokokPortion:pokokPerBln*ratio, jasaPortion:jasaPerBln*ratio, hasJasa:true };
+}
+function _pelunasanNoBukti(pel){
+  const MM=String(Number(pel.bulan)||1).padStart(2,"0");
+  const YYYY=Number(pel.tahun)||new Date().getFullYear();
+  return "PL-"+(pel.pengajuan_id||"X")+"-"+MM+YYYY;
+}
+function _journalRowsPelunasan(pel, peng){
+  const jumlah=Math.round(Number(pel&&pel.jumlah)||0);
+  if (jumlah<=0) return [];
+  const split=_pelunasanSplit(jumlah, peng);
+  let pokokR, jasaR;
+  if (split.hasJasa){ pokokR=Math.round(split.pokokPortion); jasaR=jumlah-pokokR; if(jasaR<0){pokokR=jumlah;jasaR=0;} }
+  else { pokokR=jumlah; jasaR=0; }
+  const tgl = (pel&&pel.tanggal) || ((Number(pel&&pel.tahun)||new Date().getFullYear())+"-"+String(Number(pel&&pel.bulan)||1).padStart(2,"0")+"-01");
+  const noBukti = _pelunasanNoBukti(pel);
+  const uraian = "Angsuran "+((pel&&pel.nama)||(pel&&pel.anggota_id)||"")+" \u2014 "+(BULAN_ID[(Number(pel&&pel.bulan)||1)-1]||"")+" "+(pel&&pel.tahun||"");
+  const base={ ku:"104", kb:"01", tanggal:tgl, no_bukti:noBukti, uraian, sub:null, ref_anggota:(pel&&pel.anggota_id)||null };
+  const rows=[];
+  rows.push({...base, kp:"1950", akun:_bbAkunNama("1950"), debet:jumlah, kredit:0});                 // Dr Kas/Bank
+  if (pokokR>0) rows.push({...base, kp:"10241", akun:_bbAkunNama("10241"), debet:0, kredit:pokokR}); // Cr Piutang Pinjaman Anggota
+  if (jasaR>0)  rows.push({...base, kp:"70017", akun:_bbAkunNama("70017"), debet:0, kredit:jasaR});  // Cr Pendapatan Jasa Angsuran
+  return rows;
+}
+async function _bbInsertRows(rows){
+  if (!rows || !rows.length) return;
+  if (IS_LIVE && sb){
+    const payload=rows.map(r=>({...r, created_by:currentUser.id}));
+    const CHUNK=500;
+    for (let i=0;i<payload.length;i+=CHUNK){
+      const { error }=await sb.from("buku_besar").insert(payload.slice(i,i+CHUNK));
+      if (error){ toast("Gagal menulis jurnal Buku Besar: "+error.message,"error"); return; }
+    }
+  } else {
+    const arr=loadArr("demo_buku_besar");
+    const now=new Date().toISOString();
+    rows.forEach((r,i)=>arr.push({...r, id:Date.now()+i, created_by:(currentUser&&currentUser.id)||null, created_at:now}));
+    localStorage.setItem("demo_buku_besar", JSON.stringify(arr));
+  }
+}
+async function _bbDeleteByNoBuktiLike(pattern){
+  if (!pattern) return;
+  if (IS_LIVE && sb){
+    const { error }=await sb.from("buku_besar").delete().like("no_bukti", pattern);
+    if (error){ toast("Gagal hapus jurnal lama: "+error.message,"error"); }
+  } else {
+    let arr=loadArr("demo_buku_besar");
+    const m=pattern.match(/^([^%]*)%([^%]*)$/);
+    if (m){ const pre=m[1], suf=m[2]; arr=arr.filter(b=>{ const nb=String(b.no_bukti||""); return !(nb.startsWith(pre)&&nb.endsWith(suf)); }); }
+    else { arr=arr.filter(b=>String(b.no_bukti||"")!==pattern); }
+    localStorage.setItem("demo_buku_besar", JSON.stringify(arr));
+  }
+}
+async function _bbDeleteByNoBuktiExact(nb){
+  if (!nb) return;
+  if (IS_LIVE && sb){
+    const { error }=await sb.from("buku_besar").delete().eq("no_bukti", nb);
+    if (error){ toast("Gagal hapus jurnal: "+error.message,"error"); }
+  } else {
+    let arr=loadArr("demo_buku_besar");
+    arr=arr.filter(b=>String(b.no_bukti||"")!==nb);
+    localStorage.setItem("demo_buku_besar", JSON.stringify(arr));
+  }
+}
+async function submitSetoran(e){
+  e.preventDefault();
+  const f=e.target;
+  if (!_staffOnly()){ toast("Hanya admin/bendahara.","error"); return; }
+  const anggota_id=f.anggota_id.value;
+  const jenis=f.jenis.value;
+  const jumlah=Math.round(Number(f.jumlah.value)||0);
+  const tanggal=f.tanggal.value;
+  const ket=(f.keterangan.value||"").trim();
+  if (!anggota_id){ toast("Pilih anggota.","error"); return; }
+  if (!tanggal){ toast("Tanggal wajib diisi.","error"); return; }
+  if (jumlah<=0){ toast("Jumlah harus > 0.","error"); return; }
+  const ag = anggotaRows().find(a=>a.id===anggota_id) || {};
+  const kpKr = jenis==="pokok" ? "15102" : "15103";
+  const d=new Date(tanggal);
+  const MM=String(d.getMonth()+1).padStart(2,"0"), YYYY=d.getFullYear();
+  const noBukti="SP-"+anggota_id+"-"+MM+YYYY;
+  const uraian="Setoran Simpanan "+(jenis==="pokok"?"Pokok":"Wajib")+" "+(ag.nama||anggota_id)+(ket?(" \u2014 "+ket):"");
+  const rows=[
+    {ku:"104",kb:"01",tanggal,no_bukti:noBukti,uraian,kp:"1950",akun:_bbAkunNama("1950"),debet:jumlah,kredit:0,sub:null,ref_anggota:anggota_id},
+    {ku:"104",kb:"01",tanggal,no_bukti:noBukti,uraian,kp:kpKr,akun:_bbAkunNama(kpKr),debet:0,kredit:jumlah,sub:null,ref_anggota:anggota_id}
+  ];
+  await _bbInsertRows(rows);
+  if (IS_LIVE && sb){
+    const field = jenis==="pokok"?"simpanan_pokok":"simpanan_wajib";
+    const cur = Number(ag[field]||0);
+    const { error } = await sb.from("anggota").update({ [field]: cur+jumlah }).eq("id", anggota_id);
+    if (error){ toast("Jurnal tersimpan, tapi gagal update saldo anggota: "+error.message,"error"); }
+    else { toast("Setoran Simpanan "+(jenis==="pokok"?"Pokok":"Wajib")+" "+fmtIDR(jumlah)+" tercatat + jurnal Buku Besar + saldo anggota +.","success"); }
+    await loadAnggota(); await syncFromSupabase();
+  } else {
+    const a = DEMO.anggota.find(x=>x.id===anggota_id);
+    if (a){ if(jenis==="pokok") a.simpanan_pokok=(Number(a.simpanan_pokok)||0)+jumlah; else a.simpanan_wajib=(Number(a.simpanan_wajib)||0)+jumlah; }
+    toast("(Demo) Setoran "+fmtIDR(jumlah)+" tercatat + jurnal Buku Besar. Saldo anggota di-update di memori.","success");
+  }
+  f.reset();
+  renderPage("input");
+}
 function convTglBuku(v, tahun){
   let dd="", mm="";
   if (v == null || v === "") return "";
@@ -3714,7 +3895,7 @@ async function cleanupOldChat(){
 function pageChatAnggota(){
   if (!canManageChat()) return pageGate("Chat Anggota","Halaman ini khusus untuk <b>Admin &amp; Bendahara</b>.");
   return `<section class="page active">
-    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.37</span></h2>
+    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.38</span></h2>
     <p class="section-sub"><b>Pilih anggota dari dropdown</b> di kiri atas &mdash; atau klik percakapan terbaru di bawahnya &mdash; lalu percakapan terbuka di panel <b>kanan</b>. Ketik balasan di <b>kotak balas</b> (kanan bawah). Bisa memulai chat baru ke anggota mana pun. Balasan terkirim real-time ke widget anggota. Riwayat maks 1 tahun.</p>
     <div class="ca-wrap" id="caWrap">
       <div class="ca-list-col">
@@ -4221,7 +4402,7 @@ function setPeriode(){
 
 /* --- Hitung SHU dari Buku Besar (periode: bulan tertentu atau Jan..Des tahun) --- */
 function computeSHUFromBB(bulan, tahun){
-  const rows = liveBukuBesar.filter(b => {
+  const rows = bukuBesarRowsRaw().filter(b => {
     if (!b.tanggal) return false;
     const d = new Date(b.tanggal);
     if (d.getFullYear() !== tahun) return false;
@@ -4253,23 +4434,32 @@ function computeNeracaFromBB(bulan, tahun){
   const end = bulan
     ? new Date(tahun, BULAN_ID.indexOf(bulan) + 1, 0)   // hari terakhir bulan terpilih
     : new Date(tahun, 11, 31);                           // 31 Desember jika semua bulan
-  const rows = liveBukuBesar.filter(b => {
+  const rows = bukuBesarRowsRaw().filter(b => {
     if (!b.tanggal) return false;
     const d = new Date(b.tanggal);
     return d <= end;
   });
   const bal = {};
+  let shuBerjalan = 0;   // V3.38b: SHU tahun berjalan s/d akhir periode -> ekuitas (laba ditahan berjalan)
   rows.forEach(r => {
     const acc = CHART_OF_ACCOUNTS[r.kp];
-    if (!acc || !acc.neraca) return;
+    if (!acc) return;
     const val = (Number(r.debet)||0) - (Number(r.kredit)||0);
-    bal[r.kp] = (bal[r.kp]||0) + (acc.normal === "D" ? val : -val);
+    if (acc.neraca) bal[r.kp] = (bal[r.kp]||0) + (acc.normal === "D" ? val : -val);
+    if (acc.shu){
+      const d = new Date(r.tanggal);
+      if (d.getFullYear() === tahun){
+        if (acc.shu === "pendapatan") shuBerjalan += -val;   // kredit - debet
+        else if (acc.shu === "beban") shuBerjalan -= val;    // -(debet - kredit)
+      }
+    }
   });
   const pick = (sec) => Object.entries(bal).filter(([k])=>CHART_OF_ACCOUNTS[k].neraca===sec && bal[k]!==0)
     .map(([k,v])=>({uraian:CHART_OF_ACCOUNTS[k].nama, nilai:v}));
   const aktiva_lancar = pick("aktiva_lancar");
   const kewajiban_jp = pick("kewajiban_jp");
   const ekuitas = pick("ekuitas");
+  if (shuBerjalan !== 0) ekuitas.push({uraian:"SHU Tahun Berjalan", nilai: shuBerjalan});
   const total_aktiva = aktiva_lancar.reduce((s,a)=>s+a.nilai,0);
   const total_kewajiban = kewajiban_jp.reduce((s,a)=>s+a.nilai,0);
   const total_ekuitas = ekuitas.reduce((s,a)=>s+a.nilai,0);
