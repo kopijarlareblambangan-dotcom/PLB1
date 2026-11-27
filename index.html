@@ -3895,7 +3895,7 @@ async function cleanupOldChat(){
 function pageChatAnggota(){
   if (!canManageChat()) return pageGate("Chat Anggota","Halaman ini khusus untuk <b>Admin &amp; Bendahara</b>.");
   return `<section class="page active">
-    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.42</span></h2>
+    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.43</span></h2>
     <p class="section-sub"><b>Pilih anggota dari dropdown</b> di kiri atas &mdash; atau klik percakapan terbaru di bawahnya &mdash; lalu percakapan terbuka di panel <b>kanan</b>. Ketik balasan di <b>kotak balas</b> (kanan bawah). Bisa memulai chat baru ke anggota mana pun. Balasan terkirim real-time ke widget anggota. Riwayat maks 1 tahun.</p>
     <div class="ca-wrap" id="caWrap">
       <div class="ca-list-col">
@@ -5168,24 +5168,24 @@ function cetakBlanko(){
   const _cb = '<span style="display:inline-block;width:11px;height:11px;border:1.2px solid #000;vertical-align:-1px;margin-right:6px"></span>';
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>Perjanjian Pinjaman — ${v("bk_nama")||"Pemohon"}</title>
   <style>
-  @page{size:A4;margin:0.8cm 1.0cm} body{font-family:'Times New Roman',serif;font-size:10px;color:#000;line-height:1.25}
-  p{margin:2px 0}
-  .kop{display:flex;align-items:center;gap:8px;border-bottom:2px solid #000;padding-bottom:4px;margin-bottom:6px}
-  .kop img{height:48px;width:auto;object-fit:contain}
+  @page{size:A4;margin:1.0cm 1.2cm} body{font-family:'Times New Roman',serif;font-size:11px;color:#000;line-height:1.4}
+  p{margin:4px 0}
+  .kop{display:flex;align-items:center;gap:10px;border-bottom:2px solid #000;padding-bottom:5px;margin-bottom:8px}
+  .kop img{height:56px;width:auto;object-fit:contain}
   .kop .txt{flex:1;text-align:center}
-  .kop h1{font-size:13px;margin:0}.kop h2{font-size:10px;margin:1px 0 0;font-weight:400}.kop .meta{font-size:8.5px;margin:0;font-weight:400;line-height:1.18}
-  h2.judul{text-align:center;text-decoration:underline;font-size:12px;margin:6px 0 3px}
-  .pasal{font-weight:700;margin:4px 0 1px;text-transform:uppercase;font-size:10px;text-align:center}
-  table{width:100%;border-collapse:collapse;margin:1px 0}
-  td{vertical-align:top;padding:1px 2px;font-size:10px}
-  td.lbl{width:150px}
-  td.sub{padding-left:16px}
-  .tt{width:50%;text-align:center;font-size:9.5px;vertical-align:top}
-  .sigarea{height:40px;display:flex;align-items:flex-end;justify-content:center}
-  .sigarea img{max-height:36px;max-width:140px;width:auto;object-fit:contain}
-  .tt .nm{padding-top:1px;font-weight:700;text-transform:uppercase}
-  .small{font-size:9.5px;text-align:justify;line-height:1.22}
-  ol{margin:1px 0 1px 15px;padding:0}.small li{margin-bottom:0;text-align:justify;line-height:1.22}
+  .kop h1{font-size:14px;margin:0}.kop h2{font-size:11px;margin:1px 0 0;font-weight:400}.kop .meta{font-size:9.5px;margin:0;font-weight:400;line-height:1.3}
+  h2.judul{text-align:center;text-decoration:underline;font-size:13px;margin:10px 0 6px}
+  .pasal{font-weight:700;margin:8px 0 3px;text-transform:uppercase;font-size:11px;text-align:center}
+  table{width:100%;border-collapse:collapse;margin:2px 0}
+  td{vertical-align:top;padding:2px 3px;font-size:11px}
+  td.lbl{width:155px}
+  td.sub{padding-left:18px}
+  .tt{width:50%;text-align:center;font-size:10.5px;vertical-align:top}
+  .sigarea{height:52px;display:flex;align-items:flex-end;justify-content:center}
+  .sigarea img{max-height:48px;max-width:150px;width:auto;object-fit:contain}
+  .tt .nm{padding-top:2px;font-weight:700;text-transform:uppercase}
+  .small{font-size:10.5px;text-align:justify;line-height:1.35}
+  ol{margin:2px 0 2px 16px;padding:0}.small li{margin-bottom:2px;text-align:justify;line-height:1.35}
   @media print{.noprint{display:none}}
   </style></head><body>
   <div class="kop"><img src="${KOP_LOGO}"><div class="txt"><h1>${NAMA_KOPERASI}</h1><div class="meta">PT PLN (Persero) UP3 Banyuwangi</div><div class="meta">Jl. Nusantara No. 1 Telp. 421441, 421442 Banyuwangi</div><div class="meta">Email : pijar.lareblambangan@gmail.com</div><div class="meta">Badan Hukum : 7418/BH/II/1992 Tanggal 29 September 1992</div></div></div>
