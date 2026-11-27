@@ -3895,7 +3895,7 @@ async function cleanupOldChat(){
 function pageChatAnggota(){
   if (!canManageChat()) return pageGate("Chat Anggota","Halaman ini khusus untuk <b>Admin &amp; Bendahara</b>.");
   return `<section class="page active">
-    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.43</span></h2>
+    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.44</span></h2>
     <p class="section-sub"><b>Pilih anggota dari dropdown</b> di kiri atas &mdash; atau klik percakapan terbaru di bawahnya &mdash; lalu percakapan terbuka di panel <b>kanan</b>. Ketik balasan di <b>kotak balas</b> (kanan bawah). Bisa memulai chat baru ke anggota mana pun. Balasan terkirim real-time ke widget anggota. Riwayat maks 1 tahun.</p>
     <div class="ca-wrap" id="caWrap">
       <div class="ca-list-col">
@@ -5186,6 +5186,8 @@ function cetakBlanko(){
   .tt .nm{padding-top:2px;font-weight:700;text-transform:uppercase}
   .small{font-size:10.5px;text-align:justify;line-height:1.35}
   ol{margin:2px 0 2px 16px;padding:0}.small li{margin-bottom:2px;text-align:justify;line-height:1.35}
+  .pb{page-break-before:always;break-before:page}
+  .keep{page-break-inside:avoid;break-inside:avoid}
   @media print{.noprint{display:none}}
   </style></head><body>
   <div class="kop"><img src="${KOP_LOGO}"><div class="txt"><h1>${NAMA_KOPERASI}</h1><div class="meta">PT PLN (Persero) UP3 Banyuwangi</div><div class="meta">Jl. Nusantara No. 1 Telp. 421441, 421442 Banyuwangi</div><div class="meta">Email : pijar.lareblambangan@gmail.com</div><div class="meta">Badan Hukum : 7418/BH/II/1992 Tanggal 29 September 1992</div></div></div>
@@ -5231,7 +5233,7 @@ function cetakBlanko(){
   3) Biaya Jaminan Pinjaman tersebut akan dikembalikan apabila pinjaman sudah lunas.</p>
   <p class="pasal">Pasal 4 — Denda Keterlambatan</p>
   <p class="small">Setiap keterlambatan pembayaran angsuran pokok dan jasa pinjaman oleh Pihak Kedua akan dikenakan denda 5% (per bulan) diperhitungkan dari pinjaman pokok dan jasa pinjaman yang tertunggak.</p>
-  <p class="pasal">Pasal 5 — Hak dan Kewajiban</p>
+  <p class="pasal pb">Pasal 5 — Hak dan Kewajiban</p>
   <p class="small"><b>Pihak Pertama mempunyai hak:</b></p>
   <ol class="small">
     <li>Mendapatkan informasi keuangan dan informasi lain yang diperlukan berkaitan dengan pemanfaatan pinjaman.</li>
@@ -5267,15 +5269,15 @@ function cetakBlanko(){
   <p style="margin-top:10px">Demikian Perjanjian Pinjaman ini telah dibaca dan dipahami oleh Pihak Pertama dan Pihak Kedua dan selanjutnya ditandatangani oleh kedua belah pihak, dibuat dalam 2 (dua) rangkap yang masing-masing memiliki kekuatan hukum yang sama.</p>
   <table style="margin-top:8px"><tr><td class="lbl">Dibuat di</td><td>: ${v("bk_tempat")||"Banyuwangi"}</td></tr>
   <tr><td class="lbl">Tanggal</td><td>: ${tglTxt}</td></tr></table>
-  <table style="margin-top:22px"><tr>
+  <table class="keep" style="margin-top:22px"><tr>
   <td class="tt"><b>Pihak Pertama</b><br>Ketua ${NAMA_KOPERASI}<div class="sigarea"></div><div class="nm">${escapeHtml((ketua.nama||"").toUpperCase())}</div></td>
   <td class="tt"><b>Pihak Kedua</b><br>Pemohon${_ttdKedua}<div class="nm">${(v("bk_nama") || '. . . . . . . . . . . .').toUpperCase()}</div></td>
   </tr></table>
-  <table style="margin-top:18px"><tr>
+  <table class="keep" style="margin-top:18px"><tr>
   <td class="tt"><b>Mengetahui</b><br>Bendahara ${NAMA_KOPERASI}<div class="sigarea"></div><div class="nm">${escapeHtml((bend.nama||"").toUpperCase())}</div></td>
   <td class="tt"><b>Menyetujui</b><br>Suami/Istri/Anak Pihak Kedua<div class="sigarea"></div><div class="nm">.................................</div></td>
   </tr></table>
-  <h2 class="judul" style="margin-top:20px">RINCIAN SISA PINJAMAN</h2>
+  <h2 class="judul pb" style="margin-top:0">RINCIAN SISA PINJAMAN</h2>
   <table>
   <tr><td class="lbl"><b>a) Pinjaman I</b></td><td></td></tr>
   <tr><td class="lbl sub">Sisa Pinjaman</td><td>: Rp ${_rpBlk(_exLoans[0].sisa)}</td></tr>
