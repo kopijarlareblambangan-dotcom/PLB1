@@ -3895,7 +3895,7 @@ async function cleanupOldChat(){
 function pageChatAnggota(){
   if (!canManageChat()) return pageGate("Chat Anggota","Halaman ini khusus untuk <b>Admin &amp; Bendahara</b>.");
   return `<section class="page active">
-    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.39</span></h2>
+    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.40</span></h2>
     <p class="section-sub"><b>Pilih anggota dari dropdown</b> di kiri atas &mdash; atau klik percakapan terbaru di bawahnya &mdash; lalu percakapan terbuka di panel <b>kanan</b>. Ketik balasan di <b>kotak balas</b> (kanan bawah). Bisa memulai chat baru ke anggota mana pun. Balasan terkirim real-time ke widget anggota. Riwayat maks 1 tahun.</p>
     <div class="ca-wrap" id="caWrap">
       <div class="ca-list-col">
@@ -5164,7 +5164,7 @@ function cetakBlanko(){
     ? "dan diberikan secara transfer ke nomor rekening " + (v("bk_rekening")||".....................") + " Bank " + (v("bk_bank")||".....................") + " a/n " + (v("bk_an")||".....................")
     : "dan diberikan secara cash";
   const _ttdKedua = (blankoSertakanTtd && currentUser && currentUser.tanda_tangan)
-    ? '<div style="text-align:center;margin:4px 0"><img src="'+currentUser.tanda_tangan+'" style="width:150px;height:60px;object-fit:contain"></div>' : '';
+    ? '<div class="sigarea"><img src="'+currentUser.tanda_tangan+'"></div>' : '<div class="sigarea"></div>';
   const _cb = '<span style="display:inline-block;width:11px;height:11px;border:1.2px solid #000;vertical-align:-1px;margin-right:6px"></span>';
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>Perjanjian Pinjaman — ${v("bk_nama")||"Pemohon"}</title>
   <style>
@@ -5172,20 +5172,22 @@ function cetakBlanko(){
   .kop{display:flex;align-items:center;gap:12px;border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:14px}
   .kop img{height:70px;width:auto;object-fit:contain}
   .kop .txt{flex:1;text-align:center}
-  .kop h1{font-size:16px;margin:0}.kop h2{font-size:12px;margin:2px 0 0;font-weight:400}
+  .kop h1{font-size:16px;margin:0}.kop h2{font-size:12px;margin:2px 0 0;font-weight:400}.kop .meta{font-size:10px;margin:1px 0 0;font-weight:400;line-height:1.35}
   h2.judul{text-align:center;text-decoration:underline;font-size:14px;margin:16px 0 10px}
-  .pasal{font-weight:700;margin:12px 0 4px;text-transform:uppercase;font-size:12px}
+  .pasal{font-weight:700;margin:12px 0 4px;text-transform:uppercase;font-size:12px;text-align:center}
   table{width:100%;border-collapse:collapse;margin:4px 0}
   td{vertical-align:top;padding:2px 4px;font-size:12px}
   td.lbl{width:180px}
   td.sub{padding-left:20px}
   .tt{width:50%;text-align:center;font-size:11px;vertical-align:top}
-  .tt .nm{margin-top:60px;border-top:1px solid #000;padding-top:2px;font-weight:700}
+  .sigarea{height:70px;display:flex;align-items:flex-end;justify-content:center}
+  .sigarea img{max-height:64px;max-width:170px;width:auto;object-fit:contain}
+  .tt .nm{border-top:1px solid #000;padding-top:2px;font-weight:700}
   .small{font-size:11px;text-align:justify}
   ol{margin:2px 0 2px 18px;padding:0}.small li{margin-bottom:2px;text-align:justify}
   @media print{.noprint{display:none}}
   </style></head><body>
-  <div class="kop"><img src="${KOP_LOGO}"><div class="txt"><h1>${NAMA_KOPERASI}</h1><h2>PT PLN (Persero) UP3 Banyuwangi</h2></div></div>
+  <div class="kop"><img src="${KOP_LOGO}"><div class="txt"><h1>${NAMA_KOPERASI}</h1><div class="meta">PT PLN (Persero) UP3 Banyuwangi</div><div class="meta">Jl. Nusantara No. 1 Telp. 421441, 421442 Banyuwangi</div><div class="meta">Email : pijar.lareblambangan@gmail.com</div><div class="meta">Badan Hukum : 7418/BH/II/1992 Tanggal 29 September 1992</div></div></div>
   <h2 class="judul">PERJANJIAN PINJAMAN</h2>
   <p><b>1. Pihak Pertama:</b></p>
   <table>
@@ -5265,12 +5267,12 @@ function cetakBlanko(){
   <table style="margin-top:8px"><tr><td class="lbl">Dibuat di</td><td>: ${v("bk_tempat")||"Banyuwangi"}</td></tr>
   <tr><td class="lbl">Tanggal</td><td>: ${tglTxt}</td></tr></table>
   <table style="margin-top:22px"><tr>
-  <td class="tt"><b>Pihak Pertama</b><br>Ketua ${NAMA_KOPERASI}<div class="nm">(${escapeHtml(ketua.nama)})</div></td>
+  <td class="tt"><b>Pihak Pertama</b><br>Ketua ${NAMA_KOPERASI}<div class="sigarea"></div><div class="nm">(${escapeHtml(ketua.nama)})</div></td>
   <td class="tt"><b>Pihak Kedua</b><br>Pemohon${_ttdKedua}<div class="nm">(${v("bk_nama") || '. . . . . . . . . . . .'})</div></td>
   </tr></table>
   <table style="margin-top:18px"><tr>
-  <td class="tt"><b>Mengetahui</b><br>Bendahara ${NAMA_KOPERASI}<div class="nm">(${escapeHtml(bend.nama)})</div></td>
-  <td class="tt"><b>Menyetujui</b><br>Suami/Istri/Anak Pihak Kedua<div class="nm">(.................................)</div></td>
+  <td class="tt"><b>Mengetahui</b><br>Bendahara ${NAMA_KOPERASI}<div class="sigarea"></div><div class="nm">(${escapeHtml(bend.nama)})</div></td>
+  <td class="tt"><b>Menyetujui</b><br>Suami/Istri/Anak Pihak Kedua<div class="sigarea"></div><div class="nm">(.................................)</div></td>
   </tr></table>
   <h2 class="judul" style="margin-top:20px">RINCIAN SISA PINJAMAN</h2>
   <table>
