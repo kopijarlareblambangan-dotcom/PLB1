@@ -3895,7 +3895,7 @@ async function cleanupOldChat(){
 function pageChatAnggota(){
   if (!canManageChat()) return pageGate("Chat Anggota","Halaman ini khusus untuk <b>Admin &amp; Bendahara</b>.");
   return `<section class="page active">
-    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.38</span></h2>
+    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.39</span></h2>
     <p class="section-sub"><b>Pilih anggota dari dropdown</b> di kiri atas &mdash; atau klik percakapan terbaru di bawahnya &mdash; lalu percakapan terbuka di panel <b>kanan</b>. Ketik balasan di <b>kotak balas</b> (kanan bawah). Bisa memulai chat baru ke anggota mana pun. Balasan terkirim real-time ke widget anggota. Riwayat maks 1 tahun.</p>
     <div class="ca-wrap" id="caWrap">
       <div class="ca-list-col">
@@ -5141,6 +5141,31 @@ function cetakBlanko(){
     pelunasanKhusus = khu + jasaKhususRp;
   }
   const blnLunasNama = blnLunas ? BULAN_ID[blnLunas-1] : "...";
+  // V3.39: RINCIAN SISA PINJAMAN — pre-fill dari pinjaman disetujui existing anggota
+  const _angId = (currentUser && currentUser.anggota_id) || v("bk_noanggota");
+  const _pelByPeng = {};
+  try { pelunasanRowsRaw().forEach(pl => { _pelByPeng[pl.pengajuan_id] = (_pelByPeng[pl.pengajuan_id]||0) + (Number(pl.jumlah)||0); }); } catch(e){}
+  let _exPeng = [];
+  try { _exPeng = pengajuanRowsRaw().filter(p => p && p.status==="disetujui"
+        && String(p.id)!==String(blankoSavedId)
+        && (p.anggota_id===_angId || (v("bk_noanggota") && p.no_anggota===v("bk_noanggota")))); } catch(e){}
+  const _exLoans = _exPeng.slice(0,3).map(p => {
+    const sisa = Math.max(0, (Number(p.pokok)||0) - (_pelByPeng[p.id]||0));
+    return { sisa, angsKali: p.angsuran_kali||"", angsBln: Number(p.angsuran_bln)||0, pelunasan: sisa };
+  });
+  while (_exLoans.length < 3) _exLoans.push({ sisa:0, angsKali:"", angsBln:0, pelunasan:0 });
+  const _totalPelunasan = _exLoans.reduce((s,l)=>s+l.pelunasan,0);
+  const _pokokTot = reg + khu + bar;
+  const _materai = _pokokTot >= 5000000 ? 10000 : 0;
+  const _uangDiterima = _pokokTot - jaminan - _materai;
+  const _rpBlk = n => (n && n>0) ? fmtIDR(n) : ".........";
+  // V3.39: kalimat pencairan sesuai doc ("dan diberikan secara cash/transfer ...")
+  const pencairanKalimat = pencairanMode === "transfer"
+    ? "dan diberikan secara transfer ke nomor rekening " + (v("bk_rekening")||".....................") + " Bank " + (v("bk_bank")||".....................") + " a/n " + (v("bk_an")||".....................")
+    : "dan diberikan secara cash";
+  const _ttdKedua = (blankoSertakanTtd && currentUser && currentUser.tanda_tangan)
+    ? '<div style="text-align:center;margin:4px 0"><img src="'+currentUser.tanda_tangan+'" style="width:150px;height:60px;object-fit:contain"></div>' : '';
+  const _cb = '<span style="display:inline-block;width:11px;height:11px;border:1.2px solid #000;vertical-align:-1px;margin-right:6px"></span>';
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>Perjanjian Pinjaman — ${v("bk_nama")||"Pemohon"}</title>
   <style>
   @page{size:A4;margin:1.6cm} body{font-family:'Times New Roman',serif;font-size:12px;color:#000;line-height:1.55}
@@ -5153,20 +5178,22 @@ function cetakBlanko(){
   table{width:100%;border-collapse:collapse;margin:4px 0}
   td{vertical-align:top;padding:2px 4px;font-size:12px}
   td.lbl{width:180px}
-  .tt{width:33%;text-align:center;font-size:11px;vertical-align:top}
-  .tt .nm{margin-top:56px;border-top:1px solid #000;padding-top:2px;font-weight:700}
-  .small{font-size:11px}
+  td.sub{padding-left:20px}
+  .tt{width:50%;text-align:center;font-size:11px;vertical-align:top}
+  .tt .nm{margin-top:60px;border-top:1px solid #000;padding-top:2px;font-weight:700}
+  .small{font-size:11px;text-align:justify}
+  ol{margin:2px 0 2px 18px;padding:0}.small li{margin-bottom:2px;text-align:justify}
   @media print{.noprint{display:none}}
   </style></head><body>
   <div class="kop"><img src="${KOP_LOGO}"><div class="txt"><h1>${NAMA_KOPERASI}</h1><h2>PT PLN (Persero) UP3 Banyuwangi</h2></div></div>
   <h2 class="judul">PERJANJIAN PINJAMAN</h2>
-  <p><b>Pihak Pertama:</b></p>
+  <p><b>1. Pihak Pertama:</b></p>
   <table>
   <tr><td class="lbl">Nama</td><td>: ${escapeHtml(ketua.nama)}</td></tr>
   <tr><td class="lbl">Jabatan</td><td>: Ketua ${NAMA_KOPERASI}</td></tr>
   <tr><td class="lbl">Alamat</td><td>: Jl. Nusantara No. 1 Banyuwangi</td></tr></table>
   <p>Yang selanjutnya disebut sebagai <b>Pihak Pertama</b>.</p>
-  <p><b>Pihak Kedua:</b></p>
+  <p><b>2. Pihak Kedua:</b></p>
   <table>
   <tr><td class="lbl">Nama</td><td>: ${v("bk_nama")}</td></tr>
   <tr><td class="lbl">Nomor Anggota</td><td>: ${v("bk_noanggota")||"-"}</td></tr>
@@ -5188,31 +5215,85 @@ function cetakBlanko(){
   <tr><td class="lbl">&nbsp;&nbsp;&nbsp;Terbilang</td><td>: ${tb(khu)}</td></tr>
   <tr><td class="lbl">3. Pinjaman Barang</td><td>: Rp ${rp(bar)}</td></tr>
   <tr><td class="lbl">&nbsp;&nbsp;&nbsp;Terbilang</td><td>: ${tb(bar)}</td></tr>
-  <tr><td class="lbl">Keterangan Barang</td><td>: ${v("bk_ket_barang")||"-"}</td></tr>
-  <tr><td class="lbl">Pencairan</td><td>: ${pencairanTxt}</td></tr></table>
+  <tr><td class="lbl">Keterangan Barang</td><td>: ${v("bk_ket_barang")||"-"}</td></tr></table>
+  <p style="margin-top:4px">${pencairanKalimat}.</p>
   <p class="pasal">Pasal 2 — Angsuran Pokok dan Jasa</p>
-  <p>1) Pihak Kedua setuju membayar jasa pinjaman sebesar <b>${v("bk_jasa_reg")||"..."}%</b> (tetap untuk pinjaman reguler &amp; barang).<br>
-  2) Pokok + jasa dilunasi dalam <b>${v("bk_tenor")||"..."}</b> bulan / <b>${v("bk_angsuran_kali")||"..."}</b> kali angsuran, sanggup dipotong gaji tanggal <b>${v("bk_tgl_potong")||"..."}</b> setiap bulan.<br>
-  3) Besarnya angsuran pokok &amp; jasa setiap bulan sebesar <b>Rp ${rp(angsBln)}</b> (${tb(angsBln)}).<br>
-  4) Pinjaman khusus jasa <b>${v("bk_jasa_khusus")||"..."}%</b> sesuai jatuh tempo; dilunasi pada <b>${blnLunasNama} ${thnLunas||"..."}</b> (lama <b>${lamaBulan}</b> bulan). Jasa khusus = <b>Rp ${rp(jasaKhususRp)}</b>; uang pelunasan khusus = <b>Rp ${rp(pelunasanKhusus)}</b> (${tb(pelunasanKhusus)}).</p>
+  <p class="small">1) Atas pinjaman sebagaimana disebut dalam Pasal 1 di atas, Pihak Kedua setuju membayar jasa pinjaman sebesar <b>${v("bk_jasa_reg")||"..."}%</b> dengan sistem pembayaran jasa tetap untuk pinjaman reguler dan pinjaman barang.<br>
+  2) Pihak Kedua setuju untuk membayar pokok pinjaman berikut jasa pinjaman dalam waktu <b>${v("bk_tenor")||"..."}</b> bulan dan/atau diangsur selama <b>${v("bk_angsuran_kali")||"..."}</b> kali angsuran serta sanggup dipotong gaji/penghasilan lainnya secara rutin pada tanggal <b>${v("bk_tgl_potong")||"..."}</b> setiap bulannya. Besarnya angsuran pokok &amp; jasa setiap bulan sebesar <b>Rp ${rp(angsBln)}</b> (${tb(angsBln)}).<br>
+  3) Untuk pinjaman khusus, Pihak Kedua setuju membayar jasa pinjaman sebesar <b>${v("bk_jasa_khusus")||"..."}%</b> sesuai dengan jatuh tempo yang telah disepakati.<br>
+  4) Pihak Kedua sanggup melakukan pelunasan pinjaman khusus sesuai jatuh tempo yang telah disepakati kedua belah pihak, maksimal bisa diberikan selama 6 bulan yang akan dilunasi pada <b>${blnLunasNama} ${thnLunas||"..."}</b> bulan (lama <b>${lamaBulan}</b> bulan). Jasa khusus = <b>Rp ${rp(jasaKhususRp)}</b>; uang pelunasan khusus = <b>Rp ${rp(pelunasanKhusus)}</b> (${tb(pelunasanKhusus)}).</p>
   <p class="pasal">Pasal 3 — Biaya Jaminan Pinjaman</p>
-  <p>1) Biaya Jaminan 1% dari pinjaman pokok reguler = <b>Rp ${fmtIDR(jaminan)}</b>, dikelola ${NAMA_KOPERASI}.<br>
-  2) Jika angsuran &gt;70% lalu peminjam meninggal dunia, sisa pinjaman tanggung jawab Koperasi; jika &lt;70% menjadi tanggung jawab ahli waris.<br>
-  3) Biaya Jaminan dikembalikan saat pinjaman lunas.</p>
+  <p class="small">1) Pihak Kedua bersedia membayar Biaya Jaminan Pinjaman yang dikelola oleh ${NAMA_KOPERASI} dengan biaya 1% dari pinjaman pokok reguler sebesar <b>Rp ${fmtIDR(jaminan)}</b>.<br>
+  2) Dengan ketentuan apabila pinjaman yang telah diangsur mencapai lebih dari 70% tertanggung meninggal dunia maka sisa pinjaman tersebut menjadi tanggung jawab Koperasi, sedangkan jika sisa pinjaman tersebut belum mencapai atau kurang dari 70% maka pelunasan sisa pinjaman menjadi tanggung jawab ahli waris.<br>
+  3) Biaya Jaminan Pinjaman tersebut akan dikembalikan apabila pinjaman sudah lunas.</p>
   <p class="pasal">Pasal 4 — Denda Keterlambatan</p>
-  <p>Setiap keterlambatan angsuran pokok &amp; jasa dikenakan denda 5% per bulan dari pokok+jasa tertunggak.</p>
+  <p class="small">Setiap keterlambatan pembayaran angsuran pokok dan jasa pinjaman oleh Pihak Kedua akan dikenakan denda 5% (per bulan) diperhitungkan dari pinjaman pokok dan jasa pinjaman yang tertunggak.</p>
   <p class="pasal">Pasal 5 — Hak dan Kewajiban</p>
-  <p class="small">Pihak Pertama berhak mendapat informasi keuangan, memberikan pinjaman sesuai RAT, dan menagih pelunasan penuh jika angsuran &gt;70%. Pihak Pertama wajib menyerahkan dana sesuai perjanjian &amp; memberi pengurangan jasa jika pelunasan &lt;70%. Pihak Kedua berhak mengelola dana &amp; mendapat pengurangan jasa jika lunas &lt;70%; wajib memberi info keuangan, melunasi penuh jika &gt;70%, dan melunasi seluruh pinjaman jika berhenti bekerja (mutasi/mengundurkan diri/PHK/meninggal) dari dana Jamsostek/THP/DPLK/pesangon.</p>
-  <p class="pasal">Pasal 6 — Jaminan &amp; Pasal 7 — Perselisihan</p>
-  <p class="small">Jika pinjaman melebihi batas, Pihak Kedua sanggup memberi agunan. Pihak Pertama berhak menggunakan agunan jika terjadi tunggakan/macet. Perselisihan diselesaikan di Pengadilan Negeri domisili perjanjian ditandatangani.</p>
-  <p>Demikian Perjanjian Pinjaman ini telah dibaca dan dipahami, ditandatangani dalam 2 rangkap dengan kekuatan hukum yang sama.</p>
+  <p class="small"><b>Pihak Pertama mempunyai hak:</b></p>
+  <ol class="small">
+    <li>Mendapatkan informasi keuangan dan informasi lain yang diperlukan berkaitan dengan pemanfaatan pinjaman.</li>
+    <li>Memberikan pinjaman sesuai dengan yang telah ditentukan atas dasar RAT.</li>
+    <li>Apabila angsuran pinjaman tersebut sudah melewati 70% dari lamanya angsuran, maka sisa angsuran jika dilakukan pelunasan pinjaman dihitung penuh beserta jasanya.</li>
+  </ol>
+  <p class="small"><b>Pihak Pertama berkewajiban atas hal-hal sebagai berikut:</b></p>
+  <ol class="small">
+    <li>Menjamin bahwa penyerahan dana pinjaman kepada Pihak Kedua sudah sesuai sebesar jumlah yang diperjanjikan.</li>
+    <li>Memberikan pengurangan jasa pinjaman jika sudah dilakukan pelunasan sebelum 70% dari lamanya angsuran, sehingga sisa pinjaman hanya terdiri dari pokok pinjamannya saja.</li>
+    <li>Apabila Pihak Kedua melanggar kewajiban yang timbul dari perjanjian pinjaman ini, maka Pihak Pertama dapat memberikan peringatan dan sanksi untuk memenuhi kewajibannya sesuai dengan Perjanjian Pinjaman ini.</li>
+    <li>Apabila Pihak Kedua terbukti tidak sanggup menyelesaikan kewajibannya sesuai batas waktu yang telah ditentukan, maka Pihak Pertama akan melakukan tindakan sebagaimana yang akan dijelaskan pada Pasal 6 ayat 3 dalam Perjanjian ini.</li>
+  </ol>
+  <p class="small"><b>Pihak Kedua mempunyai hak:</b></p>
+  <ol class="small">
+    <li>Mengelola dana pinjaman selama jangka waktu perjanjian yang telah disepakati.</li>
+    <li>Mendapatkan jumlah pinjaman sesuai dengan yang telah disepakati.</li>
+    <li>Mendapatkan pengurangan jasa pinjaman jika sudah dilakukan pelunasan sebelum 70% dari lamanya angsuran, sehingga sisa pinjaman hanya terdiri dari pokok pinjamannya saja.</li>
+  </ol>
+  <p class="small"><b>Pihak Kedua juga berkewajiban atas hal-hal berikut:</b></p>
+  <ol class="small">
+    <li>Memberikan informasi keuangan dan informasi lain yang diperlukan berkaitan dengan pemanfaatan pinjaman.</li>
+    <li>Apabila angsuran pinjaman tersebut sudah melewati 70% dari lamanya angsuran maka Pihak Kedua sanggup memenuhi pelunasan sisa angsuran pinjaman yang dihitung penuh beserta jasanya.</li>
+    <li>Bersedia melunasi seluruh kewajiban pinjaman apabila tidak bekerja lagi pada kantor PLN Banyuwangi karena mutasi (pindah), mengundurkan diri, Pemutusan Hubungan Kerja (PHK), meninggal dunia dan atau sebab-sebab lain dengan mempergunakan dana yang berasal dari Jamsostek, Tunjangan Hari Tua, DPLK, Pesangon atau kompensasi/benefit lain dari PT PLN (Persero) guna melunasi kewajiban pada ${NAMA_KOPERASI} sampai pembiayaan tersebut dinyatakan lunas.</li>
+    <li>Sebelum seluruh kewajiban belum diselesaikan atau masih berjalan maka Pihak Kedua tidak diperbolehkan untuk pindah bank payroll lain yang sudah disepakati bersama.</li>
+  </ol>
+  <p class="pasal">Pasal 6 — Jaminan</p>
+  <p class="small">1) Jika nilai besarnya pinjaman melebihi dari batas nilai pinjaman yang telah ditentukan maka Pihak Kedua sanggup memberikan jaminan atau agunan sesuai yang disyaratkan.<br>
+  2) Jaminan atau Agunan yang dimaksud pada ayat 1 pasal ini dari Pihak Kedua adalah berupa: <br>&nbsp;&nbsp;&nbsp;a. ............................................ <br>&nbsp;&nbsp;&nbsp;b. ............................................ <br>&nbsp;&nbsp;&nbsp;c. ............................................<br>
+  3) Pihak Pertama berhak untuk menggunakan agunan milik Pihak Kedua untuk melunasi pinjaman, apabila dikemudian hari terjadi tunggakan/kredit macet yang merugikan Pihak Pertama.</p>
+  <p class="pasal">Pasal 7 — Perselisihan</p>
+  <p class="small">Atas Perjanjian Pinjaman ini beserta pelaksanaannya dan seluruh akibat hukumnya, Pihak Pertama dan Pihak Kedua sepakat untuk memilih domisili hukum yang umum dan tetap di kepaniteraan Pengadilan Negeri yang wilayah hukumnya meliputi tempat dimana Perjanjian Pinjaman ini ditandatangani.</p>
+  <p style="margin-top:10px">Demikian Perjanjian Pinjaman ini telah dibaca dan dipahami oleh Pihak Pertama dan Pihak Kedua dan selanjutnya ditandatangani oleh kedua belah pihak, dibuat dalam 2 (dua) rangkap yang masing-masing memiliki kekuatan hukum yang sama.</p>
   <table style="margin-top:8px"><tr><td class="lbl">Dibuat di</td><td>: ${v("bk_tempat")||"Banyuwangi"}</td></tr>
   <tr><td class="lbl">Tanggal</td><td>: ${tglTxt}</td></tr></table>
   <table style="margin-top:22px"><tr>
   <td class="tt"><b>Pihak Pertama</b><br>Ketua ${NAMA_KOPERASI}<div class="nm">(${escapeHtml(ketua.nama)})</div></td>
-  <td class="tt"><b>Pihak Kedua</b><br>Pemohon${(blankoSertakanTtd && currentUser && currentUser.tanda_tangan) ? '<div style="text-align:center;margin:4px 0"><img src="'+currentUser.tanda_tangan+'" style="width:150px;height:60px;object-fit:contain"></div>' : ''}<div class="nm">(${v("bk_nama") || '. . . . . . . . . . . .'})</div></td>
-  <td class="tt"><b>Mengetahui</b><br>Bendahara ${NAMA_KOPERASI}<div class="nm">(${escapeHtml(bend.nama)})</div></td>
+  <td class="tt"><b>Pihak Kedua</b><br>Pemohon${_ttdKedua}<div class="nm">(${v("bk_nama") || '. . . . . . . . . . . .'})</div></td>
   </tr></table>
+  <table style="margin-top:18px"><tr>
+  <td class="tt"><b>Mengetahui</b><br>Bendahara ${NAMA_KOPERASI}<div class="nm">(${escapeHtml(bend.nama)})</div></td>
+  <td class="tt"><b>Menyetujui</b><br>Suami/Istri/Anak Pihak Kedua<div class="nm">(.................................)</div></td>
+  </tr></table>
+  <h2 class="judul" style="margin-top:20px">RINCIAN SISA PINJAMAN</h2>
+  <table>
+  <tr><td class="lbl"><b>a) Pinjaman I</b></td><td></td></tr>
+  <tr><td class="lbl sub">Sisa Pinjaman</td><td>: Rp ${_rpBlk(_exLoans[0].sisa)}</td></tr>
+  <tr><td class="lbl sub">Angsuran (${_exLoans[0].angsKali||"..."} kali)</td><td>: Rp ${_rpBlk(_exLoans[0].angsBln)}</td></tr>
+  <tr><td class="lbl sub">Pelunasan Pinjaman</td><td>: Rp ${_rpBlk(_exLoans[0].pelunasan)}</td></tr>
+  <tr><td class="lbl"><b>b) Pinjaman II</b></td><td></td></tr>
+  <tr><td class="lbl sub">Sisa Pinjaman</td><td>: Rp ${_rpBlk(_exLoans[1].sisa)}</td></tr>
+  <tr><td class="lbl sub">Angsuran (${_exLoans[1].angsKali||"..."} kali)</td><td>: Rp ${_rpBlk(_exLoans[1].angsBln)}</td></tr>
+  <tr><td class="lbl sub">Pelunasan Pinjaman</td><td>: Rp ${_rpBlk(_exLoans[1].pelunasan)}</td></tr>
+  <tr><td class="lbl"><b>c) Pinjaman III</b></td><td></td></tr>
+  <tr><td class="lbl sub">Sisa Pinjaman</td><td>: Rp ${_rpBlk(_exLoans[2].sisa)}</td></tr>
+  <tr><td class="lbl sub">Angsuran (${_exLoans[2].angsKali||"..."} kali)</td><td>: Rp ${_rpBlk(_exLoans[2].angsBln)}</td></tr>
+  <tr><td class="lbl sub">Pelunasan Pinjaman</td><td>: Rp ${_rpBlk(_exLoans[2].pelunasan)}</td></tr>
+  <tr style="font-weight:700"><td class="lbl">Total pelunasan pinjaman</td><td>: Rp ${_rpBlk(_totalPelunasan)}</td></tr>
+  <tr><td class="lbl">Biaya Jaminan Pinjaman</td><td>: Rp ${_rpBlk(jaminan)}</td></tr>
+  <tr><td class="lbl">Materai</td><td>: Rp ${_rpBlk(_materai)}</td></tr>
+  <tr style="font-weight:700"><td class="lbl">Untuk diterima uang sebesar</td><td>: Rp ${_rpBlk(_uangDiterima)}</td></tr>
+  </table>
+  <p style="margin-top:12px"><b>Disposisi:</b></p>
+  <p style="padding-left:8px;margin:4px 0">${_cb}Disetujui &nbsp;&nbsp;&nbsp;&nbsp; ${_cb}Tidak Disetujui &nbsp;&nbsp;&nbsp;&nbsp; ${_cb}Dipertimbangkan</p>
+  <p style="margin-top:8px"><b>Ket</b> : ....................................................................................................................</p>
   <p class="noprint" style="text-align:center;margin-top:24px"><button onclick="window.print()" style="padding:8px 24px;font-size:14px;cursor:pointer">🖨 Cetak / Save as PDF</button></p>
   <script>window.onload=function(){setTimeout(function(){window.print()},400)}<\/script>
   </body></html>`;
