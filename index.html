@@ -3895,7 +3895,7 @@ async function cleanupOldChat(){
 function pageChatAnggota(){
   if (!canManageChat()) return pageGate("Chat Anggota","Halaman ini khusus untuk <b>Admin &amp; Bendahara</b>.");
   return `<section class="page active">
-    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.44</span></h2>
+    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.45</span></h2>
     <p class="section-sub"><b>Pilih anggota dari dropdown</b> di kiri atas &mdash; atau klik percakapan terbaru di bawahnya &mdash; lalu percakapan terbuka di panel <b>kanan</b>. Ketik balasan di <b>kotak balas</b> (kanan bawah). Bisa memulai chat baru ke anggota mana pun. Balasan terkirim real-time ke widget anggota. Riwayat maks 1 tahun.</p>
     <div class="ca-wrap" id="caWrap">
       <div class="ca-list-col">
@@ -5116,7 +5116,7 @@ function blankoHitung(){
 }
 function cetakBlanko(){
   const v = id => escapeHtml($(id) ? $(id).value : "");
-  const ketua = blankoPengurus("ketua"), bend = blankoPengurus("bendahara");
+  const ketua = blankoPengurus("ketua"), bend = {nama:"Novrida Mafirungkas"};
   const reg = Number(v("bk_reguler"))||0, khu = Number(v("bk_khusus"))||0, bar = Number(v("bk_barang"))||0;
   const jaminan = Math.round(reg*0.01);
   const tgl = v("bk_tanggal");
@@ -5274,7 +5274,7 @@ function cetakBlanko(){
   <td class="tt"><b>Pihak Kedua</b><br>Pemohon${_ttdKedua}<div class="nm">${(v("bk_nama") || '. . . . . . . . . . . .').toUpperCase()}</div></td>
   </tr></table>
   <table class="keep" style="margin-top:18px"><tr>
-  <td class="tt"><b>Mengetahui</b><br>Bendahara ${NAMA_KOPERASI}<div class="sigarea"></div><div class="nm">${escapeHtml((bend.nama||"").toUpperCase())}</div></td>
+  <td class="tt"><b>Mengetahui</b><br>Manager ${NAMA_KOPERASI}<div class="sigarea"></div><div class="nm">${escapeHtml((bend.nama||"").toUpperCase())}</div></td>
   <td class="tt"><b>Menyetujui</b><br>Suami/Istri/Anak Pihak Kedua<div class="sigarea"></div><div class="nm">.................................</div></td>
   </tr></table>
   <h2 class="judul pb" style="margin-top:0">RINCIAN SISA PINJAMAN</h2>
