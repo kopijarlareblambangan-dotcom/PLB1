@@ -3895,7 +3895,7 @@ async function cleanupOldChat(){
 function pageChatAnggota(){
   if (!canManageChat()) return pageGate("Chat Anggota","Halaman ini khusus untuk <b>Admin &amp; Bendahara</b>.");
   return `<section class="page active">
-    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.45</span></h2>
+    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.46</span></h2>
     <p class="section-sub"><b>Pilih anggota dari dropdown</b> di kiri atas &mdash; atau klik percakapan terbaru di bawahnya &mdash; lalu percakapan terbuka di panel <b>kanan</b>. Ketik balasan di <b>kotak balas</b> (kanan bawah). Bisa memulai chat baru ke anggota mana pun. Balasan terkirim real-time ke widget anggota. Riwayat maks 1 tahun.</p>
     <div class="ca-wrap" id="caWrap">
       <div class="ca-list-col">
@@ -4940,7 +4940,7 @@ function blankoPengurus(jabatanKey){
 function pageBlanko(){
   if (!currentUser) return pageGate("Blanko Pinjaman", "Silakan masuk untuk mengisi &amp; mencetak blanko pinjaman.");
   const ketua = blankoPengurus("ketua");
-  const bend = blankoPengurus("bendahara");
+  const bend = {nama:"Novrida Mafirungkas"};
   const aNama = currentUser.nama || '';
   const aAlamat = currentUser.alamat || '';
   const aHp = currentUser.no_hp || '';
@@ -5052,9 +5052,9 @@ function pageBlanko(){
             <div class="form-group"><label>Tanggal</label><input type="date" id="bk_tanggal" value="${new Date().toISOString().slice(0,10)}" onchange="blankoHitung()"></div>
           </div>
           <div class="grid-3" style="margin-top:14px;text-align:center">
-            <div><strong>Pihak Pertama</strong><br>Ketua ${NAMA_KOPERASI}<br><br><br>(${ketua.nama})</div>
-            <div><strong>Pihak Kedua</strong><br>Pemohon<br>${bkTtdHtml()}<br>(${aNama || '. . . . . . . . . . . . . . . .'})</div>
-            <div><strong>Mengetahui</strong><br>Bendahara ${NAMA_KOPERASI}<br><br><br>(${bend.nama})</div>
+            <div><strong>Pihak Pertama</strong><br>Ketua ${NAMA_KOPERASI}<br><br><br><b>${(ketua.nama||"").toUpperCase()}</b></div>
+            <div><strong>Pihak Kedua</strong><br>Pemohon<br>${bkTtdHtml()}<br><b>${(aNama||'. . . . . . . . . . . . . . . .').toUpperCase()}</b></div>
+            <div><strong>Mengetahui</strong><br>Manager ${NAMA_KOPERASI}<br><br><br><b>${(bend.nama||"").toUpperCase()}</b></div>
           </div>
           <div id="bkStatus" style="margin-top:14px;display:none;background:var(--light);border-left:4px solid var(--success);padding:10px 12px;border-radius:6px;font-size:13px"></div>
           <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px;flex-wrap:wrap">
