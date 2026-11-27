@@ -64,6 +64,43 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.88em;bac
 .theme-swatch{transition:transform .15s var(--ease),border-color .15s,box-shadow .15s}
 .theme-swatch:hover{transform:translateY(-2px);border-color:var(--primary-light)!important}
 .theme-swatch.active{border-color:var(--primary-light)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--primary-light) 25%,transparent)}
+/* ===== V3.47: Panel kustomisasi UI ===== */
+#uiPopover{background:var(--card)!important;border:1px solid var(--border)!important;border-radius:var(--r-lg)!important;box-shadow:var(--shadow-3)!important;padding:16px!important;width:288px!important;top:44px!important;right:12px;animation:pop .2s var(--ease)}
+.ui-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.ui-head .t{font-weight:700;font-size:14px}
+.ui-close{border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:18px;line-height:1;padding:2px 6px;border-radius:var(--r-sm)}
+.ui-close:hover{color:var(--text);background:color-mix(in srgb,var(--primary) 8%,transparent)}
+.ui-row{margin-bottom:14px}
+.ui-row>label{display:block;font-size:10px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em}
+.ui-seg{display:flex;gap:3px;background:color-mix(in srgb,var(--primary) 7%,var(--light));border-radius:var(--r-md);padding:3px}
+.ui-seg button{flex:1;border:none;background:transparent;color:var(--muted);font:600 11px var(--f-body);padding:7px 2px;border-radius:calc(var(--r-md) - 3px);cursor:pointer;transition:all .15s var(--ease)}
+.ui-seg button:hover{color:var(--text)}
+.ui-seg button.active{background:var(--card);color:var(--primary);box-shadow:var(--shadow-1)}
+.ui-chips{display:flex;flex-wrap:wrap;gap:6px}
+.ui-chip{display:flex;align-items:center;gap:6px;border:1px solid var(--border);background:var(--card);color:var(--muted);font:600 11px var(--f-body);padding:6px 11px;border-radius:999px;cursor:pointer;transition:all .15s var(--ease)}
+.ui-chip:hover{border-color:var(--primary-light)}
+.ui-chip.active{background:color-mix(in srgb,var(--primary) 12%,var(--card));border-color:var(--primary);color:var(--primary)}
+.ui-chip .dot{width:8px;height:8px;border-radius:50%;background:var(--border);transition:all .15s}
+.ui-chip.active .dot{background:var(--primary)}
+/* density */
+html[data-density="ringkas"] .card{padding:11px 13px}
+html[data-density="ringkas"] .btn{padding:6px 12px;font-size:12px}
+html[data-density="ringkas"] input,html[data-density="ringkas"] select,html[data-density="ringkas"] textarea{padding:6px 10px}
+html[data-density="ringkas"] .stat-card{padding:10px 12px}
+html[data-density="ringkas"] .section-title{font-size:17px}
+html[data-density="lega"] .card{padding:24px 26px}
+html[data-density="lega"] .btn{padding:10px 18px}
+html[data-density="lega"] input,html[data-density="lega"] select,html[data-density="lega"] textarea{padding:11px 14px}
+html[data-density="lega"] .stat-card{padding:18px}
+html[data-density="lega"] .section-title{font-size:23px}
+/* glass */
+html[data-glass="1"] .card,html[data-glass="1"] .stat-card,html[data-glass="1"] .modal-content{backdrop-filter:blur(14px) saturate(1.25);-webkit-backdrop-filter:blur(14px) saturate(1.25);background:color-mix(in srgb,var(--card) 76%,transparent)!important}
+/* gradient */
+html[data-gradient="1"] .section-title,html[data-gradient="1"] .card h3,html[data-gradient="1"] h2.judul{background:linear-gradient(95deg,var(--primary),var(--primary-light));-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
+html[data-gradient="1"] .btn-primary,html[data-gradient="1"] .theme-btn{background-image:linear-gradient(120deg,var(--primary),var(--primary-light))}
+/* motion off */
+html[data-motion="0"] *{transition:none!important;animation:none!important}
+html[data-motion="0"] .theme-swatch:hover{transform:none}
 
 /* ============================ Header ============================ */
 header.main{
@@ -127,8 +164,8 @@ nav.main a:focus-visible{outline-offset:-2px}
 .btn-del:hover{background:var(--danger);color:#fff}
 .btn-ghost{background:transparent;color:inherit;border-color:rgba(255,255,255,.32)}
 .btn-ghost:hover{background:rgba(255,255,255,.12)}
-.card .btn-ghost,.modal .btn-ghost,.chat-panel .btn-ghost,.ca-wrap .btn-ghost,#themePopover .btn-ghost,.table-wrap .btn-ghost{color:var(--primary);border-color:color-mix(in srgb,var(--primary) 28%,var(--border));background:var(--card)}
-.card .btn-ghost:hover,.modal .btn-ghost:hover,.table-wrap .btn-ghost:hover,#themePopover .btn-ghost:hover{background:color-mix(in srgb,var(--primary) 8%,var(--card));border-color:var(--primary)}
+.card .btn-ghost,.modal .btn-ghost,.chat-panel .btn-ghost,.ca-wrap .btn-ghost,#themePopover .btn-ghost,#uiPopover .btn-ghost,.table-wrap .btn-ghost{color:var(--primary);border-color:color-mix(in srgb,var(--primary) 28%,var(--border));background:var(--card)}
+.card .btn-ghost:hover,.modal .btn-ghost:hover,.table-wrap .btn-ghost:hover,#themePopover .btn-ghost:hover,#uiPopover .btn-ghost:hover{background:color-mix(in srgb,var(--primary) 8%,var(--card));border-color:var(--primary)}
 .btn-sm{padding:7px 12px;font-size:13px;border-radius:10px}
 .btn:disabled{opacity:.5;cursor:not-allowed}
 
@@ -483,7 +520,7 @@ footer a:hover{color:var(--accent);text-decoration:none}
 html[data-dark] body{background:#080d1a;background-image:radial-gradient(900px 420px at 50% -120px,rgba(59,130,246,.14),transparent 70%)}
 html[data-dark] .card,html[data-dark] .table-wrap,html[data-dark] .chart-wrap,html[data-dark] .stat-card,
 html[data-dark] .org-node,html[data-dark] .ca-list-col,html[data-dark] .ca-conv,html[data-dark] .modal,
-html[data-dark] .chat-panel,html[data-dark] #themePopover,html[data-dark] .foto-hover{
+html[data-dark] .chat-panel,html[data-dark] #themePopover,html[data-dark] #uiPopover,html[data-dark] .foto-hover{
   background:#162036!important;border-color:#3a4f78!important;color:#e8eefc;
   box-shadow:0 0 0 1px rgba(148,163,184,.08),0 14px 34px -14px rgba(0,0,0,.8)
 }
@@ -536,6 +573,7 @@ html[data-dark] .activity-item{border-bottom-color:#26365a}
     <div style="display:flex;align-items:center;gap:14px">
       <span>NIK: 3510180040001 · Badan Hukum: 7418/BH/II/1992</span>
       <button id="themeBtn" class="theme-btn" onclick="toggleThemePopover(event)" title="Ganti tema warna">🎨 Tema</button>
+      <button id="uiBtn" class="theme-btn" onclick="toggleUiPopover(event)" title="Kustomisasi tampilan UI">✨ Tampilan</button>
     </div>
   </div>
 </div>
@@ -543,6 +581,30 @@ html[data-dark] .activity-item{border-bottom-color:#26365a}
   <div style="font-weight:700;margin-bottom:10px;font-size:14px">🎨 Tema Warna</div>
   <div id="themeSwatches" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"></div>
   <button onclick="toggleThemePopover(event)" class="btn btn-ghost btn-sm" style="width:100%;margin-top:12px">Tutup</button>
+</div>
+<div id="uiPopover" style="display:none;position:fixed;z-index:250">
+  <div class="ui-head"><span class="t">✨ Tampilan</span><button class="ui-close" onclick="toggleUiPopover(event)" aria-label="Tutup">×</button></div>
+  <div class="ui-row"><label>Sudut</label><div class="ui-seg" data-k="radius">
+    <button data-v="tajam" onclick="setUi('radius','tajam')">Tajam</button>
+    <button data-v="halus" onclick="setUi('radius','halus')">Halus</button>
+    <button data-v="bulat" onclick="setUi('radius','bulat')">Bulat</button>
+  </div></div>
+  <div class="ui-row"><label>Kepadatan</label><div class="ui-seg" data-k="density">
+    <button data-v="ringkas" onclick="setUi('density','ringkas')">Ringkas</button>
+    <button data-v="nyaman" onclick="setUi('density','nyaman')">Nyaman</button>
+    <button data-v="lega" onclick="setUi('density','lega')">Lega</button>
+  </div></div>
+  <div class="ui-row"><label>Bayangan</label><div class="ui-seg" data-k="shadow">
+    <button data-v="datar" onclick="setUi('shadow','datar')">Datar</button>
+    <button data-v="halus" onclick="setUi('shadow','halus')">Halus</button>
+    <button data-v="tegas" onclick="setUi('shadow','tegas')">Tegas</button>
+  </div></div>
+  <div class="ui-row"><label>Efek</label><div class="ui-chips">
+    <button class="ui-chip" data-k="glass" onclick="setUi('glass',this.classList.contains('active')?'0':'1')"><span class="dot"></span>Kaca</button>
+    <button class="ui-chip" data-k="gradient" onclick="setUi('gradient',this.classList.contains('active')?'0':'1')"><span class="dot"></span>Gradien</button>
+    <button class="ui-chip" data-k="motion" onclick="setUi('motion',this.classList.contains('active')?'0':'1')"><span class="dot"></span>Animasi</button>
+  </div></div>
+  <button onclick="resetUi()" class="btn btn-ghost btn-sm" style="width:100%;margin-top:12px">↺ Reset ke default</button>
 </div>
 
 <!-- Header -->
@@ -2334,8 +2396,43 @@ function setTheme(name, save){
   if (save !== false) localStorage.setItem("kp_theme", name);
   document.querySelectorAll(".theme-swatch").forEach(s=> s.classList.toggle("active", s.dataset.theme===name));
 }
+/* ===== V3.47: kustomisasi UI ===== */
+const UI_PRESETS = {
+  radius:{
+    tajam:{"--r-sm":"4px","--r-md":"6px","--r-lg":"9px","--r-xl":"13px"},
+    halus:{"--r-sm":"8px","--r-md":"12px","--r-lg":"18px","--r-xl":"26px"},
+    bulat:{"--r-sm":"14px","--r-md":"20px","--r-lg":"28px","--r-xl":"40px"}
+  },
+  shadow:{
+    datar:{"--shadow-1":"none","--shadow-2":"0 1px 3px rgba(15,23,42,.07)","--shadow-3":"0 2px 8px rgba(15,23,42,.1)"},
+    halus:{"--shadow-1":"0 1px 2px rgba(15,23,42,.05),0 2px 8px rgba(15,23,42,.04)","--shadow-2":"0 2px 4px rgba(15,23,42,.05),0 12px 32px -8px rgba(15,23,42,.16)","--shadow-3":"0 4px 8px rgba(15,23,42,.08),0 28px 64px -12px rgba(15,23,42,.35)"},
+    tegas:{"--shadow-1":"0 2px 5px rgba(15,23,42,.1),0 4px 14px rgba(15,23,42,.08)","--shadow-2":"0 6px 10px rgba(15,23,42,.14),0 22px 52px -12px rgba(15,23,42,.3)","--shadow-3":"0 10px 18px rgba(15,23,42,.2),0 44px 84px -18px rgba(15,23,42,.55)"}
+  }
+};
+const UI_DEFAULTS = {radius:"halus",density:"nyaman",shadow:"halus",glass:"0",gradient:"0",motion:"1"};
+function uiPrefs(){ return Object.assign({},UI_DEFAULTS, JSON.parse(localStorage.getItem("kp_ui")||"{}")); }
+function applyUiPrefs(){
+  const p=uiPrefs(), root=document.documentElement;
+  ["radius","shadow"].forEach(k=>{ const pr=UI_PRESETS[k][p[k]]; if(pr) Object.entries(pr).forEach(([kk,vv])=>root.style.setProperty(kk,vv)); });
+  root.setAttribute("data-density",p.density);
+  root.setAttribute("data-glass",p.glass);
+  root.setAttribute("data-gradient",p.gradient);
+  root.setAttribute("data-motion",p.motion);
+  document.querySelectorAll(".ui-seg").forEach(seg=>{ const k=seg.dataset.k; seg.querySelectorAll("button").forEach(b=>b.classList.toggle("active",b.dataset.v===p[k])); });
+  ["glass","gradient","motion"].forEach(k=>{ const c=document.querySelector('.ui-chip[data-k="'+k+'"]'); if(c) c.classList.toggle("active",p[k]==="1"); });
+}
+function setUi(k,v){ const p=uiPrefs(); p[k]=v; localStorage.setItem("kp_ui",JSON.stringify(p)); applyUiPrefs(); }
+function resetUi(){ localStorage.removeItem("kp_ui"); applyUiPrefs(); }
+function toggleUiPopover(e){
+  if(e) e.stopPropagation();
+  const p=$("uiPopover"); if(!p) return;
+  const open=p.style.display==="block";
+  p.style.display=open?"none":"block";
+  if(!open){ const tp=$("themePopover"); if(tp) tp.style.display="none"; applyUiPrefs(); }
+}
 function toggleThemePopover(e){
   if (e) e.stopPropagation();
+  const up=$("uiPopover"); if(up) up.style.display="none";
   const p = $("themePopover"); if (!p) return;
   const open = p.style.display === "block";
   p.style.display = open ? "none" : "block";
@@ -2355,6 +2452,8 @@ function toggleThemePopover(e){
 document.addEventListener("click", (e)=>{
   const p=$("themePopover");
   if(p && p.style.display==="block" && !p.contains(e.target) && e.target && e.target.id!=="themeBtn") p.style.display="none";
+  const u=$("uiPopover");
+  if(u && u.style.display==="block" && !u.contains(e.target) && e.target && e.target.id!=="uiBtn") u.style.display="none";
 });
 
 /* --- #3 Lupa Sandi: Email vs OTP WhatsApp --- */
@@ -3895,7 +3994,7 @@ async function cleanupOldChat(){
 function pageChatAnggota(){
   if (!canManageChat()) return pageGate("Chat Anggota","Halaman ini khusus untuk <b>Admin &amp; Bendahara</b>.");
   return `<section class="page active">
-    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.46</span></h2>
+    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.47</span></h2>
     <p class="section-sub"><b>Pilih anggota dari dropdown</b> di kiri atas &mdash; atau klik percakapan terbaru di bawahnya &mdash; lalu percakapan terbuka di panel <b>kanan</b>. Ketik balasan di <b>kotak balas</b> (kanan bawah). Bisa memulai chat baru ke anggota mana pun. Balasan terkirim real-time ke widget anggota. Riwayat maks 1 tahun.</p>
     <div class="ca-wrap" id="caWrap">
       <div class="ca-list-col">
@@ -5677,6 +5776,7 @@ async function syncFromSupabase(){
 
 window.addEventListener("DOMContentLoaded", () => {
   applyTheme();
+  applyUiPrefs();
   updateUserUI();
   nav("beranda");
   // Close modal on overlay click
