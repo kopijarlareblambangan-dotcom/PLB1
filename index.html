@@ -44,7 +44,7 @@ img{max-width:100%;height:auto}
 code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.88em;background:color-mix(in srgb,var(--primary) 8%,transparent);padding:1px 6px;border-radius:5px}
 ::selection{background:var(--accent);color:var(--primary-dark)}
 :focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 85%,#fff);outline-offset:2px;border-radius:6px}
-.container{max-width:1240px;margin:0 auto;padding:0 20px}
+.container{max-width:1440px;margin:0 auto;padding:0 20px}
 .row{display:flex;flex-wrap:wrap;gap:16px}
 .col{flex:1;min-width:0}
 .hidden{display:none!important}
@@ -107,7 +107,7 @@ nav.main a.active{
 }
 nav.main a:focus-visible{outline-offset:-2px}
 /* ===== V3.48: sidebar kiri menu informasi ===== */
-.shell{display:flex;align-items:flex-start;max-width:1240px;margin:0 auto;padding:0 20px;gap:22px}
+.shell{display:flex;align-items:flex-start;max-width:1440px;margin:0 auto;padding:0 20px;gap:22px}
 .side-nav{position:sticky;top:124px;width:188px;flex-shrink:0;padding:18px 0 24px;display:flex;flex-direction:column;gap:2px;align-self:flex-start}
 .side-nav-head{font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;padding:6px 12px 10px}
 .side-nav a{display:flex;align-items:center;gap:9px;padding:10px 12px;border-radius:var(--r-md);color:var(--text);font-size:13.5px;font-weight:600;transition:background .15s,color .15s;text-decoration:none;white-space:nowrap}
@@ -1653,6 +1653,7 @@ function pageUsaha(){
 }
 
 /* ---------- Page: Anggota ---------- */
+let anggotaDetail=false;
 function pageAnggota(){
   const canSeeAll = currentUser && ["pengurus","bendahara","admin"].includes(currentUser.role);
   const canManage = currentUser && ["bendahara","admin"].includes(currentUser.role);
@@ -1680,25 +1681,24 @@ function pageAnggota(){
           <div class="stat-card"><div class="stat-icon yellow">💰</div><div><div class="val">${fmtIDR(totalWajib)}</div><div class="lbl">Total Simpanan Wajib</div></div></div>
         </div>
         ${canManage ? `<div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-success btn-sm" onclick="addAnggota()">+ Tambah Anggota</button>${isAdmin()?piiToggleBtn('No. HP'):''}</div>` : ""}
+        <div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn btn-ghost btn-sm" onclick="anggotaDetail=!anggotaDetail;renderPage('anggota')">${anggotaDetail?'📑 Sembunyikan Detail':'📋 Tampilkan Detail'}</button><span style="font-size:12px;color:var(--muted)">${anggotaDetail?'Semua kolom':'Foto · Nama · ID · Jabatan'}</span></div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Foto</th><th>ID</th><th>Nama</th><th>Unit</th><th>Jabatan</th><th>Alamat</th><th>No. HP</th><th class="num">Sim. Pokok</th><th class="num">Sim. Wajib</th><th>Status</th>${canManage?'<th>Aksi</th>':''}</tr></thead>
+            <thead><tr><th>Foto</th><th>Nama</th><th>ID</th><th>Jabatan</th>${anggotaDetail?'<th>Unit</th><th>Alamat</th><th>No. HP</th><th class="num">Sim. Pokok</th><th class="num">Sim. Wajib</th><th>Status</th>':''}${canManage?'<th>Aksi</th>':''}</tr></thead>
             <tbody>
               ${rows.length ? rows.map(a => {
                 const aktif = (a.status||'Aktif') !== 'Nonaktif';
                 return `<tr>
                   <td>${a.foto?`<img src="${escapeHtml(a.foto)}" style="width:36px;height:36px;border-radius:6px;object-fit:cover">`:`<div style="width:36px;height:36px;border-radius:6px;background:var(--light);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--muted)">👤</div>`}</td>
-                  <td>${escapeHtml(a.id)}</td><td>${escapeHtml(a.nama)}</td><td>${escapeHtml(a.unit||'')}</td><td>${escapeHtml(a.jabatan||'')}</td>
-                  <td style="font-size:12px">${escapeHtml(a.alamat||'-')}</td><td>${escapeHtml(showHP(a.no_hp))}</td>
-                  <td class="num">${fmtIDR(a.simpanan_pokok||0)}</td><td class="num">${fmtIDR(a.simpanan_wajib||0)}</td>
-                  <td><span class="badge ${aktif?'badge-anggota':'badge-pengawas'}">${escapeHtml(a.status||'Aktif')}</span></td>
+                  <td>${escapeHtml(a.nama)}</td><td>${escapeHtml(a.id)}</td><td>${escapeHtml(a.jabatan||'')}</td>
+                  ${anggotaDetail?`<td>${escapeHtml(a.unit||'')}</td><td style="font-size:12px">${escapeHtml(a.alamat||'-')}</td><td>${escapeHtml(showHP(a.no_hp))}</td><td class="num">${fmtIDR(a.simpanan_pokok||0)}</td><td class="num">${fmtIDR(a.simpanan_wajib||0)}</td><td><span class="badge ${aktif?'badge-anggota':'badge-pengawas'}">${escapeHtml(a.status||'Aktif')}</span></td>`:''}}
                   ${canManage?`<td style="white-space:nowrap">
                     <button class="btn btn-blue btn-sm" onclick="editAnggota('${a.id}')">Edit</button>
                     <button class="btn btn-ghost btn-sm" onclick="toggleStatusAnggota('${a.id}')">${aktif?'Nonaktifkan':'Aktifkan'}</button>
                     <button class="btn btn-danger btn-sm" onclick="deleteAnggota('${a.id}')">Hapus</button>
                   </td>`:''}
                 </tr>`;
-              }).join("") : `<tr><td colspan="${canManage?11:10}" style="text-align:center;padding:24px;color:var(--muted)">Belum ada data anggota. ${canManage?'Klik "+ Tambah Anggota" untuk menambah.':''}</td></tr>`}
+              }).join("") : `<tr><td colspan="${4+(anggotaDetail?6:0)+(canManage?1:0)}" style="text-align:center;padding:24px;color:var(--muted)">Belum ada data anggota. ${canManage?'Klik "+ Tambah Anggota" untuk menambah.':''}</td></tr>`}
             </tbody>
           </table>
         </div>
@@ -3480,7 +3480,6 @@ function pageAdmin(){
         <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
           <button class="btn btn-ghost btn-sm" onclick="loadUsers().then(()=>{toast('Daftar pengguna dimuat ulang','success');renderPage('admin')}).catch(()=>{})">↻ Muat Ulang</button>
           ${piiToggleBtn('Email/HP')}
-          <button class="btn btn-success btn-sm" onclick="toast('Pengguna baru didaftarkan via halaman Masuk → Daftar Baru. Setelah anggota mendaftar, kembali ke Panel Admin untuk mengatur perannya.','info')">+ Tambah Pengguna</button>
         </div>
       </div>
       <div class="card" style="margin-top:16px">
@@ -3502,7 +3501,6 @@ function pageAdmin(){
       </div>
       <div class="card" style="margin-top:16px">
         <h3>⚙️ Pengaturan Jasa Pinjaman (Blanko)</h3>
-        <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Nilai jasa yang <strong>terkunci</strong> di form Blanko Pinjaman. Hanya Admin dapat mengubah. Disimpan ke tabel <code>settings</code> (key: <code>jasa_pinjaman_reguler</code> &amp; <code>jasa_pinjaman_khusus</code>).</p>
         <div class="form-grid">
           <div class="form-group"><label>Jasa Pinjaman Reguler (%)</label><input type="number" id="adm_jasa_reg" value="${JASA_REG}" step="0.1"></div>
           <div class="form-group"><label>Jasa Pinjaman Khusus (%)</label><input type="number" id="adm_jasa_khusus" value="${JASA_KHUSUS}" step="0.1"></div>
@@ -3750,11 +3748,24 @@ function updateChatFabVisibility(){
 }
 function backToCaList(){
   activeChatThread=null;
+  const del=$("caDeleteBtn"); if(del) del.style.display="none";
   const wrap=$("caWrap"); if(wrap) wrap.classList.remove("mobile-conv");
   renderCaThreadList(); renderCaMemberSelect();
   const h=$("caHeadTxt"); if(h){ h.style.color="var(--muted)"; h.innerHTML="&#8592; Pilih percakapan di kiri untuk melihat pesan"; }
   const b=$("caBody"); if(b) b.innerHTML='<div style="color:var(--muted);font-size:13px;align-self:center;margin:auto">Belum ada percakapan dipilih.</div>';
   setReplyEnabled(false, "Pilih percakapan dulu untuk membalas...", "&#8592; Pilih percakapan dulu");
+}
+async function deleteChatThread(email){
+  const tid=email||activeChatThread;
+  if(!tid){ toast("Pilih percakapan dulu.","error"); return; }
+  if(!confirm("Hapus seluruh percakapan dengan anggota ini? Tindakan tidak bisa dibatalkan.")) return;
+  if(!IS_LIVE||!sb){ toast("Mode demo — chat tidak tersimpan, tidak ada yang dihapus.","info"); return; }
+  try {
+    const { error } = await sb.from("chat_messages").delete().eq("thread_id", tid);
+    if (error) throw error;
+    toast("Percakapan dihapus.","success");
+    backToCaList(); loadChatThreads();
+  } catch(e){ toast("Gagal hapus: "+(e.message||e),"error"); }
 }
 function setupChatInit(){
   const bl=$("brandLogo"), av=$("chatAvatar");
@@ -3916,8 +3927,7 @@ async function cleanupOldChat(){
 function pageChatAnggota(){
   if (!canManageChat()) return pageGate("Chat Anggota","Halaman ini khusus untuk <b>Admin &amp; Bendahara</b>.");
   return `<section class="page active">
-    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.48</span></h2>
-    <p class="section-sub"><b>Pilih anggota dari dropdown</b> di kiri atas &mdash; atau klik percakapan terbaru di bawahnya &mdash; lalu percakapan terbuka di panel <b>kanan</b>. Ketik balasan di <b>kotak balas</b> (kanan bawah). Bisa memulai chat baru ke anggota mana pun. Balasan terkirim real-time ke widget anggota. Riwayat maks 1 tahun.</p>
+    <h2>&#128172; Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.49</span></h2>
     <div class="ca-wrap" id="caWrap">
       <div class="ca-list-col">
         <div class="ca-member-bar">
@@ -3929,7 +3939,7 @@ function pageChatAnggota(){
         <div class="ca-list" id="caThreadList"><div style="padding:14px;color:var(--muted);font-size:13px">Memuat...</div></div>
       </div>
       <div class="ca-conv" id="caConv">
-        <div class="ca-head" id="caHead"><button class="ca-back" onclick="backToCaList()" title="Kembali ke daftar">&#8592;</button><span id="caHeadTxt" style="color:var(--muted)">&#8592; Pilih percakapan di kiri untuk melihat pesan</span></div>
+        <div class="ca-head" id="caHead"><button class="ca-back" onclick="backToCaList()" title="Kembali ke daftar">&#8592;</button><span id="caHeadTxt" style="color:var(--muted)">&#8592; Pilih percakapan di kiri untuk melihat pesan</span><button id="caDeleteBtn" class="btn btn-danger btn-sm" onclick="deleteChatThread()" style="margin-left:auto;display:none" title="Hapus percakapan ini">&#128465; Hapus</button></div>
         <div class="ca-body" id="caBody"><div style="color:var(--muted);font-size:13px;align-self:center;margin:auto">Belum ada percakapan dipilih.</div></div>
         <div class="ca-reply-foot" id="caFoot">
           <div class="ca-reply-head" id="caReplyHead">&#8592; Pilih percakapan dulu</div>
@@ -3977,6 +3987,7 @@ function escapeAttrJS(s){ return String(s||"").replace(/\\/g,"\\\\").replace(/'/
 
 async function openChatThread(email){
   activeChatThread=email;
+  const del=$("caDeleteBtn"); if(del) del.style.display=(IS_LIVE&&sb)?"inline-flex":"none";
   const wrap=$("caWrap"); if(wrap) wrap.classList.add("mobile-conv");
   if (adminUnread[email]){ delete adminUnread[email]; updateNavChatBadge(); }
   renderCaMemberSelect();
