@@ -1963,7 +1963,8 @@ function pageInput(){
               <div class="form-group"><label>Pengajuan Pinjaman (yg disetujui)</label><select name="pengajuan_id" id="pelPengajuan" required onchange="updatePelunasanSisaInfo()">${pelunasanPengajuanOpts()}</select></div>
               <div class="form-group"><label>Tanggal Pelunasan</label><input type="date" name="tanggal" id="pelTanggal" required onchange="updatePelunasanSisaInfo()"></div>
               <div class="form-group"><label>Jumlah Pelunasan Pokok (Rp)</label><input type="number" name="jumlah" id="pelJumlah" placeholder="pokok dibayar (≤ sisa pokok)" required min="0" oninput="updatePelunasanSisaInfo()"></div>
-              <div class="form-group" style="grid-column:1/-1"><div id="pelSisaInfo" style="font-size:13px;color:var(--muted);padding:8px 10px;background:var(--light);border-radius:8px;border:1px solid var(--border)">Pilih pengajuan untuk lihat sisa pokok &amp; jasa.</div></div>
+              <div class="form-group"><label>Sisa Pokok (Rp)</label><input id="pelSisaPokok" readonly placeholder="—" style="background:var(--light);font-weight:700"></div>
+              <div class="form-group" style="grid-column:1/-1"><div id="pelSisaInfo" style="display:none;font-size:13px;color:var(--muted);padding:8px 10px;background:var(--light);border-radius:8px;border:1px solid var(--border)"></div></div>
               <div class="form-group" style="grid-column:1/-1"><label>Keterangan</label><input type="text" name="keterangan" placeholder="opsional: angsuran ke-3, pelunasan dipercepat, dst"></div>
             </div>
             <button class="btn btn-primary" type="submit">Simpan Pelunasan</button>
@@ -2692,27 +2693,35 @@ function filterPelunasanPengajuan(anggotaId){
   updatePelunasanSisaInfo();
 }
 function updatePelunasanSisaInfo(){
-  const box=document.getElementById("pelSisaInfo"); if(!box) return;
   const sel=document.querySelector('#in-pelunasan select[name="pengajuan_id"]');
   const pengId=sel?sel.value:"";
-  if(!pengId){ box.innerHTML='Pilih pengajuan untuk lihat sisa pokok &amp; jasa.'; box.style.color="var(--muted)"; return; }
+  const sisaEl=document.getElementById("pelSisaPokok");
+  const box=document.getElementById("pelSisaInfo");
+  if(!pengId){
+    if(sisaEl) sisaEl.value="";
+    if(box){ box.innerHTML=""; box.style.display="none"; }
+    return;
+  }
   const peng=pengajuanRowsRaw().find(p=>String(p.id)===String(pengId))||{};
-  const pokok=Number(peng.pokok)||0;
   const sisa=_sisaPokokPengajuan(pengId);
+  if(sisaEl) sisaEl.value = sisa>0 ? fmtIDR(sisa) : "0";
   const tglEl=document.querySelector('#in-pelunasan input[name="tanggal"]');
   const tgl=tglEl?tglEl.value:"";
-  const jasa=_jasaPelunasan(peng, tgl, jumlah);
   const jmlEl=document.querySelector('#in-pelunasan input[name="jumlah"]');
   const jumlah=Number(jmlEl&&jmlEl.value)||0;
+  const jasa=_jasaPelunasan(peng, tgl, jumlah);
   const jenis=String(peng.jenis||"-");
   const isK=jenis.toLowerCase().includes("khusus");
   const months=tgl?Math.max(0,_monthsBetween(peng.tanggal,tgl)):0;
   const note = isK ? ' (= '+months+' bln × '+(Number(peng.jasa_khusus)||JASA_KHUSUS)+'% × pinjaman khusus)' : (jenis.toLowerCase().includes('reguler')||jenis.toLowerCase().includes('barang')?' (= '+(Number(peng.jasa_reg)||JASA_REG)+'% × reguler+barang, 1 bln)':'');
-  box.style.color="var(--muted)";
-  let h='<b>'+escapeHtml(jenis)+'</b> · Pokok: <b>'+fmtIDR(pokok)+'</b> · Sisa Pokok: <b>'+fmtIDR(sisa)+'</b> · Jasa: <b>'+fmtIDR(jasa)+'</b>'+note;
-  if (jumlah>0) h += ' · Total Diterima: <b>'+fmtIDR(jumlah+jasa)+'</b>';
-  if (jumlah>sisa) h += '<br><span style="color:var(--danger);font-weight:600">⚠ Jumlah melebihi sisa pokok! Maks '+fmtIDR(sisa)+'</span>';
-  box.innerHTML=h;
+  if(box){
+    box.style.color="var(--muted)";
+    let h='<b>'+escapeHtml(jenis)+'</b> · Jasa: <b>'+fmtIDR(jasa)+'</b>'+note;
+    if (jumlah>0) h += ' · Total Diterima: <b>'+fmtIDR(jumlah+jasa)+'</b>';
+    if (jumlah>sisa) h += '<br><span style="color:var(--danger);font-weight:600">⚠ Jumlah melebihi sisa pokok! Maks '+fmtIDR(sisa)+'</span>';
+    box.innerHTML=h;
+    box.style.display="block";
+  }
 }
 /* ===== Simpanan Wajib Bulanan (upload Excel + auto-jurnal, akumulasi otomatis) ===== */
 let liveSimpananWajibBulanan = [];
@@ -4217,7 +4226,7 @@ async function cleanupOldChat(){
 function pageChatAnggota(){
   if (!canManageChat()) return pageGate("Chat Anggota","Halaman ini khusus untuk <b>Admin &amp; Bendahara</b>.");
   return `<section class="page active">
-    <h2><span class="chat-ic"></span> Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.52</span></h2>
+    <h2><span class="chat-ic"></span> Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.53</span></h2>
     <div class="ca-wrap" id="caWrap">
       <div class="ca-list-col">
         <div class="ca-member-bar">
