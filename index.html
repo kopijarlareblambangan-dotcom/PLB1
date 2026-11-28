@@ -2658,17 +2658,29 @@ function _monthsBetween(tglA, tglB){
   if(isNaN(a)||isNaN(b)) return 0;
   return (b.getFullYear()-a.getFullYear())*12 + (b.getMonth()-a.getMonth());
 }
-function _jasaPelunasan(peng, tgl){
-  const pokok=Number(peng&&peng.pokok)||0;
+function _jasaPelunasan(peng, tgl, jumlah){
+  // jumlah = pokok yg dibayar (utk deteksi lump-sum khusus pd pinjaman campuran)
   const jenis=String(peng&&peng.jenis||"").toLowerCase();
-  if (pokok<=0) return 0;
-  if (jenis.includes("khusus")){
+  const reg=Number(peng&&peng.reguler)||0, bar=Number(peng&&peng.barang)||0, khu=Number(peng&&peng.khusus)||0;
+  const pokokTot=Number(peng&&peng.pokok)||0;
+  const jml=Math.round(Number(jumlah)||0);
+  const hasKhusus = khu>0 || jenis.includes("khusus");
+  const hasReg = (reg+bar)>0 || jenis.includes("reguler") || jenis.includes("barang");
+  // lump-sum khusus: pinjaman murni khusus, ATAU campuran dgn jumlah >= 0.9*khu (pelunasan dipercepat)
+  const isLumpKhusus = hasKhusus && (!hasReg || (khu>0 && jml>=khu*0.9));
+  if (isLumpKhusus){
+    // jasa khusus = (bln pelunasan - bln pinjam) x jasa_khusus% x pinjaman khusus (flat bulanan)
+    const base = khu>0 ? khu : pokokTot;
+    if (base<=0) return 0;
     const months=Math.max(0,_monthsBetween(peng&&peng.tanggal, tgl));
-    return Math.round(months * (JASA_KHUSUS/100) * pokok);
+    const rate=Number(peng&&peng.jasa_khusus)||JASA_KHUSUS;
+    return Math.round(months * (rate/100) * base);
   }
-  const tenor=Number(peng&&peng.tenor)||0, angsBln=Number(peng&&peng.angsuran_bln)||0;
-  if (tenor>0 && angsBln>0){ const jasaPerBln=angsBln-(pokok/tenor); return Math.max(0, Math.round(jasaPerBln)); }
-  return 0;
+  // reguler/barang (angsuran bulanan): jasa 1 bln = (reguler+barang) x jasa_reg% (flat bulanan)
+  const base = (reg+bar)>0 ? (reg+bar) : pokokTot;
+  if (base<=0) return 0;
+  const jr=Number(peng&&peng.jasa_reg)||JASA_REG;
+  return Math.round(base * (jr/100));
 }
 function filterPelunasanPengajuan(anggotaId){
   const sel=document.querySelector('#in-pelunasan select[name="pengajuan_id"]');
@@ -2689,13 +2701,13 @@ function updatePelunasanSisaInfo(){
   const sisa=_sisaPokokPengajuan(pengId);
   const tglEl=document.querySelector('#in-pelunasan input[name="tanggal"]');
   const tgl=tglEl?tglEl.value:"";
-  const jasa=_jasaPelunasan(peng, tgl);
+  const jasa=_jasaPelunasan(peng, tgl, jumlah);
   const jmlEl=document.querySelector('#in-pelunasan input[name="jumlah"]');
   const jumlah=Number(jmlEl&&jmlEl.value)||0;
   const jenis=String(peng.jenis||"-");
   const isK=jenis.toLowerCase().includes("khusus");
   const months=tgl?Math.max(0,_monthsBetween(peng.tanggal,tgl)):0;
-  const note = isK ? ' (= '+months+' bln × '+JASA_KHUSUS+'% × pokok)' : (jenis.toLowerCase().includes('reguler')||jenis.toLowerCase().includes('barang')?' (jasa 1 bln)':'');
+  const note = isK ? ' (= '+months+' bln × '+(Number(peng.jasa_khusus)||JASA_KHUSUS)+'% × pinjaman khusus)' : (jenis.toLowerCase().includes('reguler')||jenis.toLowerCase().includes('barang')?' (= '+(Number(peng.jasa_reg)||JASA_REG)+'% × reguler+barang, 1 bln)':'');
   box.style.color="var(--muted)";
   let h='<b>'+escapeHtml(jenis)+'</b> · Pokok: <b>'+fmtIDR(pokok)+'</b> · Sisa Pokok: <b>'+fmtIDR(sisa)+'</b> · Jasa: <b>'+fmtIDR(jasa)+'</b>'+note;
   if (jumlah>0) h += ' · Total Diterima: <b>'+fmtIDR(jumlah+jasa)+'</b>';
@@ -3393,7 +3405,7 @@ function _journalRowsPelunasan(pel, peng){
   const jumlah=Math.round(Number(pel&&pel.jumlah)||0);
   if (jumlah<=0) return [];
   const tgl = (pel&&pel.tanggal) || ((Number(pel&&pel.tahun)||new Date().getFullYear())+"-"+String(Number(pel&&pel.bulan)||1).padStart(2,"0")+"-01");
-  const jasaR = _jasaPelunasan(peng, tgl);
+  const jasaR = _jasaPelunasan(peng, tgl, pel&&pel.jumlah);
   const pokokR = jumlah;
   const total = jumlah + jasaR;
   const noBukti = _pelunasanNoBukti(pel);
@@ -4205,7 +4217,7 @@ async function cleanupOldChat(){
 function pageChatAnggota(){
   if (!canManageChat()) return pageGate("Chat Anggota","Halaman ini khusus untuk <b>Admin &amp; Bendahara</b>.");
   return `<section class="page active">
-    <h2><span class="chat-ic"></span> Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.51</span></h2>
+    <h2><span class="chat-ic"></span> Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.52</span></h2>
     <div class="ca-wrap" id="caWrap">
       <div class="ca-list-col">
         <div class="ca-member-bar">
@@ -5398,9 +5410,9 @@ function blankoHitung(){
   const tenor = Number($("bk_tenor").value)||0;
   const kali = Number($("bk_angsuran_kali").value)||0;
   if ($("bk_jaminan")) $("bk_jaminan").textContent = fmtIDR(Math.round(reg*0.01));
-  // Angsuran/bulan (flat): pokok (reguler+barang) + jasa total (pokok*jasa%*tenor/12) dibagi jumlah angsuran
+  // Angsuran/bulan (flat bulanan): pokok (reguler+barang) + jasa total (pokok × jasaReg% × tenor) dibagi jumlah angsuran
   const pokok = reg + bar;
-  const jasaTotal = pokok * (jasaReg/100) * (tenor/12);
+  const jasaTotal = pokok * (jasaReg/100) * tenor;
   const angsBln = (kali > 0) ? Math.round((pokok + jasaTotal) / kali) : 0;
   if ($("bk_angsuran_bln")) $("bk_angsuran_bln").value = angsBln;
   if ($("bk_angsuran_bln_terbilang")) $("bk_angsuran_bln_terbilang").value = angsBln>0 ? terbilang(angsBln) : "";
@@ -5417,7 +5429,7 @@ function blankoHitung(){
     lamaBulan = (thnLunas - y0)*12 + (blnLunas - m0);
     if (lamaBulan < 0) lamaBulan = 0;
   }
-  const jasaKhususRp = Math.round(khu * (jasaKhu/100) * lamaBulan/12);
+  const jasaKhususRp = Math.round(khu * (jasaKhu/100) * lamaBulan);
   const pelunasanKhusus = khu + jasaKhususRp;
   if ($("bk_lama_bulan")) $("bk_lama_bulan").value = lamaBulan + " bulan";
   if ($("bk_jasa_khusus_rp")) $("bk_jasa_khusus_rp").value = jasaKhususRp;
@@ -5447,7 +5459,7 @@ function cetakBlanko(){
     const d0 = new Date(tgl); const m0 = d0.getMonth()+1, y0 = d0.getFullYear();
     lamaBulan = (thnLunas - y0)*12 + (blnLunas - m0);
     if (lamaBulan < 0) lamaBulan = 0;
-    jasaKhususRp = Math.round(khu * (jasaKhu/100) * lamaBulan/12);
+    jasaKhususRp = Math.round(khu * (jasaKhu/100) * lamaBulan);
     pelunasanKhusus = khu + jasaKhususRp;
   }
   const blnLunasNama = blnLunas ? BULAN_ID[blnLunas-1] : "...";
