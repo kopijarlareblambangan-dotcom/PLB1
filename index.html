@@ -3239,7 +3239,7 @@ function pageSisaAngsuran(){
   });
   const escAttr = s => String(s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");
   const rowRB = r => '<tr class="sa-row" data-nama="'+escAttr(r.p.nama)+'" data-id="'+escAttr(r.p.anggota_id)+'" data-tg="'+r.tanggungan+'"><td>'+escapeHtml(r.p.nama||'-')+'<br><span style="color:var(--muted);font-size:11px">'+escapeHtml(r.p.anggota_id||'')+'</span></td><td>'+escapeHtml(r.p.jenis||'')+'</td><td class="num">'+fmtIDR(Number(r.p.pokok)||0)+'</td><td>'+(r.p.tenor||0)+' bln</td><td class="num">'+fmtIDR(Number(r.p.angsuran_bln)||0)+'</td><td>'+(r.p.tgl_potong?('Tgl '+escapeHtml(r.p.tgl_potong)):'-')+'</td><td>'+r.angKe+'</td><td class="num">'+fmtIDR(r.dibayar)+'</td><td class="num">'+fmtIDR(r.sisaPokok)+'</td><td>'+r.sisaTenor+' bln</td><td>'+_badge(r.lunas?'Lunas':'Aktif')+'</td></tr>';
-  const rowK = r => '<tr class="sa-row" data-nama="'+escAttr(r.p.nama)+'" data-id="'+escAttr(r.p.anggota_id)+'" data-tg="'+r.tanggungan+'"><td>'+escapeHtml(r.p.nama||'-')+'<br><span style="color:var(--muted);font-size:11px">'+escapeHtml(r.p.anggota_id||'')+'</span></td><td class="num">'+fmtIDR(Number(r.p.pokok)||0)+'</td><td class="num">'+fmtIDR(Number(r.p.khusus)||0)+'</td><td>'+(r.p.tenor||0)+' bln</td><td><strong>'+escapeHtml(r.jt)+'</strong></td><td class="num">'+fmtIDR(r.dibayar)+'</td><td>'+_badge(r.lunas?'Lunas':'Aktif')+'</td></tr>';
+  const rowK = r => '<tr class="sa-row" data-nama="'+escAttr(r.p.nama)+'" data-id="'+escAttr(r.p.anggota_id)+'" data-tg="'+r.tanggungan+'"><td>'+escapeHtml(r.p.nama||'-')+'<br><span style="color:var(--muted);font-size:11px">'+escapeHtml(r.p.anggota_id||'')+'</span></td><td class="num">'+fmtIDR(Number(r.p.pokok)||0)+'</td><td class="num">'+fmtIDR(Number(r.p.khusus)||0)+'</td><td>'+(r.p.tenor||0)+' bln</td><td><strong>'+escapeHtml(r.jt)+'</strong></td><td class="num">'+fmtIDR(r.dibayar)+'</td><td class="num">'+fmtIDR(r.sisa)+'</td><td>'+_badge(r.lunas?'Lunas':'Aktif')+'</td></tr>';
   const totalTanggungan = reguler.reduce((s,r)=>s+(r.tanggungan?r.sisaPokok:0),0) + khusus.reduce((s,r)=>s+(r.tanggungan?r.sisa:0),0);
   const filterBar = isStaff ? `
       <div class="card" style="margin-bottom:16px">
@@ -3262,7 +3262,7 @@ function pageSisaAngsuran(){
       </div>
       <div class="card">
         <h3>⏰ Pinjaman Khusus — Jatuh Tempo</h3>
-        ${khusus.length ? '<div class="table-wrap"><table style="font-size:12px"><thead><tr><th>Anggota</th><th class="num">Pokok</th><th class="num">Pinj. Khusus</th><th>Tenor</th><th>Jatuh Tempo</th><th class="num">Dibayar</th><th>Status</th></tr></thead><tbody>'+khusus.map(rowK).join('')+'</tbody></table></div>' : '<p style="color:var(--muted);font-size:13px">Belum ada pinjaman khusus aktif.</p>'}
+        ${khusus.length ? '<div class="table-wrap"><table style="font-size:12px"><thead><tr><th>Anggota</th><th class="num">Pokok</th><th class="num">Pinj. Khusus</th><th>Tenor</th><th>Jatuh Tempo</th><th class="num">Dibayar</th><th class="num">Sisa Pokok</th><th>Status</th></tr></thead><tbody>'+khusus.map(rowK).join('')+'</tbody></table></div>' : '<p style="color:var(--muted);font-size:13px">Belum ada pinjaman khusus aktif.</p>'}
       </div>
     </div>
   </section>`;
@@ -4226,7 +4226,7 @@ async function cleanupOldChat(){
 function pageChatAnggota(){
   if (!canManageChat()) return pageGate("Chat Anggota","Halaman ini khusus untuk <b>Admin &amp; Bendahara</b>.");
   return `<section class="page active">
-    <h2><span class="chat-ic"></span> Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.53</span></h2>
+    <h2><span class="chat-ic"></span> Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.54</span></h2>
     <div class="ca-wrap" id="caWrap">
       <div class="ca-list-col">
         <div class="ca-member-bar">
