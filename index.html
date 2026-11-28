@@ -2962,7 +2962,8 @@ async function submitPelunasan(e){
   };
   await saveRecord("pelunasan_pinjaman", data, "Pelunasan");
   // auto-jurnal ke Buku Besar (Dr Kas = pokok+jasa, Cr Piutang = pokok, Cr Pendapatan Jasa = jasa)
-  try { await _bbInsertRows(_journalRowsPelunasan(data, peng)); } catch(e){ console.warn("jurnal pelunasan gagal:", e); }
+  try { await _bbInsertRows(_journalRowsPelunasan(data, peng)); }
+  catch(e){ console.warn("jurnal pelunasan gagal:", e); toast("Pelunasan tersimpan, tapi jurnal Buku Besar GAGAL: "+(e&&e.message||e)+". Buka Console (F12) untuk detail.","error"); }
   toast("Pelunasan tersimpan. Sisa pokok: "+fmtIDR(Math.max(0,sisaPokok-jumlah))+".","success");
   f.reset();
   updatePelunasanSisaInfo();
@@ -3435,6 +3436,10 @@ async function _bbInsertRows(rows){
       const { error }=await sb.from("buku_besar").insert(payload.slice(i,i+CHUNK));
       if (error){ toast("Gagal menulis jurnal Buku Besar: "+error.message,"error"); return; }
     }
+    // V3.55: refresh cache in-memory agar jurnal LANGSUNG tampil di view Buku Besar
+    // (sebelumnya liveBukuBesar tdk diupdate -> baris baru tak terlihat sampai reload)
+    const _now=new Date().toISOString();
+    payload.forEach((r,i)=>liveBukuBesar.push({...r, id:Date.now()+i, created_at:_now}));
   } else {
     const arr=loadArr("demo_buku_besar");
     const now=new Date().toISOString();
@@ -4226,7 +4231,7 @@ async function cleanupOldChat(){
 function pageChatAnggota(){
   if (!canManageChat()) return pageGate("Chat Anggota","Halaman ini khusus untuk <b>Admin &amp; Bendahara</b>.");
   return `<section class="page active">
-    <h2><span class="chat-ic"></span> Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.54</span></h2>
+    <h2><span class="chat-ic"></span> Chat Anggota <span style="font-size:11px;color:var(--muted);font-weight:400;border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-left:6px">v3.55</span></h2>
     <div class="ca-wrap" id="caWrap">
       <div class="ca-list-col">
         <div class="ca-member-bar">
